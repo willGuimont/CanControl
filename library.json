@@ -1,0 +1,23 @@
+{
+    "name": "CanControl",
+    "version": "0.0.1",
+    "description": "Control CAN motors from Arduino",
+    "keywords": "can, canbus, rev, sparkmax",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/willGuimont/CanControl"
+    },
+    "authors": [
+        {
+            "name": "William Guimont-Martin",
+            "email": "willGuimont@gmail.com",
+            "url": "https://willguimont.com/",
+            "maintainer": true
+        }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/willGuimont/CanControl",
+    "dependencies": {},
+    "frameworks": "*",
+    "platforms": "*"
+}
