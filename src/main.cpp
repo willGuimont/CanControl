@@ -46,14 +46,71 @@ static void send_velocity_example() {
 	mcp2515.sendMessage(&f);
 }
 
+static void send_get_temperatures(uint8_t device_id) {
+	// Build an RTR request for temperatures
+	SparkCanFrame s;
+	// Values pointer can be NULL for RTR frames
+	spark_build_GET_TEMPERATURES(device_id, nullptr, &s);
+
+	struct can_frame f = {};
+	f.can_id = (s.id & 0x1FFFFFFFUL) | CAN_EFF_FLAG | CAN_RTR_FLAG;
+	f.can_dlc = s.dlc; // expected 8
+	mcp2515.sendMessage(&f);
+}
+
+static void handle_frame(const struct can_frame &f) {
+	const uint32_t id = f.can_id & 0x1FFFFFFFUL;
+	// STATUS_0 sample decode
+	if (SPARK_MATCH_STATUS_0(id)) {
+		Spark_STATUS_0_t s0;
+		if (spark_decode_STATUS_0(f.data, f.can_dlc, &s0)) {
+			Serial.print(F("STATUS_0: applied="));
+			Serial.print(s0.APPLIED_OUTPUT, 6);
+			Serial.print(F(" V="));
+			Serial.print(s0.VOLTAGE);
+			Serial.print(F(" A="));
+			Serial.println(s0.CURRENT);
+		}
+		return;
+	}
+	// Temperatures sample decode
+	if (SPARK_MATCH_GET_TEMPERATURES(id)) {
+		Spark_GET_TEMPERATURES_t temps;
+		if (spark_decode_GET_TEMPERATURES(f.data, f.can_dlc, &temps)) {
+			Serial.print(F("TEMPS: motor="));
+			Serial.print(temps.MOTOR_TEMPERATURE);
+			Serial.print(F(" mcu="));
+			Serial.print(temps.MICROCONTROLLER_TEMPERATURE);
+			Serial.print(F(" fet="));
+			Serial.println(temps.FET_TEMPERATURE);
+		}
+		return;
+	}
+}
+
+static void poll_can() {
+	struct can_frame f;
+	// Read up to a few frames per loop to keep responsiveness
+	for (int i = 0; i < 5; ++i) {
+		if (mcp2515.readMessage(&f) == MCP2515::ERROR_OK) {
+			handle_frame(f);
+		} else {
+			break;
+		}
+	}
+}
+
+#ifndef UNIT_TEST
 void setup() {
 	SPI.begin();
 	mcp2515.reset();
 	mcp2515.setBitrate(MCP2515_SPEED, MCP2515_OSC);
 	mcp2515.setNormalMode();
+	Serial.begin(115200);
 
 	// Send once at boot
 	send_velocity_example();
+	send_get_temperatures(3);
 }
 
 void loop() {
@@ -61,6 +118,10 @@ void loop() {
 	static unsigned long last = 0;
 	if (millis() - last > 1000) {
 		send_velocity_example();
+		send_get_temperatures(3);
 		last = millis();
 	}
+	// Continuously poll and decode incoming frames
+	poll_can();
 }
+#endif
