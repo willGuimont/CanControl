@@ -1,0 +1,2790 @@
+// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py
+#pragma once
+#include <stdint.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define SPARK_DEVICE_ID_MASK 0x3Fu
+
+typedef struct {
+    uint32_t id;  // 29-bit extended ID
+    uint8_t dlc;  // data length (0-8)
+    uint8_t data[8];
+    bool is_rtr;
+} SparkCanFrame;
+
+// Base arbitration IDs (OR with device_id & SPARK_DEVICE_ID_MASK)
+#define SPARK_ARB_VELOCITY_SETPOINT 33882112u
+#define SPARK_ARB_DUTY_CYCLE_SETPOINT 33882240u
+#define SPARK_ARB_SMART_VELOCITY_SETPOINT 33882304u
+#define SPARK_ARB_POSITION_SETPOINT 33882368u
+#define SPARK_ARB_VOLTAGE_SETPOINT 33882432u
+#define SPARK_ARB_CURRENT_SETPOINT 33882496u
+#define SPARK_ARB_SMART_MOTION_SETPOINT 33882560u
+#define SPARK_ARB_MAXMOTION_POSITION_SETPOINT 33882624u
+#define SPARK_ARB_MAXMOTION_VELOCITY_SETPOINT 33882688u
+#define SPARK_ARB_SET_STATUSES_ENABLED 33883136u
+#define SPARK_ARB_SET_STATUSES_ENABLED_RESPONSE 33883200u
+#define SPARK_ARB_PERSIST_PARAMETERS_RESPONSE 33883392u
+#define SPARK_ARB_RESET_SAFE_PARAMETERS 33883456u
+#define SPARK_ARB_RESET_SAFE_PARAMETERS_RESPONSE 33883520u
+#define SPARK_ARB_COMPLETE_FACTORY_RESET 33883584u
+#define SPARK_ARB_COMPLETE_FACTORY_RESET_RESPONSE 33883648u
+#define SPARK_ARB_CLEAR_FAULTS 33889152u
+#define SPARK_ARB_IDENTIFY_UNIQUE_SPARK 33889664u
+#define SPARK_ARB_IDENTIFY 33889728u
+#define SPARK_ARB_NACK 33890304u
+#define SPARK_ARB_ACK 33890368u
+#define SPARK_ARB_LED_SYNC 33891520u
+#define SPARK_ARB_SET_CAN_ID 33891648u
+#define SPARK_ARB_GET_FIRMWARE_VERSION 33891840u
+#define SPARK_ARB_SWDL_DATA 33892096u
+#define SPARK_ARB_SWDL_CHECKSUM 33892160u
+#define SPARK_ARB_SWDL_RETRANSMIT 33892224u
+#define SPARK_ARB_SET_PRIMARY_ENCODER_POSITION 33892352u
+#define SPARK_ARB_SET_I_ACCUMULATION 33892480u
+#define SPARK_ARB_SET_ANALOG_POSITION 33892544u
+#define SPARK_ARB_SET_EXT_OR_ALT_ENCODER_POSITION 33892608u
+#define SPARK_ARB_SET_DUTY_CYCLE_POSITION 33892672u
+#define SPARK_ARB_SECONDARY_HEARTBEAT 33893504u
+#define SPARK_ARB_USB_ONLY_IDENTIFY 33893568u
+#define SPARK_ARB_USB_ONLY_ENTER_DFU_BOOTLOADER 33893632u
+#define SPARK_ARB_GET_TEMPERATURES 33894400u
+#define SPARK_ARB_GET_MOTOR_INTERFACE 33894720u
+#define SPARK_ARB_GET_PARAMETER_0_TO_15_TYPES 33895424u
+#define SPARK_ARB_GET_PARAMETER_16_TO_31_TYPES 33895488u
+#define SPARK_ARB_GET_PARAMETER_32_TO_47_TYPES 33895552u
+#define SPARK_ARB_GET_PARAMETER_48_TO_63_TYPES 33895616u
+#define SPARK_ARB_GET_PARAMETER_64_TO_79_TYPES 33895680u
+#define SPARK_ARB_GET_PARAMETER_80_TO_95_TYPES 33895744u
+#define SPARK_ARB_GET_PARAMETER_96_TO_111_TYPES 33895808u
+#define SPARK_ARB_GET_PARAMETER_112_TO_127_TYPES 33895872u
+#define SPARK_ARB_GET_PARAMETER_128_TO_143_TYPES 33895936u
+#define SPARK_ARB_GET_PARAMETER_144_TO_159_TYPES 33896000u
+#define SPARK_ARB_GET_PARAMETER_160_TO_175_TYPES 33896064u
+#define SPARK_ARB_GET_PARAMETER_176_TO_191_TYPES 33896128u
+#define SPARK_ARB_GET_PARAMETER_192_TO_207_TYPES 33896192u
+#define SPARK_ARB_GET_PARAMETER_208_TO_223_TYPES 33896256u
+#define SPARK_ARB_GET_PARAMETER_224_TO_239_TYPES 33896320u
+#define SPARK_ARB_GET_PARAMETER_240_TO_255_TYPES 33896384u
+#define SPARK_ARB_PARAMETER_WRITE 33896448u
+#define SPARK_ARB_PARAMETER_WRITE_RESPONSE 33896512u
+#define SPARK_ARB_READ_PARAMETER_0_AND_1 33897472u
+#define SPARK_ARB_READ_PARAMETER_2_AND_3 33897536u
+#define SPARK_ARB_READ_PARAMETER_4_AND_5 33897600u
+#define SPARK_ARB_READ_PARAMETER_6_AND_7 33897664u
+#define SPARK_ARB_READ_PARAMETER_8_AND_9 33897728u
+#define SPARK_ARB_READ_PARAMETER_10_AND_11 33897792u
+#define SPARK_ARB_READ_PARAMETER_12_AND_13 33897856u
+#define SPARK_ARB_READ_PARAMETER_14_AND_15 33897920u
+#define SPARK_ARB_READ_PARAMETER_16_AND_17 33897984u
+#define SPARK_ARB_READ_PARAMETER_18_AND_19 33898048u
+#define SPARK_ARB_READ_PARAMETER_20_AND_21 33898112u
+#define SPARK_ARB_READ_PARAMETER_22_AND_23 33898176u
+#define SPARK_ARB_READ_PARAMETER_24_AND_25 33898240u
+#define SPARK_ARB_READ_PARAMETER_26_AND_27 33898304u
+#define SPARK_ARB_READ_PARAMETER_28_AND_29 33898368u
+#define SPARK_ARB_READ_PARAMETER_30_AND_31 33898432u
+#define SPARK_ARB_READ_PARAMETER_32_AND_33 33898496u
+#define SPARK_ARB_READ_PARAMETER_34_AND_35 33898560u
+#define SPARK_ARB_READ_PARAMETER_36_AND_37 33898624u
+#define SPARK_ARB_READ_PARAMETER_38_AND_39 33898688u
+#define SPARK_ARB_READ_PARAMETER_40_AND_41 33898752u
+#define SPARK_ARB_READ_PARAMETER_42_AND_43 33898816u
+#define SPARK_ARB_READ_PARAMETER_44_AND_45 33898880u
+#define SPARK_ARB_READ_PARAMETER_46_AND_47 33898944u
+#define SPARK_ARB_READ_PARAMETER_48_AND_49 33899008u
+#define SPARK_ARB_READ_PARAMETER_50_AND_51 33899072u
+#define SPARK_ARB_READ_PARAMETER_52_AND_53 33899136u
+#define SPARK_ARB_READ_PARAMETER_54_AND_55 33899200u
+#define SPARK_ARB_READ_PARAMETER_56_AND_57 33899264u
+#define SPARK_ARB_READ_PARAMETER_58_AND_59 33899328u
+#define SPARK_ARB_READ_PARAMETER_60_AND_61 33899392u
+#define SPARK_ARB_READ_PARAMETER_62_AND_63 33899456u
+#define SPARK_ARB_READ_PARAMETER_64_AND_65 33899520u
+#define SPARK_ARB_READ_PARAMETER_66_AND_67 33899584u
+#define SPARK_ARB_READ_PARAMETER_68_AND_69 33899648u
+#define SPARK_ARB_READ_PARAMETER_70_AND_71 33899712u
+#define SPARK_ARB_READ_PARAMETER_72_AND_73 33899776u
+#define SPARK_ARB_READ_PARAMETER_74_AND_75 33899840u
+#define SPARK_ARB_READ_PARAMETER_76_AND_77 33899904u
+#define SPARK_ARB_READ_PARAMETER_78_AND_79 33899968u
+#define SPARK_ARB_READ_PARAMETER_80_AND_81 33900032u
+#define SPARK_ARB_READ_PARAMETER_82_AND_83 33900096u
+#define SPARK_ARB_READ_PARAMETER_84_AND_85 33900160u
+#define SPARK_ARB_READ_PARAMETER_86_AND_87 33900224u
+#define SPARK_ARB_READ_PARAMETER_88_AND_89 33900288u
+#define SPARK_ARB_READ_PARAMETER_90_AND_91 33900352u
+#define SPARK_ARB_READ_PARAMETER_92_AND_93 33900416u
+#define SPARK_ARB_READ_PARAMETER_94_AND_95 33900480u
+#define SPARK_ARB_READ_PARAMETER_96_AND_97 33900544u
+#define SPARK_ARB_READ_PARAMETER_98_AND_99 33900608u
+#define SPARK_ARB_READ_PARAMETER_100_AND_101 33900672u
+#define SPARK_ARB_READ_PARAMETER_102_AND_103 33900736u
+#define SPARK_ARB_READ_PARAMETER_104_AND_105 33900800u
+#define SPARK_ARB_READ_PARAMETER_106_AND_107 33900864u
+#define SPARK_ARB_READ_PARAMETER_108_AND_109 33900928u
+#define SPARK_ARB_READ_PARAMETER_110_AND_111 33900992u
+#define SPARK_ARB_READ_PARAMETER_112_AND_113 33901056u
+#define SPARK_ARB_READ_PARAMETER_114_AND_115 33901120u
+#define SPARK_ARB_READ_PARAMETER_116_AND_117 33901184u
+#define SPARK_ARB_READ_PARAMETER_118_AND_119 33901248u
+#define SPARK_ARB_READ_PARAMETER_120_AND_121 33901312u
+#define SPARK_ARB_READ_PARAMETER_122_AND_123 33901376u
+#define SPARK_ARB_READ_PARAMETER_124_AND_125 33901440u
+#define SPARK_ARB_READ_PARAMETER_126_AND_127 33901504u
+#define SPARK_ARB_READ_PARAMETER_128_AND_129 33901568u
+#define SPARK_ARB_READ_PARAMETER_130_AND_131 33901632u
+#define SPARK_ARB_READ_PARAMETER_132_AND_133 33901696u
+#define SPARK_ARB_READ_PARAMETER_134_AND_135 33901760u
+#define SPARK_ARB_READ_PARAMETER_136_AND_137 33901824u
+#define SPARK_ARB_READ_PARAMETER_138_AND_139 33901888u
+#define SPARK_ARB_READ_PARAMETER_140_AND_141 33901952u
+#define SPARK_ARB_READ_PARAMETER_142_AND_143 33902016u
+#define SPARK_ARB_READ_PARAMETER_144_AND_145 33902080u
+#define SPARK_ARB_READ_PARAMETER_146_AND_147 33902144u
+#define SPARK_ARB_READ_PARAMETER_148_AND_149 33902208u
+#define SPARK_ARB_READ_PARAMETER_150_AND_151 33902272u
+#define SPARK_ARB_READ_PARAMETER_152_AND_153 33902336u
+#define SPARK_ARB_READ_PARAMETER_154_AND_155 33902400u
+#define SPARK_ARB_READ_PARAMETER_156_AND_157 33902464u
+#define SPARK_ARB_READ_PARAMETER_158_AND_159 33902528u
+#define SPARK_ARB_READ_PARAMETER_160_AND_161 33902592u
+#define SPARK_ARB_READ_PARAMETER_162_AND_163 33902656u
+#define SPARK_ARB_READ_PARAMETER_164_AND_165 33902720u
+#define SPARK_ARB_READ_PARAMETER_166_AND_167 33902784u
+#define SPARK_ARB_READ_PARAMETER_168_AND_169 33902848u
+#define SPARK_ARB_READ_PARAMETER_170_AND_171 33902912u
+#define SPARK_ARB_READ_PARAMETER_172_AND_173 33902976u
+#define SPARK_ARB_READ_PARAMETER_174_AND_175 33903040u
+#define SPARK_ARB_READ_PARAMETER_176_AND_177 33903104u
+#define SPARK_ARB_READ_PARAMETER_178_AND_179 33903168u
+#define SPARK_ARB_READ_PARAMETER_180_AND_181 33903232u
+#define SPARK_ARB_READ_PARAMETER_182_AND_183 33903296u
+#define SPARK_ARB_READ_PARAMETER_184_AND_185 33903360u
+#define SPARK_ARB_READ_PARAMETER_186_AND_187 33903424u
+#define SPARK_ARB_READ_PARAMETER_188_AND_189 33903488u
+#define SPARK_ARB_READ_PARAMETER_190_AND_191 33903552u
+#define SPARK_ARB_READ_PARAMETER_192_AND_193 33903616u
+#define SPARK_ARB_READ_PARAMETER_194_AND_195 33903680u
+#define SPARK_ARB_READ_PARAMETER_196_AND_197 33903744u
+#define SPARK_ARB_READ_PARAMETER_198_AND_199 33903808u
+#define SPARK_ARB_READ_PARAMETER_200_AND_201 33903872u
+#define SPARK_ARB_READ_PARAMETER_202_AND_203 33903936u
+#define SPARK_ARB_READ_PARAMETER_204_AND_205 33904000u
+#define SPARK_ARB_READ_PARAMETER_206_AND_207 33904064u
+#define SPARK_ARB_READ_PARAMETER_208_AND_209 33904128u
+#define SPARK_ARB_READ_PARAMETER_210_AND_211 33904192u
+#define SPARK_ARB_READ_PARAMETER_212_AND_213 33904256u
+#define SPARK_ARB_READ_PARAMETER_214_AND_215 33904320u
+#define SPARK_ARB_READ_PARAMETER_216_AND_217 33904384u
+#define SPARK_ARB_READ_PARAMETER_218_AND_219 33904448u
+#define SPARK_ARB_READ_PARAMETER_220_AND_221 33904512u
+#define SPARK_ARB_READ_PARAMETER_222_AND_223 33904576u
+#define SPARK_ARB_READ_PARAMETER_224_AND_225 33904640u
+#define SPARK_ARB_READ_PARAMETER_226_AND_227 33904704u
+#define SPARK_ARB_READ_PARAMETER_228_AND_229 33904768u
+#define SPARK_ARB_READ_PARAMETER_230_AND_231 33904832u
+#define SPARK_ARB_READ_PARAMETER_232_AND_233 33904896u
+#define SPARK_ARB_READ_PARAMETER_234_AND_235 33904960u
+#define SPARK_ARB_READ_PARAMETER_236_AND_237 33905024u
+#define SPARK_ARB_READ_PARAMETER_238_AND_239 33905088u
+#define SPARK_ARB_READ_PARAMETER_240_AND_241 33905152u
+#define SPARK_ARB_READ_PARAMETER_242_AND_243 33905216u
+#define SPARK_ARB_READ_PARAMETER_244_AND_245 33905280u
+#define SPARK_ARB_READ_PARAMETER_246_AND_247 33905344u
+#define SPARK_ARB_READ_PARAMETER_248_AND_249 33905408u
+#define SPARK_ARB_READ_PARAMETER_250_AND_251 33905472u
+#define SPARK_ARB_READ_PARAMETER_252_AND_253 33905536u
+#define SPARK_ARB_READ_PARAMETER_254_AND_255 33905600u
+#define SPARK_ARB_WRITE_PARAMETER_0_AND_1 33905664u
+#define SPARK_ARB_WRITE_PARAMETER_2_AND_3 33905728u
+#define SPARK_ARB_WRITE_PARAMETER_4_AND_5 33905792u
+#define SPARK_ARB_WRITE_PARAMETER_6_AND_7 33905856u
+#define SPARK_ARB_WRITE_PARAMETER_8_AND_9 33905920u
+#define SPARK_ARB_WRITE_PARAMETER_10_AND_11 33905984u
+#define SPARK_ARB_WRITE_PARAMETER_12_AND_13 33906048u
+#define SPARK_ARB_WRITE_PARAMETER_14_AND_15 33906112u
+#define SPARK_ARB_WRITE_PARAMETER_16_AND_17 33906176u
+#define SPARK_ARB_WRITE_PARAMETER_18_AND_19 33906240u
+#define SPARK_ARB_WRITE_PARAMETER_20_AND_21 33906304u
+#define SPARK_ARB_WRITE_PARAMETER_22_AND_23 33906368u
+#define SPARK_ARB_WRITE_PARAMETER_24_AND_25 33906432u
+#define SPARK_ARB_WRITE_PARAMETER_26_AND_27 33906496u
+#define SPARK_ARB_WRITE_PARAMETER_28_AND_29 33906560u
+#define SPARK_ARB_WRITE_PARAMETER_30_AND_31 33906624u
+#define SPARK_ARB_WRITE_PARAMETER_32_AND_33 33906688u
+#define SPARK_ARB_WRITE_PARAMETER_34_AND_35 33906752u
+#define SPARK_ARB_WRITE_PARAMETER_36_AND_37 33906816u
+#define SPARK_ARB_WRITE_PARAMETER_38_AND_39 33906880u
+#define SPARK_ARB_WRITE_PARAMETER_40_AND_41 33906944u
+#define SPARK_ARB_WRITE_PARAMETER_42_AND_43 33907008u
+#define SPARK_ARB_WRITE_PARAMETER_44_AND_45 33907072u
+#define SPARK_ARB_WRITE_PARAMETER_46_AND_47 33907136u
+#define SPARK_ARB_WRITE_PARAMETER_48_AND_49 33907200u
+#define SPARK_ARB_WRITE_PARAMETER_50_AND_51 33907264u
+#define SPARK_ARB_WRITE_PARAMETER_52_AND_53 33907328u
+#define SPARK_ARB_WRITE_PARAMETER_54_AND_55 33907392u
+#define SPARK_ARB_WRITE_PARAMETER_56_AND_57 33907456u
+#define SPARK_ARB_WRITE_PARAMETER_58_AND_59 33907520u
+#define SPARK_ARB_WRITE_PARAMETER_60_AND_61 33907584u
+#define SPARK_ARB_WRITE_PARAMETER_62_AND_63 33907648u
+#define SPARK_ARB_WRITE_PARAMETER_64_AND_65 33907712u
+#define SPARK_ARB_WRITE_PARAMETER_66_AND_67 33907776u
+#define SPARK_ARB_WRITE_PARAMETER_68_AND_69 33907840u
+#define SPARK_ARB_WRITE_PARAMETER_70_AND_71 33907904u
+#define SPARK_ARB_WRITE_PARAMETER_72_AND_73 33907968u
+#define SPARK_ARB_WRITE_PARAMETER_74_AND_75 33908032u
+#define SPARK_ARB_WRITE_PARAMETER_76_AND_77 33908096u
+#define SPARK_ARB_WRITE_PARAMETER_78_AND_79 33908160u
+#define SPARK_ARB_WRITE_PARAMETER_80_AND_81 33908224u
+#define SPARK_ARB_WRITE_PARAMETER_82_AND_83 33908288u
+#define SPARK_ARB_WRITE_PARAMETER_84_AND_85 33908352u
+#define SPARK_ARB_WRITE_PARAMETER_86_AND_87 33908416u
+#define SPARK_ARB_WRITE_PARAMETER_88_AND_89 33908480u
+#define SPARK_ARB_WRITE_PARAMETER_90_AND_91 33908544u
+#define SPARK_ARB_WRITE_PARAMETER_92_AND_93 33908608u
+#define SPARK_ARB_WRITE_PARAMETER_94_AND_95 33908672u
+#define SPARK_ARB_WRITE_PARAMETER_96_AND_97 33908736u
+#define SPARK_ARB_WRITE_PARAMETER_98_AND_99 33908800u
+#define SPARK_ARB_WRITE_PARAMETER_100_AND_101 33908864u
+#define SPARK_ARB_WRITE_PARAMETER_102_AND_103 33908928u
+#define SPARK_ARB_WRITE_PARAMETER_104_AND_105 33908992u
+#define SPARK_ARB_WRITE_PARAMETER_106_AND_107 33909056u
+#define SPARK_ARB_WRITE_PARAMETER_108_AND_109 33909120u
+#define SPARK_ARB_WRITE_PARAMETER_110_AND_111 33909184u
+#define SPARK_ARB_WRITE_PARAMETER_112_AND_113 33909248u
+#define SPARK_ARB_WRITE_PARAMETER_114_AND_115 33909312u
+#define SPARK_ARB_WRITE_PARAMETER_116_AND_117 33909376u
+#define SPARK_ARB_WRITE_PARAMETER_118_AND_119 33909440u
+#define SPARK_ARB_WRITE_PARAMETER_120_AND_121 33909504u
+#define SPARK_ARB_WRITE_PARAMETER_122_AND_123 33909568u
+#define SPARK_ARB_WRITE_PARAMETER_124_AND_125 33909632u
+#define SPARK_ARB_WRITE_PARAMETER_126_AND_127 33909696u
+#define SPARK_ARB_WRITE_PARAMETER_128_AND_129 33909760u
+#define SPARK_ARB_WRITE_PARAMETER_130_AND_131 33909824u
+#define SPARK_ARB_WRITE_PARAMETER_132_AND_133 33909888u
+#define SPARK_ARB_WRITE_PARAMETER_134_AND_135 33909952u
+#define SPARK_ARB_WRITE_PARAMETER_136_AND_137 33910016u
+#define SPARK_ARB_WRITE_PARAMETER_138_AND_139 33910080u
+#define SPARK_ARB_WRITE_PARAMETER_140_AND_141 33910144u
+#define SPARK_ARB_WRITE_PARAMETER_142_AND_143 33910208u
+#define SPARK_ARB_WRITE_PARAMETER_144_AND_145 33910272u
+#define SPARK_ARB_WRITE_PARAMETER_146_AND_147 33910336u
+#define SPARK_ARB_WRITE_PARAMETER_148_AND_149 33910400u
+#define SPARK_ARB_WRITE_PARAMETER_150_AND_151 33910464u
+#define SPARK_ARB_WRITE_PARAMETER_152_AND_153 33910528u
+#define SPARK_ARB_WRITE_PARAMETER_154_AND_155 33910592u
+#define SPARK_ARB_WRITE_PARAMETER_156_AND_157 33910656u
+#define SPARK_ARB_WRITE_PARAMETER_158_AND_159 33910720u
+#define SPARK_ARB_WRITE_PARAMETER_160_AND_161 33910784u
+#define SPARK_ARB_WRITE_PARAMETER_162_AND_163 33910848u
+#define SPARK_ARB_WRITE_PARAMETER_164_AND_165 33910912u
+#define SPARK_ARB_WRITE_PARAMETER_166_AND_167 33910976u
+#define SPARK_ARB_WRITE_PARAMETER_168_AND_169 33911040u
+#define SPARK_ARB_WRITE_PARAMETER_170_AND_171 33911104u
+#define SPARK_ARB_WRITE_PARAMETER_172_AND_173 33911168u
+#define SPARK_ARB_WRITE_PARAMETER_174_AND_175 33911232u
+#define SPARK_ARB_WRITE_PARAMETER_176_AND_177 33911296u
+#define SPARK_ARB_WRITE_PARAMETER_178_AND_179 33911360u
+#define SPARK_ARB_WRITE_PARAMETER_180_AND_181 33911424u
+#define SPARK_ARB_WRITE_PARAMETER_182_AND_183 33911488u
+#define SPARK_ARB_WRITE_PARAMETER_184_AND_185 33911552u
+#define SPARK_ARB_WRITE_PARAMETER_186_AND_187 33911616u
+#define SPARK_ARB_WRITE_PARAMETER_188_AND_189 33911680u
+#define SPARK_ARB_WRITE_PARAMETER_190_AND_191 33911744u
+#define SPARK_ARB_WRITE_PARAMETER_192_AND_193 33911808u
+#define SPARK_ARB_WRITE_PARAMETER_194_AND_195 33911872u
+#define SPARK_ARB_WRITE_PARAMETER_196_AND_197 33911936u
+#define SPARK_ARB_WRITE_PARAMETER_198_AND_199 33912000u
+#define SPARK_ARB_WRITE_PARAMETER_200_AND_201 33912064u
+#define SPARK_ARB_WRITE_PARAMETER_202_AND_203 33912128u
+#define SPARK_ARB_WRITE_PARAMETER_204_AND_205 33912192u
+#define SPARK_ARB_WRITE_PARAMETER_206_AND_207 33912256u
+#define SPARK_ARB_WRITE_PARAMETER_208_AND_209 33912320u
+#define SPARK_ARB_WRITE_PARAMETER_210_AND_211 33912384u
+#define SPARK_ARB_WRITE_PARAMETER_212_AND_213 33912448u
+#define SPARK_ARB_WRITE_PARAMETER_214_AND_215 33912512u
+#define SPARK_ARB_WRITE_PARAMETER_216_AND_217 33912576u
+#define SPARK_ARB_WRITE_PARAMETER_218_AND_219 33912640u
+#define SPARK_ARB_WRITE_PARAMETER_220_AND_221 33912704u
+#define SPARK_ARB_WRITE_PARAMETER_222_AND_223 33912768u
+#define SPARK_ARB_WRITE_PARAMETER_224_AND_225 33912832u
+#define SPARK_ARB_WRITE_PARAMETER_226_AND_227 33912896u
+#define SPARK_ARB_WRITE_PARAMETER_228_AND_229 33912960u
+#define SPARK_ARB_WRITE_PARAMETER_230_AND_231 33913024u
+#define SPARK_ARB_WRITE_PARAMETER_232_AND_233 33913088u
+#define SPARK_ARB_WRITE_PARAMETER_234_AND_235 33913152u
+#define SPARK_ARB_WRITE_PARAMETER_236_AND_237 33913216u
+#define SPARK_ARB_WRITE_PARAMETER_238_AND_239 33913280u
+#define SPARK_ARB_WRITE_PARAMETER_240_AND_241 33913344u
+#define SPARK_ARB_WRITE_PARAMETER_242_AND_243 33913408u
+#define SPARK_ARB_WRITE_PARAMETER_244_AND_245 33913472u
+#define SPARK_ARB_WRITE_PARAMETER_246_AND_247 33913536u
+#define SPARK_ARB_WRITE_PARAMETER_248_AND_249 33913600u
+#define SPARK_ARB_WRITE_PARAMETER_250_AND_251 33913664u
+#define SPARK_ARB_WRITE_PARAMETER_252_AND_253 33913728u
+#define SPARK_ARB_WRITE_PARAMETER_254_AND_255 33913792u
+#define SPARK_ARB_START_FOLLOWER_MODE 33913856u
+#define SPARK_ARB_START_FOLLOWER_MODE_RESPONSE 33913920u
+#define SPARK_ARB_STOP_FOLLOWER_MODE 33913984u
+#define SPARK_ARB_STOP_FOLLOWER_MODE_RESPONSE 33914048u
+#define SPARK_ARB_ENTER_SWDL_CAN_BOOTLOADER 33914816u
+#define SPARK_ARB_PERSIST_PARAMETERS 33947584u
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_VELOCITY_SETPOINT_t;
+
+void spark_build_VELOCITY_SETPOINT(uint8_t device_id, const Spark_VELOCITY_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_DUTY_CYCLE_SETPOINT_t;
+
+void spark_build_DUTY_CYCLE_SETPOINT(uint8_t device_id, const Spark_DUTY_CYCLE_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_SMART_VELOCITY_SETPOINT_t;
+
+void spark_build_SMART_VELOCITY_SETPOINT(uint8_t device_id, const Spark_SMART_VELOCITY_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_POSITION_SETPOINT_t;
+
+void spark_build_POSITION_SETPOINT(uint8_t device_id, const Spark_POSITION_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_VOLTAGE_SETPOINT_t;
+
+void spark_build_VOLTAGE_SETPOINT(uint8_t device_id, const Spark_VOLTAGE_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_CURRENT_SETPOINT_t;
+
+void spark_build_CURRENT_SETPOINT(uint8_t device_id, const Spark_CURRENT_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_SMART_MOTION_SETPOINT_t;
+
+void spark_build_SMART_MOTION_SETPOINT(uint8_t device_id, const Spark_SMART_MOTION_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_MAXMOTION_POSITION_SETPOINT_t;
+
+void spark_build_MAXMOTION_POSITION_SETPOINT(uint8_t device_id, const Spark_MAXMOTION_POSITION_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float SETPOINT;
+    int16_t ARBITRARY_FEEDFORWARD;
+    uint8_t PID_SLOT;
+    uint8_t ARBITRARY_FEEDFORWARD_UNITS;
+} Spark_MAXMOTION_VELOCITY_SETPOINT_t;
+
+void spark_build_MAXMOTION_VELOCITY_SETPOINT(uint8_t device_id, const Spark_MAXMOTION_VELOCITY_SETPOINT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint16_t MASK;
+    uint16_t ENABLED_BITFIELD;
+} Spark_SET_STATUSES_ENABLED_t;
+
+void spark_build_SET_STATUSES_ENABLED(uint8_t device_id, const Spark_SET_STATUSES_ENABLED_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t RESULT_CODE;
+    uint16_t SPECIFIED_MASK;
+    uint16_t ENABLED_BITFIELD;
+} Spark_SET_STATUSES_ENABLED_RESPONSE_t;
+
+void spark_build_SET_STATUSES_ENABLED_RESPONSE(uint8_t device_id, const Spark_SET_STATUSES_ENABLED_RESPONSE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t RESULT_CODE;
+} Spark_PERSIST_PARAMETERS_RESPONSE_t;
+
+void spark_build_PERSIST_PARAMETERS_RESPONSE(uint8_t device_id, const Spark_PERSIST_PARAMETERS_RESPONSE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint16_t MAGIC_NUMBER;
+} Spark_RESET_SAFE_PARAMETERS_t;
+
+void spark_build_RESET_SAFE_PARAMETERS(uint8_t device_id, const Spark_RESET_SAFE_PARAMETERS_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t RESULT_CODE;
+} Spark_RESET_SAFE_PARAMETERS_RESPONSE_t;
+
+void spark_build_RESET_SAFE_PARAMETERS_RESPONSE(uint8_t device_id, const Spark_RESET_SAFE_PARAMETERS_RESPONSE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint16_t MAGIC_NUMBER;
+} Spark_COMPLETE_FACTORY_RESET_t;
+
+void spark_build_COMPLETE_FACTORY_RESET(uint8_t device_id, const Spark_COMPLETE_FACTORY_RESET_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t RESULT_CODE;
+} Spark_COMPLETE_FACTORY_RESET_RESPONSE_t;
+
+void spark_build_COMPLETE_FACTORY_RESET_RESPONSE(uint8_t device_id, const Spark_COMPLETE_FACTORY_RESET_RESPONSE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_CLEAR_FAULTS_t;
+
+void spark_build_CLEAR_FAULTS(uint8_t device_id, const Spark_CLEAR_FAULTS_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t UNIQUE_ID;
+} Spark_IDENTIFY_UNIQUE_SPARK_t;
+
+void spark_build_IDENTIFY_UNIQUE_SPARK(uint8_t device_id, const Spark_IDENTIFY_UNIQUE_SPARK_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_IDENTIFY_t;
+
+void spark_build_IDENTIFY(uint8_t device_id, const Spark_IDENTIFY_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_NACK_t;
+
+void spark_build_NACK(uint8_t device_id, const Spark_NACK_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_ACK_t;
+
+void spark_build_ACK(uint8_t device_id, const Spark_ACK_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_LED_SYNC_t;
+
+void spark_build_LED_SYNC(uint8_t device_id, const Spark_LED_SYNC_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t UNIQUE_ID;
+    uint8_t CAN_ID;
+} Spark_SET_CAN_ID_t;
+
+void spark_build_SET_CAN_ID(uint8_t device_id, const Spark_SET_CAN_ID_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t MAJOR;
+    uint8_t MINOR;
+    uint16_t BUILD;
+    uint8_t DEBUG_BUILD;
+    uint8_t HW_REV;
+} Spark_GET_FIRMWARE_VERSION_t;
+
+void spark_build_GET_FIRMWARE_VERSION(uint8_t device_id, const Spark_GET_FIRMWARE_VERSION_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint64_t DATA;
+} Spark_SWDL_DATA_t;
+
+void spark_build_SWDL_DATA(uint8_t device_id, const Spark_SWDL_DATA_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint64_t CHECKSUM;
+} Spark_SWDL_CHECKSUM_t;
+
+void spark_build_SWDL_CHECKSUM(uint8_t device_id, const Spark_SWDL_CHECKSUM_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_SWDL_RETRANSMIT_t;
+
+void spark_build_SWDL_RETRANSMIT(uint8_t device_id, const Spark_SWDL_RETRANSMIT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float POSITION;
+    uint8_t DATA_TYPE;
+} Spark_SET_PRIMARY_ENCODER_POSITION_t;
+
+void spark_build_SET_PRIMARY_ENCODER_POSITION(uint8_t device_id, const Spark_SET_PRIMARY_ENCODER_POSITION_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float I_ACCUMULATION;
+    uint8_t DATA_TYPE;
+} Spark_SET_I_ACCUMULATION_t;
+
+void spark_build_SET_I_ACCUMULATION(uint8_t device_id, const Spark_SET_I_ACCUMULATION_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float POSITION;
+    uint8_t DATA_TYPE;
+} Spark_SET_ANALOG_POSITION_t;
+
+void spark_build_SET_ANALOG_POSITION(uint8_t device_id, const Spark_SET_ANALOG_POSITION_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float POSITION;
+    uint8_t DATA_TYPE;
+} Spark_SET_EXT_OR_ALT_ENCODER_POSITION_t;
+
+void spark_build_SET_EXT_OR_ALT_ENCODER_POSITION(uint8_t device_id, const Spark_SET_EXT_OR_ALT_ENCODER_POSITION_t* values, SparkCanFrame* out);
+
+typedef struct {
+    float POSITION;
+    uint8_t DATA_TYPE;
+} Spark_SET_DUTY_CYCLE_POSITION_t;
+
+void spark_build_SET_DUTY_CYCLE_POSITION(uint8_t device_id, const Spark_SET_DUTY_CYCLE_POSITION_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint64_t ENABLED_SPARKS_BITFIELD;
+} Spark_SECONDARY_HEARTBEAT_t;
+
+void spark_build_SECONDARY_HEARTBEAT(uint8_t device_id, const Spark_SECONDARY_HEARTBEAT_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_USB_ONLY_IDENTIFY_t;
+
+void spark_build_USB_ONLY_IDENTIFY(uint8_t device_id, const Spark_USB_ONLY_IDENTIFY_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint16_t MAGIC_NUMBER;
+} Spark_USB_ONLY_ENTER_DFU_BOOTLOADER_t;
+
+void spark_build_USB_ONLY_ENTER_DFU_BOOTLOADER(uint8_t device_id, const Spark_USB_ONLY_ENTER_DFU_BOOTLOADER_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t MOTOR_TEMPERATURE;
+    uint8_t MICROCONTROLLER_TEMPERATURE;
+    uint8_t FET_TEMPERATURE;
+    uint8_t MOTOR_TEMPERATURE_2;
+    uint8_t DOCK_TEMPERATURE;
+    uint8_t VALID_TEMPERATURES_BITMASK;
+    uint8_t UNUSED;
+} Spark_GET_TEMPERATURES_t;
+
+void spark_build_GET_TEMPERATURES(uint8_t device_id, const Spark_GET_TEMPERATURES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint16_t MOTOR_INTERFACE;
+    uint8_t PRIMARY_SENSOR_TYPE;
+} Spark_GET_MOTOR_INTERFACE_t;
+
+void spark_build_GET_MOTOR_INTERFACE(uint8_t device_id, const Spark_GET_MOTOR_INTERFACE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_0_TO_15_TYPES_t;
+
+void spark_build_GET_PARAMETER_0_TO_15_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_0_TO_15_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_16_TO_31_TYPES_t;
+
+void spark_build_GET_PARAMETER_16_TO_31_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_16_TO_31_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_32_TO_47_TYPES_t;
+
+void spark_build_GET_PARAMETER_32_TO_47_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_32_TO_47_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_48_TO_63_TYPES_t;
+
+void spark_build_GET_PARAMETER_48_TO_63_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_48_TO_63_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_64_TO_79_TYPES_t;
+
+void spark_build_GET_PARAMETER_64_TO_79_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_64_TO_79_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_80_TO_95_TYPES_t;
+
+void spark_build_GET_PARAMETER_80_TO_95_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_80_TO_95_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_96_TO_111_TYPES_t;
+
+void spark_build_GET_PARAMETER_96_TO_111_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_96_TO_111_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_112_TO_127_TYPES_t;
+
+void spark_build_GET_PARAMETER_112_TO_127_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_112_TO_127_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_128_TO_143_TYPES_t;
+
+void spark_build_GET_PARAMETER_128_TO_143_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_128_TO_143_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_144_TO_159_TYPES_t;
+
+void spark_build_GET_PARAMETER_144_TO_159_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_144_TO_159_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_160_TO_175_TYPES_t;
+
+void spark_build_GET_PARAMETER_160_TO_175_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_160_TO_175_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_176_TO_191_TYPES_t;
+
+void spark_build_GET_PARAMETER_176_TO_191_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_176_TO_191_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_192_TO_207_TYPES_t;
+
+void spark_build_GET_PARAMETER_192_TO_207_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_192_TO_207_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_208_TO_223_TYPES_t;
+
+void spark_build_GET_PARAMETER_208_TO_223_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_208_TO_223_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_224_TO_239_TYPES_t;
+
+void spark_build_GET_PARAMETER_224_TO_239_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_224_TO_239_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t TYPE_0;
+    uint8_t TYPE_1;
+    uint8_t TYPE_2;
+    uint8_t TYPE_3;
+    uint8_t TYPE_4;
+    uint8_t TYPE_5;
+    uint8_t TYPE_6;
+    uint8_t TYPE_7;
+    uint8_t TYPE_8;
+    uint8_t TYPE_9;
+    uint8_t TYPE_10;
+    uint8_t TYPE_11;
+    uint8_t TYPE_12;
+    uint8_t TYPE_13;
+    uint8_t TYPE_14;
+    uint8_t TYPE_15;
+} Spark_GET_PARAMETER_240_TO_255_TYPES_t;
+
+void spark_build_GET_PARAMETER_240_TO_255_TYPES(uint8_t device_id, const Spark_GET_PARAMETER_240_TO_255_TYPES_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t PARAMETER_ID;
+    uint32_t VALUE;
+} Spark_PARAMETER_WRITE_t;
+
+void spark_build_PARAMETER_WRITE(uint8_t device_id, const Spark_PARAMETER_WRITE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t PARAMETER_ID;
+    uint8_t PARAMETER_TYPE;
+    uint32_t VALUE;
+    uint8_t RESULT_CODE;
+} Spark_PARAMETER_WRITE_RESPONSE_t;
+
+void spark_build_PARAMETER_WRITE_RESPONSE(uint8_t device_id, const Spark_PARAMETER_WRITE_RESPONSE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_0_AND_1_t;
+
+void spark_build_READ_PARAMETER_0_AND_1(uint8_t device_id, const Spark_READ_PARAMETER_0_AND_1_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_2_AND_3_t;
+
+void spark_build_READ_PARAMETER_2_AND_3(uint8_t device_id, const Spark_READ_PARAMETER_2_AND_3_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_4_AND_5_t;
+
+void spark_build_READ_PARAMETER_4_AND_5(uint8_t device_id, const Spark_READ_PARAMETER_4_AND_5_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_6_AND_7_t;
+
+void spark_build_READ_PARAMETER_6_AND_7(uint8_t device_id, const Spark_READ_PARAMETER_6_AND_7_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_8_AND_9_t;
+
+void spark_build_READ_PARAMETER_8_AND_9(uint8_t device_id, const Spark_READ_PARAMETER_8_AND_9_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_10_AND_11_t;
+
+void spark_build_READ_PARAMETER_10_AND_11(uint8_t device_id, const Spark_READ_PARAMETER_10_AND_11_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_12_AND_13_t;
+
+void spark_build_READ_PARAMETER_12_AND_13(uint8_t device_id, const Spark_READ_PARAMETER_12_AND_13_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_14_AND_15_t;
+
+void spark_build_READ_PARAMETER_14_AND_15(uint8_t device_id, const Spark_READ_PARAMETER_14_AND_15_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_16_AND_17_t;
+
+void spark_build_READ_PARAMETER_16_AND_17(uint8_t device_id, const Spark_READ_PARAMETER_16_AND_17_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_18_AND_19_t;
+
+void spark_build_READ_PARAMETER_18_AND_19(uint8_t device_id, const Spark_READ_PARAMETER_18_AND_19_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_20_AND_21_t;
+
+void spark_build_READ_PARAMETER_20_AND_21(uint8_t device_id, const Spark_READ_PARAMETER_20_AND_21_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_22_AND_23_t;
+
+void spark_build_READ_PARAMETER_22_AND_23(uint8_t device_id, const Spark_READ_PARAMETER_22_AND_23_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_24_AND_25_t;
+
+void spark_build_READ_PARAMETER_24_AND_25(uint8_t device_id, const Spark_READ_PARAMETER_24_AND_25_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_26_AND_27_t;
+
+void spark_build_READ_PARAMETER_26_AND_27(uint8_t device_id, const Spark_READ_PARAMETER_26_AND_27_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_28_AND_29_t;
+
+void spark_build_READ_PARAMETER_28_AND_29(uint8_t device_id, const Spark_READ_PARAMETER_28_AND_29_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_30_AND_31_t;
+
+void spark_build_READ_PARAMETER_30_AND_31(uint8_t device_id, const Spark_READ_PARAMETER_30_AND_31_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_32_AND_33_t;
+
+void spark_build_READ_PARAMETER_32_AND_33(uint8_t device_id, const Spark_READ_PARAMETER_32_AND_33_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_34_AND_35_t;
+
+void spark_build_READ_PARAMETER_34_AND_35(uint8_t device_id, const Spark_READ_PARAMETER_34_AND_35_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_36_AND_37_t;
+
+void spark_build_READ_PARAMETER_36_AND_37(uint8_t device_id, const Spark_READ_PARAMETER_36_AND_37_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_38_AND_39_t;
+
+void spark_build_READ_PARAMETER_38_AND_39(uint8_t device_id, const Spark_READ_PARAMETER_38_AND_39_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_40_AND_41_t;
+
+void spark_build_READ_PARAMETER_40_AND_41(uint8_t device_id, const Spark_READ_PARAMETER_40_AND_41_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_42_AND_43_t;
+
+void spark_build_READ_PARAMETER_42_AND_43(uint8_t device_id, const Spark_READ_PARAMETER_42_AND_43_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_44_AND_45_t;
+
+void spark_build_READ_PARAMETER_44_AND_45(uint8_t device_id, const Spark_READ_PARAMETER_44_AND_45_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_46_AND_47_t;
+
+void spark_build_READ_PARAMETER_46_AND_47(uint8_t device_id, const Spark_READ_PARAMETER_46_AND_47_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_48_AND_49_t;
+
+void spark_build_READ_PARAMETER_48_AND_49(uint8_t device_id, const Spark_READ_PARAMETER_48_AND_49_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_50_AND_51_t;
+
+void spark_build_READ_PARAMETER_50_AND_51(uint8_t device_id, const Spark_READ_PARAMETER_50_AND_51_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_52_AND_53_t;
+
+void spark_build_READ_PARAMETER_52_AND_53(uint8_t device_id, const Spark_READ_PARAMETER_52_AND_53_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_54_AND_55_t;
+
+void spark_build_READ_PARAMETER_54_AND_55(uint8_t device_id, const Spark_READ_PARAMETER_54_AND_55_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_56_AND_57_t;
+
+void spark_build_READ_PARAMETER_56_AND_57(uint8_t device_id, const Spark_READ_PARAMETER_56_AND_57_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_58_AND_59_t;
+
+void spark_build_READ_PARAMETER_58_AND_59(uint8_t device_id, const Spark_READ_PARAMETER_58_AND_59_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_60_AND_61_t;
+
+void spark_build_READ_PARAMETER_60_AND_61(uint8_t device_id, const Spark_READ_PARAMETER_60_AND_61_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_62_AND_63_t;
+
+void spark_build_READ_PARAMETER_62_AND_63(uint8_t device_id, const Spark_READ_PARAMETER_62_AND_63_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_64_AND_65_t;
+
+void spark_build_READ_PARAMETER_64_AND_65(uint8_t device_id, const Spark_READ_PARAMETER_64_AND_65_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_66_AND_67_t;
+
+void spark_build_READ_PARAMETER_66_AND_67(uint8_t device_id, const Spark_READ_PARAMETER_66_AND_67_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_68_AND_69_t;
+
+void spark_build_READ_PARAMETER_68_AND_69(uint8_t device_id, const Spark_READ_PARAMETER_68_AND_69_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_70_AND_71_t;
+
+void spark_build_READ_PARAMETER_70_AND_71(uint8_t device_id, const Spark_READ_PARAMETER_70_AND_71_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_72_AND_73_t;
+
+void spark_build_READ_PARAMETER_72_AND_73(uint8_t device_id, const Spark_READ_PARAMETER_72_AND_73_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_74_AND_75_t;
+
+void spark_build_READ_PARAMETER_74_AND_75(uint8_t device_id, const Spark_READ_PARAMETER_74_AND_75_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_76_AND_77_t;
+
+void spark_build_READ_PARAMETER_76_AND_77(uint8_t device_id, const Spark_READ_PARAMETER_76_AND_77_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_78_AND_79_t;
+
+void spark_build_READ_PARAMETER_78_AND_79(uint8_t device_id, const Spark_READ_PARAMETER_78_AND_79_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_80_AND_81_t;
+
+void spark_build_READ_PARAMETER_80_AND_81(uint8_t device_id, const Spark_READ_PARAMETER_80_AND_81_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_82_AND_83_t;
+
+void spark_build_READ_PARAMETER_82_AND_83(uint8_t device_id, const Spark_READ_PARAMETER_82_AND_83_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_84_AND_85_t;
+
+void spark_build_READ_PARAMETER_84_AND_85(uint8_t device_id, const Spark_READ_PARAMETER_84_AND_85_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_86_AND_87_t;
+
+void spark_build_READ_PARAMETER_86_AND_87(uint8_t device_id, const Spark_READ_PARAMETER_86_AND_87_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_88_AND_89_t;
+
+void spark_build_READ_PARAMETER_88_AND_89(uint8_t device_id, const Spark_READ_PARAMETER_88_AND_89_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_90_AND_91_t;
+
+void spark_build_READ_PARAMETER_90_AND_91(uint8_t device_id, const Spark_READ_PARAMETER_90_AND_91_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_92_AND_93_t;
+
+void spark_build_READ_PARAMETER_92_AND_93(uint8_t device_id, const Spark_READ_PARAMETER_92_AND_93_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_94_AND_95_t;
+
+void spark_build_READ_PARAMETER_94_AND_95(uint8_t device_id, const Spark_READ_PARAMETER_94_AND_95_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_96_AND_97_t;
+
+void spark_build_READ_PARAMETER_96_AND_97(uint8_t device_id, const Spark_READ_PARAMETER_96_AND_97_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_98_AND_99_t;
+
+void spark_build_READ_PARAMETER_98_AND_99(uint8_t device_id, const Spark_READ_PARAMETER_98_AND_99_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_100_AND_101_t;
+
+void spark_build_READ_PARAMETER_100_AND_101(uint8_t device_id, const Spark_READ_PARAMETER_100_AND_101_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_102_AND_103_t;
+
+void spark_build_READ_PARAMETER_102_AND_103(uint8_t device_id, const Spark_READ_PARAMETER_102_AND_103_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_104_AND_105_t;
+
+void spark_build_READ_PARAMETER_104_AND_105(uint8_t device_id, const Spark_READ_PARAMETER_104_AND_105_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_106_AND_107_t;
+
+void spark_build_READ_PARAMETER_106_AND_107(uint8_t device_id, const Spark_READ_PARAMETER_106_AND_107_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_108_AND_109_t;
+
+void spark_build_READ_PARAMETER_108_AND_109(uint8_t device_id, const Spark_READ_PARAMETER_108_AND_109_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_110_AND_111_t;
+
+void spark_build_READ_PARAMETER_110_AND_111(uint8_t device_id, const Spark_READ_PARAMETER_110_AND_111_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_112_AND_113_t;
+
+void spark_build_READ_PARAMETER_112_AND_113(uint8_t device_id, const Spark_READ_PARAMETER_112_AND_113_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_114_AND_115_t;
+
+void spark_build_READ_PARAMETER_114_AND_115(uint8_t device_id, const Spark_READ_PARAMETER_114_AND_115_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_116_AND_117_t;
+
+void spark_build_READ_PARAMETER_116_AND_117(uint8_t device_id, const Spark_READ_PARAMETER_116_AND_117_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_118_AND_119_t;
+
+void spark_build_READ_PARAMETER_118_AND_119(uint8_t device_id, const Spark_READ_PARAMETER_118_AND_119_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_120_AND_121_t;
+
+void spark_build_READ_PARAMETER_120_AND_121(uint8_t device_id, const Spark_READ_PARAMETER_120_AND_121_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_122_AND_123_t;
+
+void spark_build_READ_PARAMETER_122_AND_123(uint8_t device_id, const Spark_READ_PARAMETER_122_AND_123_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_124_AND_125_t;
+
+void spark_build_READ_PARAMETER_124_AND_125(uint8_t device_id, const Spark_READ_PARAMETER_124_AND_125_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_126_AND_127_t;
+
+void spark_build_READ_PARAMETER_126_AND_127(uint8_t device_id, const Spark_READ_PARAMETER_126_AND_127_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_128_AND_129_t;
+
+void spark_build_READ_PARAMETER_128_AND_129(uint8_t device_id, const Spark_READ_PARAMETER_128_AND_129_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_130_AND_131_t;
+
+void spark_build_READ_PARAMETER_130_AND_131(uint8_t device_id, const Spark_READ_PARAMETER_130_AND_131_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_132_AND_133_t;
+
+void spark_build_READ_PARAMETER_132_AND_133(uint8_t device_id, const Spark_READ_PARAMETER_132_AND_133_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_134_AND_135_t;
+
+void spark_build_READ_PARAMETER_134_AND_135(uint8_t device_id, const Spark_READ_PARAMETER_134_AND_135_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_136_AND_137_t;
+
+void spark_build_READ_PARAMETER_136_AND_137(uint8_t device_id, const Spark_READ_PARAMETER_136_AND_137_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_138_AND_139_t;
+
+void spark_build_READ_PARAMETER_138_AND_139(uint8_t device_id, const Spark_READ_PARAMETER_138_AND_139_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_140_AND_141_t;
+
+void spark_build_READ_PARAMETER_140_AND_141(uint8_t device_id, const Spark_READ_PARAMETER_140_AND_141_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_142_AND_143_t;
+
+void spark_build_READ_PARAMETER_142_AND_143(uint8_t device_id, const Spark_READ_PARAMETER_142_AND_143_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_144_AND_145_t;
+
+void spark_build_READ_PARAMETER_144_AND_145(uint8_t device_id, const Spark_READ_PARAMETER_144_AND_145_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_146_AND_147_t;
+
+void spark_build_READ_PARAMETER_146_AND_147(uint8_t device_id, const Spark_READ_PARAMETER_146_AND_147_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_148_AND_149_t;
+
+void spark_build_READ_PARAMETER_148_AND_149(uint8_t device_id, const Spark_READ_PARAMETER_148_AND_149_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_150_AND_151_t;
+
+void spark_build_READ_PARAMETER_150_AND_151(uint8_t device_id, const Spark_READ_PARAMETER_150_AND_151_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_152_AND_153_t;
+
+void spark_build_READ_PARAMETER_152_AND_153(uint8_t device_id, const Spark_READ_PARAMETER_152_AND_153_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_154_AND_155_t;
+
+void spark_build_READ_PARAMETER_154_AND_155(uint8_t device_id, const Spark_READ_PARAMETER_154_AND_155_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_156_AND_157_t;
+
+void spark_build_READ_PARAMETER_156_AND_157(uint8_t device_id, const Spark_READ_PARAMETER_156_AND_157_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_158_AND_159_t;
+
+void spark_build_READ_PARAMETER_158_AND_159(uint8_t device_id, const Spark_READ_PARAMETER_158_AND_159_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_160_AND_161_t;
+
+void spark_build_READ_PARAMETER_160_AND_161(uint8_t device_id, const Spark_READ_PARAMETER_160_AND_161_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_162_AND_163_t;
+
+void spark_build_READ_PARAMETER_162_AND_163(uint8_t device_id, const Spark_READ_PARAMETER_162_AND_163_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_164_AND_165_t;
+
+void spark_build_READ_PARAMETER_164_AND_165(uint8_t device_id, const Spark_READ_PARAMETER_164_AND_165_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_166_AND_167_t;
+
+void spark_build_READ_PARAMETER_166_AND_167(uint8_t device_id, const Spark_READ_PARAMETER_166_AND_167_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_168_AND_169_t;
+
+void spark_build_READ_PARAMETER_168_AND_169(uint8_t device_id, const Spark_READ_PARAMETER_168_AND_169_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_170_AND_171_t;
+
+void spark_build_READ_PARAMETER_170_AND_171(uint8_t device_id, const Spark_READ_PARAMETER_170_AND_171_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_172_AND_173_t;
+
+void spark_build_READ_PARAMETER_172_AND_173(uint8_t device_id, const Spark_READ_PARAMETER_172_AND_173_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_174_AND_175_t;
+
+void spark_build_READ_PARAMETER_174_AND_175(uint8_t device_id, const Spark_READ_PARAMETER_174_AND_175_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_176_AND_177_t;
+
+void spark_build_READ_PARAMETER_176_AND_177(uint8_t device_id, const Spark_READ_PARAMETER_176_AND_177_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_178_AND_179_t;
+
+void spark_build_READ_PARAMETER_178_AND_179(uint8_t device_id, const Spark_READ_PARAMETER_178_AND_179_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_180_AND_181_t;
+
+void spark_build_READ_PARAMETER_180_AND_181(uint8_t device_id, const Spark_READ_PARAMETER_180_AND_181_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_182_AND_183_t;
+
+void spark_build_READ_PARAMETER_182_AND_183(uint8_t device_id, const Spark_READ_PARAMETER_182_AND_183_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_184_AND_185_t;
+
+void spark_build_READ_PARAMETER_184_AND_185(uint8_t device_id, const Spark_READ_PARAMETER_184_AND_185_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_186_AND_187_t;
+
+void spark_build_READ_PARAMETER_186_AND_187(uint8_t device_id, const Spark_READ_PARAMETER_186_AND_187_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_188_AND_189_t;
+
+void spark_build_READ_PARAMETER_188_AND_189(uint8_t device_id, const Spark_READ_PARAMETER_188_AND_189_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_190_AND_191_t;
+
+void spark_build_READ_PARAMETER_190_AND_191(uint8_t device_id, const Spark_READ_PARAMETER_190_AND_191_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_192_AND_193_t;
+
+void spark_build_READ_PARAMETER_192_AND_193(uint8_t device_id, const Spark_READ_PARAMETER_192_AND_193_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_194_AND_195_t;
+
+void spark_build_READ_PARAMETER_194_AND_195(uint8_t device_id, const Spark_READ_PARAMETER_194_AND_195_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_196_AND_197_t;
+
+void spark_build_READ_PARAMETER_196_AND_197(uint8_t device_id, const Spark_READ_PARAMETER_196_AND_197_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_198_AND_199_t;
+
+void spark_build_READ_PARAMETER_198_AND_199(uint8_t device_id, const Spark_READ_PARAMETER_198_AND_199_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_200_AND_201_t;
+
+void spark_build_READ_PARAMETER_200_AND_201(uint8_t device_id, const Spark_READ_PARAMETER_200_AND_201_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_202_AND_203_t;
+
+void spark_build_READ_PARAMETER_202_AND_203(uint8_t device_id, const Spark_READ_PARAMETER_202_AND_203_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_204_AND_205_t;
+
+void spark_build_READ_PARAMETER_204_AND_205(uint8_t device_id, const Spark_READ_PARAMETER_204_AND_205_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_206_AND_207_t;
+
+void spark_build_READ_PARAMETER_206_AND_207(uint8_t device_id, const Spark_READ_PARAMETER_206_AND_207_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_208_AND_209_t;
+
+void spark_build_READ_PARAMETER_208_AND_209(uint8_t device_id, const Spark_READ_PARAMETER_208_AND_209_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_210_AND_211_t;
+
+void spark_build_READ_PARAMETER_210_AND_211(uint8_t device_id, const Spark_READ_PARAMETER_210_AND_211_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_212_AND_213_t;
+
+void spark_build_READ_PARAMETER_212_AND_213(uint8_t device_id, const Spark_READ_PARAMETER_212_AND_213_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_214_AND_215_t;
+
+void spark_build_READ_PARAMETER_214_AND_215(uint8_t device_id, const Spark_READ_PARAMETER_214_AND_215_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_216_AND_217_t;
+
+void spark_build_READ_PARAMETER_216_AND_217(uint8_t device_id, const Spark_READ_PARAMETER_216_AND_217_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_218_AND_219_t;
+
+void spark_build_READ_PARAMETER_218_AND_219(uint8_t device_id, const Spark_READ_PARAMETER_218_AND_219_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_220_AND_221_t;
+
+void spark_build_READ_PARAMETER_220_AND_221(uint8_t device_id, const Spark_READ_PARAMETER_220_AND_221_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_222_AND_223_t;
+
+void spark_build_READ_PARAMETER_222_AND_223(uint8_t device_id, const Spark_READ_PARAMETER_222_AND_223_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_224_AND_225_t;
+
+void spark_build_READ_PARAMETER_224_AND_225(uint8_t device_id, const Spark_READ_PARAMETER_224_AND_225_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_226_AND_227_t;
+
+void spark_build_READ_PARAMETER_226_AND_227(uint8_t device_id, const Spark_READ_PARAMETER_226_AND_227_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_228_AND_229_t;
+
+void spark_build_READ_PARAMETER_228_AND_229(uint8_t device_id, const Spark_READ_PARAMETER_228_AND_229_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_230_AND_231_t;
+
+void spark_build_READ_PARAMETER_230_AND_231(uint8_t device_id, const Spark_READ_PARAMETER_230_AND_231_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_232_AND_233_t;
+
+void spark_build_READ_PARAMETER_232_AND_233(uint8_t device_id, const Spark_READ_PARAMETER_232_AND_233_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_234_AND_235_t;
+
+void spark_build_READ_PARAMETER_234_AND_235(uint8_t device_id, const Spark_READ_PARAMETER_234_AND_235_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_236_AND_237_t;
+
+void spark_build_READ_PARAMETER_236_AND_237(uint8_t device_id, const Spark_READ_PARAMETER_236_AND_237_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_238_AND_239_t;
+
+void spark_build_READ_PARAMETER_238_AND_239(uint8_t device_id, const Spark_READ_PARAMETER_238_AND_239_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_240_AND_241_t;
+
+void spark_build_READ_PARAMETER_240_AND_241(uint8_t device_id, const Spark_READ_PARAMETER_240_AND_241_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_242_AND_243_t;
+
+void spark_build_READ_PARAMETER_242_AND_243(uint8_t device_id, const Spark_READ_PARAMETER_242_AND_243_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_244_AND_245_t;
+
+void spark_build_READ_PARAMETER_244_AND_245(uint8_t device_id, const Spark_READ_PARAMETER_244_AND_245_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_246_AND_247_t;
+
+void spark_build_READ_PARAMETER_246_AND_247(uint8_t device_id, const Spark_READ_PARAMETER_246_AND_247_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_248_AND_249_t;
+
+void spark_build_READ_PARAMETER_248_AND_249(uint8_t device_id, const Spark_READ_PARAMETER_248_AND_249_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_250_AND_251_t;
+
+void spark_build_READ_PARAMETER_250_AND_251(uint8_t device_id, const Spark_READ_PARAMETER_250_AND_251_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_252_AND_253_t;
+
+void spark_build_READ_PARAMETER_252_AND_253(uint8_t device_id, const Spark_READ_PARAMETER_252_AND_253_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_READ_PARAMETER_254_AND_255_t;
+
+void spark_build_READ_PARAMETER_254_AND_255(uint8_t device_id, const Spark_READ_PARAMETER_254_AND_255_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_0_AND_1_t;
+
+void spark_build_WRITE_PARAMETER_0_AND_1(uint8_t device_id, const Spark_WRITE_PARAMETER_0_AND_1_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_2_AND_3_t;
+
+void spark_build_WRITE_PARAMETER_2_AND_3(uint8_t device_id, const Spark_WRITE_PARAMETER_2_AND_3_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_4_AND_5_t;
+
+void spark_build_WRITE_PARAMETER_4_AND_5(uint8_t device_id, const Spark_WRITE_PARAMETER_4_AND_5_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_6_AND_7_t;
+
+void spark_build_WRITE_PARAMETER_6_AND_7(uint8_t device_id, const Spark_WRITE_PARAMETER_6_AND_7_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_8_AND_9_t;
+
+void spark_build_WRITE_PARAMETER_8_AND_9(uint8_t device_id, const Spark_WRITE_PARAMETER_8_AND_9_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_10_AND_11_t;
+
+void spark_build_WRITE_PARAMETER_10_AND_11(uint8_t device_id, const Spark_WRITE_PARAMETER_10_AND_11_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_12_AND_13_t;
+
+void spark_build_WRITE_PARAMETER_12_AND_13(uint8_t device_id, const Spark_WRITE_PARAMETER_12_AND_13_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_14_AND_15_t;
+
+void spark_build_WRITE_PARAMETER_14_AND_15(uint8_t device_id, const Spark_WRITE_PARAMETER_14_AND_15_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_16_AND_17_t;
+
+void spark_build_WRITE_PARAMETER_16_AND_17(uint8_t device_id, const Spark_WRITE_PARAMETER_16_AND_17_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_18_AND_19_t;
+
+void spark_build_WRITE_PARAMETER_18_AND_19(uint8_t device_id, const Spark_WRITE_PARAMETER_18_AND_19_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_20_AND_21_t;
+
+void spark_build_WRITE_PARAMETER_20_AND_21(uint8_t device_id, const Spark_WRITE_PARAMETER_20_AND_21_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_22_AND_23_t;
+
+void spark_build_WRITE_PARAMETER_22_AND_23(uint8_t device_id, const Spark_WRITE_PARAMETER_22_AND_23_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_24_AND_25_t;
+
+void spark_build_WRITE_PARAMETER_24_AND_25(uint8_t device_id, const Spark_WRITE_PARAMETER_24_AND_25_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_26_AND_27_t;
+
+void spark_build_WRITE_PARAMETER_26_AND_27(uint8_t device_id, const Spark_WRITE_PARAMETER_26_AND_27_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_28_AND_29_t;
+
+void spark_build_WRITE_PARAMETER_28_AND_29(uint8_t device_id, const Spark_WRITE_PARAMETER_28_AND_29_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_30_AND_31_t;
+
+void spark_build_WRITE_PARAMETER_30_AND_31(uint8_t device_id, const Spark_WRITE_PARAMETER_30_AND_31_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_32_AND_33_t;
+
+void spark_build_WRITE_PARAMETER_32_AND_33(uint8_t device_id, const Spark_WRITE_PARAMETER_32_AND_33_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_34_AND_35_t;
+
+void spark_build_WRITE_PARAMETER_34_AND_35(uint8_t device_id, const Spark_WRITE_PARAMETER_34_AND_35_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_36_AND_37_t;
+
+void spark_build_WRITE_PARAMETER_36_AND_37(uint8_t device_id, const Spark_WRITE_PARAMETER_36_AND_37_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_38_AND_39_t;
+
+void spark_build_WRITE_PARAMETER_38_AND_39(uint8_t device_id, const Spark_WRITE_PARAMETER_38_AND_39_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_40_AND_41_t;
+
+void spark_build_WRITE_PARAMETER_40_AND_41(uint8_t device_id, const Spark_WRITE_PARAMETER_40_AND_41_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_42_AND_43_t;
+
+void spark_build_WRITE_PARAMETER_42_AND_43(uint8_t device_id, const Spark_WRITE_PARAMETER_42_AND_43_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_44_AND_45_t;
+
+void spark_build_WRITE_PARAMETER_44_AND_45(uint8_t device_id, const Spark_WRITE_PARAMETER_44_AND_45_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_46_AND_47_t;
+
+void spark_build_WRITE_PARAMETER_46_AND_47(uint8_t device_id, const Spark_WRITE_PARAMETER_46_AND_47_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_48_AND_49_t;
+
+void spark_build_WRITE_PARAMETER_48_AND_49(uint8_t device_id, const Spark_WRITE_PARAMETER_48_AND_49_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_50_AND_51_t;
+
+void spark_build_WRITE_PARAMETER_50_AND_51(uint8_t device_id, const Spark_WRITE_PARAMETER_50_AND_51_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_52_AND_53_t;
+
+void spark_build_WRITE_PARAMETER_52_AND_53(uint8_t device_id, const Spark_WRITE_PARAMETER_52_AND_53_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_54_AND_55_t;
+
+void spark_build_WRITE_PARAMETER_54_AND_55(uint8_t device_id, const Spark_WRITE_PARAMETER_54_AND_55_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_56_AND_57_t;
+
+void spark_build_WRITE_PARAMETER_56_AND_57(uint8_t device_id, const Spark_WRITE_PARAMETER_56_AND_57_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_58_AND_59_t;
+
+void spark_build_WRITE_PARAMETER_58_AND_59(uint8_t device_id, const Spark_WRITE_PARAMETER_58_AND_59_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_60_AND_61_t;
+
+void spark_build_WRITE_PARAMETER_60_AND_61(uint8_t device_id, const Spark_WRITE_PARAMETER_60_AND_61_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_62_AND_63_t;
+
+void spark_build_WRITE_PARAMETER_62_AND_63(uint8_t device_id, const Spark_WRITE_PARAMETER_62_AND_63_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_64_AND_65_t;
+
+void spark_build_WRITE_PARAMETER_64_AND_65(uint8_t device_id, const Spark_WRITE_PARAMETER_64_AND_65_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_66_AND_67_t;
+
+void spark_build_WRITE_PARAMETER_66_AND_67(uint8_t device_id, const Spark_WRITE_PARAMETER_66_AND_67_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_68_AND_69_t;
+
+void spark_build_WRITE_PARAMETER_68_AND_69(uint8_t device_id, const Spark_WRITE_PARAMETER_68_AND_69_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_70_AND_71_t;
+
+void spark_build_WRITE_PARAMETER_70_AND_71(uint8_t device_id, const Spark_WRITE_PARAMETER_70_AND_71_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_72_AND_73_t;
+
+void spark_build_WRITE_PARAMETER_72_AND_73(uint8_t device_id, const Spark_WRITE_PARAMETER_72_AND_73_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_74_AND_75_t;
+
+void spark_build_WRITE_PARAMETER_74_AND_75(uint8_t device_id, const Spark_WRITE_PARAMETER_74_AND_75_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_76_AND_77_t;
+
+void spark_build_WRITE_PARAMETER_76_AND_77(uint8_t device_id, const Spark_WRITE_PARAMETER_76_AND_77_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_78_AND_79_t;
+
+void spark_build_WRITE_PARAMETER_78_AND_79(uint8_t device_id, const Spark_WRITE_PARAMETER_78_AND_79_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_80_AND_81_t;
+
+void spark_build_WRITE_PARAMETER_80_AND_81(uint8_t device_id, const Spark_WRITE_PARAMETER_80_AND_81_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_82_AND_83_t;
+
+void spark_build_WRITE_PARAMETER_82_AND_83(uint8_t device_id, const Spark_WRITE_PARAMETER_82_AND_83_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_84_AND_85_t;
+
+void spark_build_WRITE_PARAMETER_84_AND_85(uint8_t device_id, const Spark_WRITE_PARAMETER_84_AND_85_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_86_AND_87_t;
+
+void spark_build_WRITE_PARAMETER_86_AND_87(uint8_t device_id, const Spark_WRITE_PARAMETER_86_AND_87_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_88_AND_89_t;
+
+void spark_build_WRITE_PARAMETER_88_AND_89(uint8_t device_id, const Spark_WRITE_PARAMETER_88_AND_89_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_90_AND_91_t;
+
+void spark_build_WRITE_PARAMETER_90_AND_91(uint8_t device_id, const Spark_WRITE_PARAMETER_90_AND_91_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_92_AND_93_t;
+
+void spark_build_WRITE_PARAMETER_92_AND_93(uint8_t device_id, const Spark_WRITE_PARAMETER_92_AND_93_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_94_AND_95_t;
+
+void spark_build_WRITE_PARAMETER_94_AND_95(uint8_t device_id, const Spark_WRITE_PARAMETER_94_AND_95_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_96_AND_97_t;
+
+void spark_build_WRITE_PARAMETER_96_AND_97(uint8_t device_id, const Spark_WRITE_PARAMETER_96_AND_97_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_98_AND_99_t;
+
+void spark_build_WRITE_PARAMETER_98_AND_99(uint8_t device_id, const Spark_WRITE_PARAMETER_98_AND_99_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_100_AND_101_t;
+
+void spark_build_WRITE_PARAMETER_100_AND_101(uint8_t device_id, const Spark_WRITE_PARAMETER_100_AND_101_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_102_AND_103_t;
+
+void spark_build_WRITE_PARAMETER_102_AND_103(uint8_t device_id, const Spark_WRITE_PARAMETER_102_AND_103_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_104_AND_105_t;
+
+void spark_build_WRITE_PARAMETER_104_AND_105(uint8_t device_id, const Spark_WRITE_PARAMETER_104_AND_105_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_106_AND_107_t;
+
+void spark_build_WRITE_PARAMETER_106_AND_107(uint8_t device_id, const Spark_WRITE_PARAMETER_106_AND_107_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_108_AND_109_t;
+
+void spark_build_WRITE_PARAMETER_108_AND_109(uint8_t device_id, const Spark_WRITE_PARAMETER_108_AND_109_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_110_AND_111_t;
+
+void spark_build_WRITE_PARAMETER_110_AND_111(uint8_t device_id, const Spark_WRITE_PARAMETER_110_AND_111_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_112_AND_113_t;
+
+void spark_build_WRITE_PARAMETER_112_AND_113(uint8_t device_id, const Spark_WRITE_PARAMETER_112_AND_113_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_114_AND_115_t;
+
+void spark_build_WRITE_PARAMETER_114_AND_115(uint8_t device_id, const Spark_WRITE_PARAMETER_114_AND_115_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_116_AND_117_t;
+
+void spark_build_WRITE_PARAMETER_116_AND_117(uint8_t device_id, const Spark_WRITE_PARAMETER_116_AND_117_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_118_AND_119_t;
+
+void spark_build_WRITE_PARAMETER_118_AND_119(uint8_t device_id, const Spark_WRITE_PARAMETER_118_AND_119_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_120_AND_121_t;
+
+void spark_build_WRITE_PARAMETER_120_AND_121(uint8_t device_id, const Spark_WRITE_PARAMETER_120_AND_121_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_122_AND_123_t;
+
+void spark_build_WRITE_PARAMETER_122_AND_123(uint8_t device_id, const Spark_WRITE_PARAMETER_122_AND_123_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_124_AND_125_t;
+
+void spark_build_WRITE_PARAMETER_124_AND_125(uint8_t device_id, const Spark_WRITE_PARAMETER_124_AND_125_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_126_AND_127_t;
+
+void spark_build_WRITE_PARAMETER_126_AND_127(uint8_t device_id, const Spark_WRITE_PARAMETER_126_AND_127_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_128_AND_129_t;
+
+void spark_build_WRITE_PARAMETER_128_AND_129(uint8_t device_id, const Spark_WRITE_PARAMETER_128_AND_129_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_130_AND_131_t;
+
+void spark_build_WRITE_PARAMETER_130_AND_131(uint8_t device_id, const Spark_WRITE_PARAMETER_130_AND_131_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_132_AND_133_t;
+
+void spark_build_WRITE_PARAMETER_132_AND_133(uint8_t device_id, const Spark_WRITE_PARAMETER_132_AND_133_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_134_AND_135_t;
+
+void spark_build_WRITE_PARAMETER_134_AND_135(uint8_t device_id, const Spark_WRITE_PARAMETER_134_AND_135_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_136_AND_137_t;
+
+void spark_build_WRITE_PARAMETER_136_AND_137(uint8_t device_id, const Spark_WRITE_PARAMETER_136_AND_137_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_138_AND_139_t;
+
+void spark_build_WRITE_PARAMETER_138_AND_139(uint8_t device_id, const Spark_WRITE_PARAMETER_138_AND_139_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_140_AND_141_t;
+
+void spark_build_WRITE_PARAMETER_140_AND_141(uint8_t device_id, const Spark_WRITE_PARAMETER_140_AND_141_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_142_AND_143_t;
+
+void spark_build_WRITE_PARAMETER_142_AND_143(uint8_t device_id, const Spark_WRITE_PARAMETER_142_AND_143_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_144_AND_145_t;
+
+void spark_build_WRITE_PARAMETER_144_AND_145(uint8_t device_id, const Spark_WRITE_PARAMETER_144_AND_145_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_146_AND_147_t;
+
+void spark_build_WRITE_PARAMETER_146_AND_147(uint8_t device_id, const Spark_WRITE_PARAMETER_146_AND_147_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_148_AND_149_t;
+
+void spark_build_WRITE_PARAMETER_148_AND_149(uint8_t device_id, const Spark_WRITE_PARAMETER_148_AND_149_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_150_AND_151_t;
+
+void spark_build_WRITE_PARAMETER_150_AND_151(uint8_t device_id, const Spark_WRITE_PARAMETER_150_AND_151_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_152_AND_153_t;
+
+void spark_build_WRITE_PARAMETER_152_AND_153(uint8_t device_id, const Spark_WRITE_PARAMETER_152_AND_153_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_154_AND_155_t;
+
+void spark_build_WRITE_PARAMETER_154_AND_155(uint8_t device_id, const Spark_WRITE_PARAMETER_154_AND_155_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_156_AND_157_t;
+
+void spark_build_WRITE_PARAMETER_156_AND_157(uint8_t device_id, const Spark_WRITE_PARAMETER_156_AND_157_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_158_AND_159_t;
+
+void spark_build_WRITE_PARAMETER_158_AND_159(uint8_t device_id, const Spark_WRITE_PARAMETER_158_AND_159_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_160_AND_161_t;
+
+void spark_build_WRITE_PARAMETER_160_AND_161(uint8_t device_id, const Spark_WRITE_PARAMETER_160_AND_161_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_162_AND_163_t;
+
+void spark_build_WRITE_PARAMETER_162_AND_163(uint8_t device_id, const Spark_WRITE_PARAMETER_162_AND_163_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_164_AND_165_t;
+
+void spark_build_WRITE_PARAMETER_164_AND_165(uint8_t device_id, const Spark_WRITE_PARAMETER_164_AND_165_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_166_AND_167_t;
+
+void spark_build_WRITE_PARAMETER_166_AND_167(uint8_t device_id, const Spark_WRITE_PARAMETER_166_AND_167_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_168_AND_169_t;
+
+void spark_build_WRITE_PARAMETER_168_AND_169(uint8_t device_id, const Spark_WRITE_PARAMETER_168_AND_169_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_170_AND_171_t;
+
+void spark_build_WRITE_PARAMETER_170_AND_171(uint8_t device_id, const Spark_WRITE_PARAMETER_170_AND_171_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_172_AND_173_t;
+
+void spark_build_WRITE_PARAMETER_172_AND_173(uint8_t device_id, const Spark_WRITE_PARAMETER_172_AND_173_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_174_AND_175_t;
+
+void spark_build_WRITE_PARAMETER_174_AND_175(uint8_t device_id, const Spark_WRITE_PARAMETER_174_AND_175_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_176_AND_177_t;
+
+void spark_build_WRITE_PARAMETER_176_AND_177(uint8_t device_id, const Spark_WRITE_PARAMETER_176_AND_177_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_178_AND_179_t;
+
+void spark_build_WRITE_PARAMETER_178_AND_179(uint8_t device_id, const Spark_WRITE_PARAMETER_178_AND_179_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_180_AND_181_t;
+
+void spark_build_WRITE_PARAMETER_180_AND_181(uint8_t device_id, const Spark_WRITE_PARAMETER_180_AND_181_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_182_AND_183_t;
+
+void spark_build_WRITE_PARAMETER_182_AND_183(uint8_t device_id, const Spark_WRITE_PARAMETER_182_AND_183_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_184_AND_185_t;
+
+void spark_build_WRITE_PARAMETER_184_AND_185(uint8_t device_id, const Spark_WRITE_PARAMETER_184_AND_185_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_186_AND_187_t;
+
+void spark_build_WRITE_PARAMETER_186_AND_187(uint8_t device_id, const Spark_WRITE_PARAMETER_186_AND_187_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_188_AND_189_t;
+
+void spark_build_WRITE_PARAMETER_188_AND_189(uint8_t device_id, const Spark_WRITE_PARAMETER_188_AND_189_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_190_AND_191_t;
+
+void spark_build_WRITE_PARAMETER_190_AND_191(uint8_t device_id, const Spark_WRITE_PARAMETER_190_AND_191_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_192_AND_193_t;
+
+void spark_build_WRITE_PARAMETER_192_AND_193(uint8_t device_id, const Spark_WRITE_PARAMETER_192_AND_193_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_194_AND_195_t;
+
+void spark_build_WRITE_PARAMETER_194_AND_195(uint8_t device_id, const Spark_WRITE_PARAMETER_194_AND_195_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_196_AND_197_t;
+
+void spark_build_WRITE_PARAMETER_196_AND_197(uint8_t device_id, const Spark_WRITE_PARAMETER_196_AND_197_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_198_AND_199_t;
+
+void spark_build_WRITE_PARAMETER_198_AND_199(uint8_t device_id, const Spark_WRITE_PARAMETER_198_AND_199_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_200_AND_201_t;
+
+void spark_build_WRITE_PARAMETER_200_AND_201(uint8_t device_id, const Spark_WRITE_PARAMETER_200_AND_201_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_202_AND_203_t;
+
+void spark_build_WRITE_PARAMETER_202_AND_203(uint8_t device_id, const Spark_WRITE_PARAMETER_202_AND_203_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_204_AND_205_t;
+
+void spark_build_WRITE_PARAMETER_204_AND_205(uint8_t device_id, const Spark_WRITE_PARAMETER_204_AND_205_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_206_AND_207_t;
+
+void spark_build_WRITE_PARAMETER_206_AND_207(uint8_t device_id, const Spark_WRITE_PARAMETER_206_AND_207_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_208_AND_209_t;
+
+void spark_build_WRITE_PARAMETER_208_AND_209(uint8_t device_id, const Spark_WRITE_PARAMETER_208_AND_209_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_210_AND_211_t;
+
+void spark_build_WRITE_PARAMETER_210_AND_211(uint8_t device_id, const Spark_WRITE_PARAMETER_210_AND_211_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_212_AND_213_t;
+
+void spark_build_WRITE_PARAMETER_212_AND_213(uint8_t device_id, const Spark_WRITE_PARAMETER_212_AND_213_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_214_AND_215_t;
+
+void spark_build_WRITE_PARAMETER_214_AND_215(uint8_t device_id, const Spark_WRITE_PARAMETER_214_AND_215_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_216_AND_217_t;
+
+void spark_build_WRITE_PARAMETER_216_AND_217(uint8_t device_id, const Spark_WRITE_PARAMETER_216_AND_217_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_218_AND_219_t;
+
+void spark_build_WRITE_PARAMETER_218_AND_219(uint8_t device_id, const Spark_WRITE_PARAMETER_218_AND_219_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_220_AND_221_t;
+
+void spark_build_WRITE_PARAMETER_220_AND_221(uint8_t device_id, const Spark_WRITE_PARAMETER_220_AND_221_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_222_AND_223_t;
+
+void spark_build_WRITE_PARAMETER_222_AND_223(uint8_t device_id, const Spark_WRITE_PARAMETER_222_AND_223_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_224_AND_225_t;
+
+void spark_build_WRITE_PARAMETER_224_AND_225(uint8_t device_id, const Spark_WRITE_PARAMETER_224_AND_225_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_226_AND_227_t;
+
+void spark_build_WRITE_PARAMETER_226_AND_227(uint8_t device_id, const Spark_WRITE_PARAMETER_226_AND_227_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_228_AND_229_t;
+
+void spark_build_WRITE_PARAMETER_228_AND_229(uint8_t device_id, const Spark_WRITE_PARAMETER_228_AND_229_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_230_AND_231_t;
+
+void spark_build_WRITE_PARAMETER_230_AND_231(uint8_t device_id, const Spark_WRITE_PARAMETER_230_AND_231_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_232_AND_233_t;
+
+void spark_build_WRITE_PARAMETER_232_AND_233(uint8_t device_id, const Spark_WRITE_PARAMETER_232_AND_233_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_234_AND_235_t;
+
+void spark_build_WRITE_PARAMETER_234_AND_235(uint8_t device_id, const Spark_WRITE_PARAMETER_234_AND_235_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_236_AND_237_t;
+
+void spark_build_WRITE_PARAMETER_236_AND_237(uint8_t device_id, const Spark_WRITE_PARAMETER_236_AND_237_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_238_AND_239_t;
+
+void spark_build_WRITE_PARAMETER_238_AND_239(uint8_t device_id, const Spark_WRITE_PARAMETER_238_AND_239_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_240_AND_241_t;
+
+void spark_build_WRITE_PARAMETER_240_AND_241(uint8_t device_id, const Spark_WRITE_PARAMETER_240_AND_241_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_242_AND_243_t;
+
+void spark_build_WRITE_PARAMETER_242_AND_243(uint8_t device_id, const Spark_WRITE_PARAMETER_242_AND_243_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_244_AND_245_t;
+
+void spark_build_WRITE_PARAMETER_244_AND_245(uint8_t device_id, const Spark_WRITE_PARAMETER_244_AND_245_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_246_AND_247_t;
+
+void spark_build_WRITE_PARAMETER_246_AND_247(uint8_t device_id, const Spark_WRITE_PARAMETER_246_AND_247_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_248_AND_249_t;
+
+void spark_build_WRITE_PARAMETER_248_AND_249(uint8_t device_id, const Spark_WRITE_PARAMETER_248_AND_249_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_250_AND_251_t;
+
+void spark_build_WRITE_PARAMETER_250_AND_251(uint8_t device_id, const Spark_WRITE_PARAMETER_250_AND_251_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_252_AND_253_t;
+
+void spark_build_WRITE_PARAMETER_252_AND_253(uint8_t device_id, const Spark_WRITE_PARAMETER_252_AND_253_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint32_t FIRST_PARAMETER_VALUE;
+    uint32_t SECOND_PARAMETER_VALUE;
+} Spark_WRITE_PARAMETER_254_AND_255_t;
+
+void spark_build_WRITE_PARAMETER_254_AND_255(uint8_t device_id, const Spark_WRITE_PARAMETER_254_AND_255_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_START_FOLLOWER_MODE_t;
+
+void spark_build_START_FOLLOWER_MODE(uint8_t device_id, const Spark_START_FOLLOWER_MODE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t STATUS;
+} Spark_START_FOLLOWER_MODE_RESPONSE_t;
+
+void spark_build_START_FOLLOWER_MODE_RESPONSE(uint8_t device_id, const Spark_START_FOLLOWER_MODE_RESPONSE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_STOP_FOLLOWER_MODE_t;
+
+void spark_build_STOP_FOLLOWER_MODE(uint8_t device_id, const Spark_STOP_FOLLOWER_MODE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_STOP_FOLLOWER_MODE_RESPONSE_t;
+
+void spark_build_STOP_FOLLOWER_MODE_RESPONSE(uint8_t device_id, const Spark_STOP_FOLLOWER_MODE_RESPONSE_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint8_t _reserved0; // no payload fields
+} Spark_ENTER_SWDL_CAN_BOOTLOADER_t;
+
+void spark_build_ENTER_SWDL_CAN_BOOTLOADER(uint8_t device_id, const Spark_ENTER_SWDL_CAN_BOOTLOADER_t* values, SparkCanFrame* out);
+
+typedef struct {
+    uint16_t MAGIC_NUMBER;
+} Spark_PERSIST_PARAMETERS_t;
+
+void spark_build_PERSIST_PARAMETERS(uint8_t device_id, const Spark_PERSIST_PARAMETERS_t* values, SparkCanFrame* out);
+
+#ifdef __cplusplus
+}
+#endif
+

@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""
+Code generator for SPARK CAN frames
+
+Reads the JSON spec in doc/spark-frames-2.0.0-dev.11.json and emits:
+ - include/spark_can.h
+ - src/spark_can.c
+
+The generated C API provides, for each nonPeriodic frame, a typed struct of
+signal values (raw encoded units) and a function to build a CAN frame payload
+and arbitration ID for a given device ID.
+
+Note: Values are expected to be already encoded (i.e., apply any scaling
+specified by the spec externally). Reserved fields are omitted and default to 0.
+"""
+
+import json
+import os
+import re
+from pathlib import Path
+from typing import Dict, Any, List, Tuple
+
+
+ROOT = Path(__file__).parent
+SPEC_PATH = ROOT / "doc" / "spark-frames-2.0.0-dev.11.json"
+OUT_H = ROOT / "include" / "spark_can.h"
+OUT_C = ROOT / "src" / "spark_can.c"
+
+
+def c_ident(name: str) -> str:
+    # Keep alnum and underscore; replace others with underscore; ensure not starting with digit
+    s = re.sub(r"[^0-9A-Za-z_]", "_", name)
+    if re.match(r"^[0-9]", s):
+        s = "_" + s
+    return s
+
+
+def is_reserved_signal(sig_name: str) -> bool:
+    return sig_name.upper().startswith("RESERVED") or sig_name.upper().endswith("_RESERVED")
+
+
+def int_c_type(length_bits: int, signed: bool) -> str:
+    if length_bits <= 8:
+        return "int8_t" if signed else "uint8_t"
+    if length_bits <= 16:
+        return "int16_t" if signed else "uint16_t"
+    if length_bits <= 32:
+        return "int32_t" if signed else "uint32_t"
+    return "int64_t" if signed else "uint64_t"
+
+
+def float_c_type(length_bits: int) -> str:
+    if length_bits <= 32:
+        return "float"
+    return "double"
+
+
+def collect_frames(spec: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    # We only generate builders for nonPeriodicFrames (commands)
+    return spec.get("nonPeriodicFrames", {})
+
+
+def render_header(spec: Dict[str, Any], frames: Dict[str, Dict[str, Any]]) -> str:
+    lines: List[str] = []
+    lines.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
+    lines.append("#pragma once")
+    lines.append("#include <stdint.h>")
+    lines.append("#include <stdbool.h>")
+    lines.append("")
+    lines.append("#ifdef __cplusplus")
+    lines.append("extern \"C\" {")
+    lines.append("#endif")
+    lines.append("")
+    lines.append("#define SPARK_DEVICE_ID_MASK 0x3Fu")
+    lines.append("")
+    lines.append("typedef struct {")
+    lines.append("    uint32_t id;  // 29-bit extended ID")
+    lines.append("    uint8_t dlc;  // data length (0-8)")
+    lines.append("    uint8_t data[8];")
+    lines.append("    bool is_rtr;")
+    lines.append("} SparkCanFrame;")
+    lines.append("")
+
+    # Emit base IDs as constants
+    lines.append("// Base arbitration IDs (OR with device_id & SPARK_DEVICE_ID_MASK)")
+    for key, frame in frames.items():
+        name = c_ident(key.upper())
+        arb = int(frame["arbId"])  # base arb id
+        lines.append(f"#define SPARK_ARB_{name} {arb}u")
+    lines.append("")
+
+    # Emit per-frame structs and builders
+    for key, frame in frames.items():
+        fname = c_ident(key.upper())
+        sigs = frame.get("signals", {}) or {}
+        length_bytes = int(frame.get("lengthBytes", 0))
+        rtr = bool(frame.get("rtr", False))
+
+        # Struct of values (omit if no signals or RTR-only with zero length)
+        value_fields: List[Tuple[str, str]] = []
+        for sn, sinfo in sigs.items():
+            if is_reserved_signal(sn):
+                continue
+            stype = sinfo.get("type")
+            lbits = int(sinfo.get("lengthBits", 0))
+            if stype == "float":
+                ctype = float_c_type(lbits)
+            elif stype == "boolean":
+                ctype = "bool"
+            elif stype == "int":
+                ctype = int_c_type(lbits, True)
+            elif stype == "uint":
+                ctype = int_c_type(lbits, False)
+            else:
+                # default to unsigned container
+                ctype = int_c_type(max(1, lbits), False)
+            value_fields.append((c_ident(sn), ctype))
+
+        # Always emit a values struct so prototypes compile, even if empty
+        lines.append(f"typedef struct {{")
+        if value_fields:
+            for vn, ctype in value_fields:
+                lines.append(f"    {ctype} {vn};")
+        else:
+            lines.append("    uint8_t _reserved0; // no payload fields")
+        lines.append(f"}} Spark_{fname}_t;")
+        lines.append("")
+
+        # Builder prototype
+        # Always accept a values pointer; it may be NULL if there are no signals
+        lines.append(
+            f"void spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values, SparkCanFrame* out);"
+        )
+        lines.append("")
+
+    lines.append("#ifdef __cplusplus")
+    lines.append("}")
+    lines.append("#endif")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def render_source(spec: Dict[str, Any], frames: Dict[str, Dict[str, Any]]) -> str:
+    lines: List[str] = []
+    lines.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
+    lines.append("#include \"spark_can.h\"")
+    lines.append("#include <string.h>")
+    lines.append("")
+    lines.append("static inline void _set_bit(uint8_t* buf, uint32_t bit_index, uint8_t bit) {")
+    lines.append("    uint32_t byte_index = bit_index >> 3;")
+    lines.append("    uint8_t bit_offset = bit_index & 7u;")
+    lines.append("    if (bit) buf[byte_index] |= (uint8_t)(1u << bit_offset); else buf[byte_index] &= (uint8_t)~(1u << bit_offset);")
+    lines.append("}")
+    lines.append("")
+    lines.append("static void _pack_field(uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, uint64_t raw, bool big_endian) {")
+    lines.append("    for (uint32_t i = 0; i < bit_len; ++i) {")
+    lines.append("        uint32_t src_bit = big_endian ? (bit_len - 1u - i) : i;")
+    lines.append("        uint8_t b = (uint8_t)((raw >> src_bit) & 1u);")
+    lines.append("        _set_bit(buf, bit_pos + i, b);")
+    lines.append("    }")
+    lines.append("}")
+    lines.append("")
+
+    for key, frame in frames.items():
+        fname = c_ident(key.upper())
+        sigs: Dict[str, Any] = frame.get("signals", {}) or {}
+        length_bytes = int(frame.get("lengthBytes", 0))
+        rtr = bool(frame.get("rtr", False))
+        arb = int(frame["arbId"])  # base arb id
+
+        lines.append(f"void spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values, SparkCanFrame* out) {{")
+        lines.append("    if (!out) return;")
+        lines.append(f"    out->id = (uint32_t)({arb}u) | ((uint32_t)device_id & SPARK_DEVICE_ID_MASK);")
+        lines.append(f"    out->dlc = {length_bytes}u;")
+        lines.append(f"    out->is_rtr = {'true' if rtr else 'false'};")
+        if length_bytes > 0 and not rtr:
+            lines.append(f"    memset(out->data, 0, {length_bytes});")
+            # pack each signal
+            for sn, sinfo in sigs.items():
+                if is_reserved_signal(sn):
+                    continue
+                stype = sinfo.get("type")
+                lbits = int(sinfo.get("lengthBits", 0))
+                bpos = int(sinfo.get("bitPosition", 0))
+                big = bool(sinfo.get("isBigEndian", False))
+                vname = c_ident(sn)
+                # Determine casting/bit pattern
+                if stype == "float":
+                    if lbits <= 32:
+                        lines.append(f"    union {{ float f; uint32_t u; }} _{vname} = {{ .f = values ? values->{vname} : 0.0f }};")
+                        lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, (uint64_t)_{vname}.u, {'true' if big else 'false'});")
+                    else:
+                        lines.append(f"    union {{ double d; uint64_t u; }} _{vname} = {{ .d = values ? (double)values->{vname} : 0.0 }};")
+                        lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, _{vname}.u, {'true' if big else 'false'});")
+                elif stype == "boolean":
+                    lines.append(f"    uint64_t _{vname} = values && values->{vname} ? 1u : 0u;")
+                    lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+                elif stype == "int":
+                    # sign-extend within bit length by masking
+                    mask = (1 << min(lbits, 63)) - 1 if lbits < 64 else 0xFFFFFFFFFFFFFFFF
+                    lines.append(f"    int64_t _{vname}_s = values ? (int64_t)values->{vname} : 0;")
+                    # Mask to bit length preserving two's complement representation
+                    lines.append(f"    uint64_t _{vname} = (uint64_t)_{vname}_s & (({ '0xFFFFFFFFFFFFFFFFull' if lbits==64 else f'(1ull<<{lbits})-1ull' }));")
+                    lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+                else:  # uint or unknown
+                    lines.append(f"    uint64_t _{vname} = values ? (uint64_t)values->{vname} : 0ull;")
+                    lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+        else:
+            # no payload or RTR frame
+            if length_bytes > 0:
+                lines.append(f"    memset(out->data, 0, {length_bytes});")
+        lines.append("}")
+        lines.append("")
+
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    spec = json.loads(SPEC_PATH.read_text())
+    frames = collect_frames(spec)
+
+    # Ensure output dirs exist
+    OUT_H.parent.mkdir(parents=True, exist_ok=True)
+    OUT_C.parent.mkdir(parents=True, exist_ok=True)
+
+    header = render_header(spec, frames)
+    source = render_source(spec, frames)
+
+    OUT_H.write_text(header)
+    OUT_C.write_text(source)
+    print(f"Generated {OUT_H} and {OUT_C}")
+
+
+if __name__ == "__main__":
+    main()
