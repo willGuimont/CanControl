@@ -1,3 +1,4 @@
+#ifndef DUMP
 // Minimal example sending a SPARK frame via MCP2515
 #include <Arduino.h>
 #include <SPI.h>
@@ -99,6 +100,7 @@ static void poll_can() {
 		}
 	}
 }
+#endif
 
 #ifndef UNIT_TEST
 void setup() {
