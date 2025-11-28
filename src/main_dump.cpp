@@ -6,7 +6,7 @@
 #include "spark_can.h"
 
 #ifndef MCP2515_CS_PIN
-#define MCP2515_CS_PIN 10
+#define MCP2515_CS_PIN 53
 #endif
 #ifndef MCP2515_OSC
 #define MCP2515_OSC MCP_8MHZ
@@ -199,7 +199,7 @@ void setup() {
 	mcp2515.reset();
 	mcp2515.setBitrate(MCP2515_SPEED, MCP2515_OSC);
 	mcp2515.setNormalMode();
-	Serial.begin(115200);
+	Serial.begin(2000000);
 	print_help();
 }
 
