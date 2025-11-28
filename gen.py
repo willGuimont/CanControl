@@ -171,13 +171,13 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     lines.append("#include \"spark_can.h\"")
     lines.append("#include <string.h>")
     lines.append("")
-    lines.append("static inline uint8_t _get_bit(const uint8_t* buf, uint32_t bit_index) {")
+    lines.append("static inline uint8_t get_bit(const uint8_t* buf, uint32_t bit_index) {")
     lines.append("    uint32_t byte_index = bit_index >> 3;")
     lines.append("    uint8_t bit_offset = bit_index & 7u;")
     lines.append("    return (uint8_t)((buf[byte_index] >> bit_offset) & 1u);")
     lines.append("}")
     lines.append("")
-    lines.append("static uint64_t _unpack_field(const uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, bool big_endian) {")
+    lines.append("static uint64_t unpack_field(const uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, bool big_endian) {")
     lines.append("    // Optimize for byte-aligned fields: big_endian indicates byte order, not bit order")
     lines.append("    if (big_endian && (bit_pos % 8u == 0u) && (bit_len % 8u == 0u)) {")
     lines.append("        uint32_t byte_pos = bit_pos / 8u;")
@@ -192,19 +192,19 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     lines.append("    uint64_t val = 0;")
     lines.append("    for (uint32_t i = 0; i < bit_len; ++i) {")
     lines.append("        uint32_t dst_bit = i; // default little-endian bit significance")
-    lines.append("        uint8_t b = _get_bit(buf, bit_pos + i);")
+    lines.append("        uint8_t b = get_bit(buf, bit_pos + i);")
     lines.append("        val |= ((uint64_t)b) << dst_bit;")
     lines.append("    }")
     lines.append("    return val;")
     lines.append("}")
     lines.append("")
-    lines.append("static inline void _set_bit(uint8_t* buf, uint32_t bit_index, uint8_t bit) {")
+    lines.append("static inline void set_bit(uint8_t* buf, uint32_t bit_index, uint8_t bit) {")
     lines.append("    uint32_t byte_index = bit_index >> 3;")
     lines.append("    uint8_t bit_offset = bit_index & 7u;")
     lines.append("    if (bit) buf[byte_index] |= (uint8_t)(1u << bit_offset); else buf[byte_index] &= (uint8_t)~(1u << bit_offset);")
     lines.append("}")
     lines.append("")
-    lines.append("static void _pack_field(uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, uint64_t raw, bool big_endian) {")
+    lines.append("static void pack_field(uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, uint64_t raw, bool big_endian) {")
     lines.append("    // Optimize for byte-aligned fields: big_endian indicates byte order, not bit order")
     lines.append("    if (big_endian && (bit_pos % 8u == 0u) && (bit_len % 8u == 0u)) {")
     lines.append("        uint32_t byte_pos = bit_pos / 8u;")
@@ -219,7 +219,7 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     lines.append("    for (uint32_t i = 0; i < bit_len; ++i) {")
     lines.append("        uint32_t src_bit = i; // default little-endian bit significance")
     lines.append("        uint8_t b = (uint8_t)((raw >> src_bit) & 1u);")
-    lines.append("        _set_bit(buf, bit_pos + i, b);")
+    lines.append("        set_bit(buf, bit_pos + i, b);")
     lines.append("    }")
     lines.append("}")
     lines.append("")
@@ -251,23 +251,23 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
                 if stype == "float":
                     if lbits <= 32:
                         lines.append(f"    union {{ float f; uint32_t u; }} _{vname} = {{ .f = values ? values->{vname} : 0.0f }};")
-                        lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, (uint64_t)_{vname}.u, {'true' if big else 'false'});")
+                        lines.append(f"    pack_field(out->data, {bpos}u, {lbits}u, (uint64_t)_{vname}.u, {'true' if big else 'false'});")
                     else:
                         lines.append(f"    union {{ double d; uint64_t u; }} _{vname} = {{ .d = values ? (double)values->{vname} : 0.0 }};")
-                        lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, _{vname}.u, {'true' if big else 'false'});")
+                        lines.append(f"    pack_field(out->data, {bpos}u, {lbits}u, _{vname}.u, {'true' if big else 'false'});")
                 elif stype == "boolean":
                     lines.append(f"    uint64_t _{vname} = values && values->{vname} ? 1u : 0u;")
-                    lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+                    lines.append(f"    pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
                 elif stype == "int":
                     # sign-extend within bit length by masking
                     mask = (1 << min(lbits, 63)) - 1 if lbits < 64 else 0xFFFFFFFFFFFFFFFF
                     lines.append(f"    int64_t _{vname}_s = values ? (int64_t)values->{vname} : 0;")
                     # Mask to bit length preserving two's complement representation
                     lines.append(f"    uint64_t _{vname} = (uint64_t)_{vname}_s & (({ '0xFFFFFFFFFFFFFFFFull' if lbits==64 else f'(1ull<<{lbits})-1ull' }));")
-                    lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+                    lines.append(f"    pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
                 else:  # uint or unknown
                     lines.append(f"    uint64_t _{vname} = values ? (uint64_t)values->{vname} : 0ull;")
-                    lines.append(f"    _pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+                    lines.append(f"    pack_field(out->data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
         else:
             # no payload or RTR frame
             if length_bytes > 0:
@@ -296,22 +296,22 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
             vname = c_ident(sn)
             if stype == "float":
                 if lbits <= 32:
-                    lines.append(f"    uint32_t _{vname}_u = (uint32_t)_unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
+                    lines.append(f"    uint32_t _{vname}_u = (uint32_t)unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
                     lines.append(f"    union {{ uint32_t u; float f; }} _{vname} = {{ .u = _{vname}_u }};")
                     lines.append(f"    out->{vname} = _{vname}.f;")
                 else:
-                    lines.append(f"    uint64_t _{vname}_u = _unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
+                    lines.append(f"    uint64_t _{vname}_u = unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
                     lines.append(f"    union {{ uint64_t u; double d; }} _{vname} = {{ .u = _{vname}_u }};")
                     lines.append(f"    out->{vname} = _{vname}.d;")
             elif stype == "boolean":
-                lines.append(f"    out->{vname} = _unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'}) ? true : false;")
+                lines.append(f"    out->{vname} = unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'}) ? true : false;")
             elif stype == "int":
-                lines.append(f"    uint64_t _{vname}_u = _unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
+                lines.append(f"    uint64_t _{vname}_u = unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
                 # sign-extend
                 lines.append(f"    if ({lbits}u < 64u && (_{vname}_u & (1ull << ({lbits}u - 1u)))) {{ _{vname}_u |= ~((1ull<<{lbits})-1ull); }}")
                 lines.append(f"    out->{vname} = (int64_t)_{vname}_u;")
             else:  # uint or unknown
-                lines.append(f"    out->{vname} = _unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
+                lines.append(f"    out->{vname} = unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
         lines.append("    return true;")
         lines.append("}")
         lines.append("")
