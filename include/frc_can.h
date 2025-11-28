@@ -2,9 +2,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#define CAN_EFF_FLAG 0x80000000UL
-#define CAN_RTR_FLAG 0x40000000UL
-#define CAN_ERR_FLAG 0x20000000UL
+static const uint32_t EFF_FLAG = 0x80000000UL;
+static const uint32_t RTR_FLAG = 0x40000000UL;
+static const uint32_t ERR_FLAG = 0x20000000UL;
 
 namespace CanControl
 {
@@ -28,9 +28,9 @@ namespace CanControl
         uint32_t api_class() const { return (raw >> 10) & 0x3Fu; }
         uint32_t manufacturer_code() const { return (raw >> 16) & 0xFFu; }
         uint32_t device_type() const { return (raw >> 24) & 0x1Fu; }
-        bool flag_err() const { return (raw & CAN_ERR_FLAG) != 0; }
-        bool flag_rtr() const { return (raw & CAN_RTR_FLAG) != 0; }
-        bool flag_eff() const { return (raw & CAN_EFF_FLAG) != 0; }
+        bool flag_err() const { return (raw & ERR_FLAG) != 0; }
+        bool flag_rtr() const { return (raw & RTR_FLAG) != 0; }
+        bool flag_eff() const { return (raw & EFF_FLAG) != 0; }
     };
 
     typedef struct
