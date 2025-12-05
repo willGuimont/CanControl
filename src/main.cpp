@@ -6,6 +6,7 @@
 #include <spark_can.h>
 
 using namespace CanControl;
+using namespace CanControl::SparkMax;
 
 static const CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 static const CAN_CLOCK MCP2515_OSC = MCP_8MHZ;
@@ -25,6 +26,8 @@ static const uint8_t MCP2515_CS_PIN = MCP2515_CS_PIN;
 #endif
 
 static MCP2515 mcp2515(MCP2515_CS_PIN);
+static constexpr uint8_t kSparkDeviceId = 11;
+static SparkCanDevice motor(mcp2515, kSparkDeviceId);
 
 static const String mcpErrorToString(MCP2515::ERROR e)
 {
@@ -66,29 +69,6 @@ heartbeat::RobotState robot_state(
 );
 can_frame heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
 
-static inline can_frame makeDutyCycleSetpointSpark(uint8_t device_number,
-                                                   float duty,
-                                                   int16_t arbFeedforward = 0,
-                                                   uint8_t pidSlot = 0,
-                                                   bool ffUnitsIsDuty = true)
-{
-    SparkMax::Spark_DUTY_CYCLE_SETPOINT_t v{};
-    v.SETPOINT = duty;
-    v.ARBITRARY_FEEDFORWARD = arbFeedforward;
-    v.PID_SLOT = pidSlot;
-    v.ARBITRARY_FEEDFORWARD_UNITS = (ffUnitsIsDuty ? 1u : 0u);
-
-    SparkMax::spark_can_frame sf = SparkMax::spark_build_DUTY_CYCLE_SETPOINT(device_number, &v);
-
-    can_frame out{};
-    out.can_id = sf.id | EFF_FLAG;
-    out.can_dlc = sf.dlc;
-    // copy up to 8 bytes
-    for (uint8_t i = 0; i < sf.dlc && i < 8; ++i)
-        out.data[i] = sf.data[i];
-    return out;
-}
-
 void setup()
 {
     Serial.begin(115200);
@@ -114,7 +94,20 @@ void loop()
     lastHeartbeatError = mcp2515.sendMessage(&heartbeat_frame);
     lastHeartbeatMs = now;
 
-    static float currentSpeed = 0.0f;
+    // static float currentSpeed = 0.00f;
+    // static int direction = 1;
+    // currentSpeed += direction * 0.0005f;
+    // if (currentSpeed > 1.0f)
+    // {
+    //     direction = -1;
+    //     currentSpeed = 1.0f;
+    // }
+    // else if (currentSpeed < -1.0f)
+    // {
+    //     direction = 1;
+    //     currentSpeed = -1.0f;
+    // }
+    static float currentSpeed = 0.00f;
     static String inBuf = "";
     while (Serial.available())
     {
@@ -140,8 +133,13 @@ void loop()
         }
     }
 
-    can_frame duty = makeDutyCycleSetpointSpark(11, currentSpeed, 0, 0, true);
-    lastDutyError = mcp2515.sendMessage(&duty);
+    Spark_DUTY_CYCLE_SETPOINT_t duty{
+        .SETPOINT = currentSpeed,
+        .ARBITRARY_FEEDFORWARD = 0,
+        .PID_SLOT = 0,
+        .ARBITRARY_FEEDFORWARD_UNITS = 1u,
+    };
+    lastDutyError = motor.set_duty_cycle_setpoint(duty);
 
     if (now - lastStatusMs >= 1000)
     {

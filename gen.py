@@ -4,7 +4,7 @@ Code generator for SPARK CAN frames
 
 Reads the JSON spec in doc/spark-frames-2.0.0-dev.11.json and emits:
  - include/spark_can.h
- - src/spark_can.c
+ - src/spark_can.cpp
 
 The generated C API provides, for each nonPeriodic frame, a typed struct of
 signal values (raw encoded units) and a function to build a CAN frame payload
@@ -55,6 +55,25 @@ def float_c_type(length_bits: int) -> str:
     return "double"
 
 
+def snake_ident(name: str) -> str:
+    return c_ident(name.lower())
+
+
+def send_aliases(frame_name: str) -> List[str]:
+    aliases: List[str] = []
+    lower = frame_name.lower()
+    primary = c_ident(lower)
+    if lower.startswith("set_"):
+        if primary not in aliases:
+            aliases.append(primary)
+    if lower.endswith("setpoint"):
+        alias = lower if lower.startswith("set_") else f"set_{lower}"
+        alias = c_ident(alias)
+        if alias not in aliases:
+            aliases.append(alias)
+    return aliases
+
+
 def collect_frames_tx(spec: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     # Frames we originate (commands)
     return spec.get("nonPeriodicFrames", {})
@@ -73,6 +92,8 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     lines.append("#pragma once")
     lines.append("#include <stdint.h>")
     lines.append("#include <string.h>")
+    lines.append("#include <mcp2515.h>")
+    lines.append("#include \"frc_can.h\"")
     lines.append("")
     lines.append("namespace CanControl::SparkMax {")
     lines.append("")
@@ -150,6 +171,34 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         lines.append(f"spark_can_frame spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values);")
         lines.append("")
 
+    if frames_tx:
+        lines.append("class SparkCanDevice {")
+        lines.append("public:")
+        lines.append("    explicit SparkCanDevice(uint8_t device_id);")
+        lines.append("    SparkCanDevice(MCP2515& controller, uint8_t device_id);")
+        lines.append("    void set_controller(MCP2515& controller);")
+        lines.append("    MCP2515* controller() const;")
+        lines.append("    bool has_controller() const;")
+        lines.append("    void set_device_id(uint8_t device_id);")
+        lines.append("    uint8_t device_id() const;")
+        for key in frames_tx.keys():
+            fname = c_ident(key.upper())
+            lines.append(f"    spark_can_frame build_{fname}(const Spark_{fname}_t* values = nullptr) const;")
+        for key in frames_tx.keys():
+            fname = c_ident(key.upper())
+            send_name = snake_ident(key)
+            lines.append(f"    MCP2515::ERROR send_{send_name}(const Spark_{fname}_t* values = nullptr) const;")
+            lines.append(f"    MCP2515::ERROR send_{send_name}(const Spark_{fname}_t& values) const {{ return send_{send_name}(&values); }}")
+            for alias in send_aliases(key):
+                lines.append(f"    MCP2515::ERROR {alias}(const Spark_{fname}_t* values = nullptr) const {{ return send_{send_name}(values); }}")
+                lines.append(f"    MCP2515::ERROR {alias}(const Spark_{fname}_t& values) const {{ return send_{send_name}(values); }}")
+        lines.append("private:")
+        lines.append("    uint8_t device_id_;")
+        lines.append("    MCP2515* controller_;")
+        lines.append("    MCP2515::ERROR dispatch_frame(const spark_can_frame& frame) const;")
+        lines.append("};")
+        lines.append("")
+
     lines.append("} // namespace CanControl::SparkMax")
     lines.append("")
     return "\n".join(lines) + "\n"
@@ -211,6 +260,16 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     lines.append("    }")
     lines.append("}")
     lines.append("")
+    lines.append("static inline void spark_frame_to_can_frame(const spark_can_frame& in, struct can_frame* out) {")
+    lines.append("    out->can_id = (uint32_t)(in.id & 0x1FFFFFFFu) | EFF_FLAG;")
+    lines.append("    if (in.is_rtr) out->can_id |= RTR_FLAG;")
+    lines.append("    out->can_dlc = in.dlc;")
+    lines.append("    memset(out->data, 0, sizeof(out->data));")
+    lines.append("    if (in.dlc > 0u) {")
+    lines.append("        memcpy(out->data, in.data, in.dlc);")
+    lines.append("    }")
+    lines.append("}")
+    lines.append("")
 
     for key, frame in frames_tx.items():
         fname = c_ident(key.upper())
@@ -262,6 +321,54 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         lines.append("    return out;")
         lines.append("}")
         lines.append("")
+
+    if frames_tx:
+        lines.append("SparkCanDevice::SparkCanDevice(uint8_t device_id) : device_id_(device_id & SPARK_DEVICE_ID_MASK), controller_(nullptr) {}")
+        lines.append("")
+        lines.append("SparkCanDevice::SparkCanDevice(MCP2515& controller, uint8_t device_id) : device_id_(device_id & SPARK_DEVICE_ID_MASK), controller_(&controller) {}")
+        lines.append("")
+        lines.append("void SparkCanDevice::set_controller(MCP2515& controller) {")
+        lines.append("    controller_ = &controller;")
+        lines.append("}")
+        lines.append("")
+        lines.append("MCP2515* SparkCanDevice::controller() const {")
+        lines.append("    return controller_;")
+        lines.append("}")
+        lines.append("")
+        lines.append("bool SparkCanDevice::has_controller() const {")
+        lines.append("    return controller_ != nullptr;")
+        lines.append("}")
+        lines.append("")
+        lines.append("void SparkCanDevice::set_device_id(uint8_t device_id) {")
+        lines.append("    device_id_ = device_id & SPARK_DEVICE_ID_MASK;")
+        lines.append("}")
+        lines.append("")
+        lines.append("uint8_t SparkCanDevice::device_id() const {")
+        lines.append("    return device_id_;")
+        lines.append("}")
+        lines.append("")
+        lines.append("MCP2515::ERROR SparkCanDevice::dispatch_frame(const spark_can_frame& frame) const {")
+        lines.append("    if (!controller_) {")
+        lines.append("        return MCP2515::ERROR_FAIL;")
+        lines.append("    }")
+        lines.append("    struct can_frame out{};")
+        lines.append("    spark_frame_to_can_frame(frame, &out);")
+        lines.append("    return controller_->sendMessage(&out);")
+        lines.append("}")
+        lines.append("")
+        for key in frames_tx.keys():
+            fname = c_ident(key.upper())
+            lines.append(f"spark_can_frame SparkCanDevice::build_{fname}(const Spark_{fname}_t* values) const {{")
+            lines.append(f"    return spark_build_{fname}(device_id_, values);")
+            lines.append("}")
+            lines.append("")
+        for key in frames_tx.keys():
+            fname = c_ident(key.upper())
+            send_name = snake_ident(key)
+            lines.append(f"MCP2515::ERROR SparkCanDevice::send_{send_name}(const Spark_{fname}_t* values) const {{")
+            lines.append(f"    return dispatch_frame(spark_build_{fname}(device_id_, values));")
+            lines.append("}")
+            lines.append("")
 
     # Decode functions for all frames with payloads
     for key, frame in frames_all.items():
