@@ -3,6 +3,7 @@
 
 #include <frc_can.h>
 #include <frc_can_utils.h>
+#include <spark_can.h>
 
 using namespace CanControl;
 
@@ -65,29 +66,27 @@ heartbeat::RobotState robot_state(
 );
 can_frame heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
 
-// Build a Duty Cycle Setpoint using frc_can_frame and convert to can_frame
-static inline can_frame makeDutyCycleSetpointFrc(uint8_t device_number,
-                                                 float duty,
-                                                 int16_t arbFeedforward = 0,
-                                                 uint8_t pidSlot = 0,
-                                                 bool ffUnitsIsDuty = true)
+static inline can_frame makeDutyCycleSetpointSpark(uint8_t device_number,
+                                                   float duty,
+                                                   int16_t arbFeedforward = 0,
+                                                   uint8_t pidSlot = 0,
+                                                   bool ffUnitsIsDuty = true)
 {
-    CanControl::frc_can_frame f{};
-    // apiIndex = 2 (Duty Cycle Setpoint), apiClass = 0
-    f.id = CanControl::frc_can_id(device_number, 2u, 0u, 5u, 2u);
-    f.dlc = 8;
-    // float little-endian
-    uint8_t *fp = reinterpret_cast<uint8_t *>(&duty);
-    f.data[0] = fp[0];
-    f.data[1] = fp[1];
-    f.data[2] = fp[2];
-    f.data[3] = fp[3];
-    // int16 arbitrary feedforward little-endian
-    f.data[4] = uint8_t(arbFeedforward & 0xFF);
-    f.data[5] = uint8_t((arbFeedforward >> 8) & 0xFF);
-    f.data[6] = (pidSlot & 0x03) | (uint8_t((ffUnitsIsDuty ? 1 : 0) << 2));
-    f.data[7] = 0;
-    return CanControl::to_can_frame(f);
+    SparkMax::Spark_DUTY_CYCLE_SETPOINT_t v{};
+    v.SETPOINT = duty;
+    v.ARBITRARY_FEEDFORWARD = arbFeedforward;
+    v.PID_SLOT = pidSlot;
+    v.ARBITRARY_FEEDFORWARD_UNITS = (ffUnitsIsDuty ? 1u : 0u);
+
+    SparkMax::spark_can_frame sf = SparkMax::spark_build_DUTY_CYCLE_SETPOINT(device_number, &v);
+
+    can_frame out{};
+    out.can_id = sf.id | EFF_FLAG;
+    out.can_dlc = sf.dlc;
+    // copy up to 8 bytes
+    for (uint8_t i = 0; i < sf.dlc && i < 8; ++i)
+        out.data[i] = sf.data[i];
+    return out;
 }
 
 void setup()
@@ -109,14 +108,13 @@ void loop()
     static unsigned long lastStatusMs = 0;
     unsigned long now = millis();
 
-    // Send heartbeat on TXB0 to avoid clobbering duty-cycle TX buffer
+    // Heartbeat
     static MCP2515::ERROR lastHeartbeatError = MCP2515::ERROR_OK;
     static MCP2515::ERROR lastDutyError = MCP2515::ERROR_OK;
     lastHeartbeatError = mcp2515.sendMessage(&heartbeat_frame);
     lastHeartbeatMs = now;
 
-    // Always send duty-cycle setpoint on TXB1
-    static float currentSpeed = 0.0f; // range -1..1
+    static float currentSpeed = 0.0f;
     static String inBuf = "";
     while (Serial.available())
     {
@@ -142,11 +140,9 @@ void loop()
         }
     }
 
-
-    can_frame duty = makeDutyCycleSetpointFrc(11, currentSpeed, 0, 0, true);
+    can_frame duty = makeDutyCycleSetpointSpark(11, currentSpeed, 0, 0, true);
     lastDutyError = mcp2515.sendMessage(&duty);
 
-    // Throttle Serial prints to avoid blocking timing (print once per second)
     if (now - lastStatusMs >= 1000)
     {
         Serial.print("Heartbeat last sent ms: ");
@@ -157,6 +153,4 @@ void loop()
         Serial.println(mcpErrorToString(lastDutyError));
         lastStatusMs = now;
     }
-
-    // delay(5);
 }
