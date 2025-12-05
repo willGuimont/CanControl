@@ -10,6 +10,8 @@ using namespace CanControl::SparkMax;
 
 static const CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 static const CAN_CLOCK MCP2515_OSC = MCP_8MHZ;
+static const unsigned long HEARTBEAT_INTERVAL_MS = 20;
+static const unsigned long MOTOR_SETPOINT_INTERVAL_MS = 10;
 
 #ifndef MCP2515_CS_PIN
 #if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(ARDUINO_AVR_MEGA)
@@ -71,15 +73,27 @@ can_frame heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state
 
 void setup()
 {
+
     Serial.begin(115200);
     while (!Serial)
         ;
     Serial.print("Starting CanControl on pin ");
     Serial.println(MCP2515_CS_PIN);
 
-    mcp2515.reset();
-    mcp2515.setBitrate(MCP2515_SPEED, MCP2515_OSC);
-    mcp2515.setNormalMode();
+    {
+        MCP2515::ERROR setupErr;
+        setupErr = mcp2515.reset();
+        Serial.print("MCP2515 reset: ");
+        Serial.println(mcpErrorToString(setupErr));
+
+        setupErr = mcp2515.setBitrate(MCP2515_SPEED, MCP2515_OSC);
+        Serial.print("MCP2515 setBitrate: ");
+        Serial.println(mcpErrorToString(setupErr));
+
+        setupErr = mcp2515.setNormalMode();
+        Serial.print("MCP2515 setNormalMode: ");
+        Serial.println(mcpErrorToString(setupErr));
+    }
 }
 
 void loop()
@@ -91,22 +105,12 @@ void loop()
     // Heartbeat
     static MCP2515::ERROR lastHeartbeatError = MCP2515::ERROR_OK;
     static MCP2515::ERROR lastDutyError = MCP2515::ERROR_OK;
-    lastHeartbeatError = mcp2515.sendMessage(&heartbeat_frame);
-    lastHeartbeatMs = now;
+    if (now - lastHeartbeatMs >= HEARTBEAT_INTERVAL_MS)
+    {
+        lastHeartbeatError = mcp2515.sendMessage(&heartbeat_frame);
+        lastHeartbeatMs = now;
+    }
 
-    // static float currentSpeed = 0.00f;
-    // static int direction = 1;
-    // currentSpeed += direction * 0.0005f;
-    // if (currentSpeed > 1.0f)
-    // {
-    //     direction = -1;
-    //     currentSpeed = 1.0f;
-    // }
-    // else if (currentSpeed < -1.0f)
-    // {
-    //     direction = 1;
-    //     currentSpeed = -1.0f;
-    // }
     static float currentSpeed = 0.00f;
     static String inBuf = "";
     while (Serial.available())
@@ -133,22 +137,27 @@ void loop()
         }
     }
 
-    Spark_DUTY_CYCLE_SETPOINT_t duty{
-        .SETPOINT = currentSpeed,
-        .ARBITRARY_FEEDFORWARD = 0,
-        .PID_SLOT = 0,
-        .ARBITRARY_FEEDFORWARD_UNITS = 1u,
-    };
-    lastDutyError = motor.set_duty_cycle_setpoint(duty);
-
-    if (now - lastStatusMs >= 1000)
+    static unsigned long lastDutyMs = 0;
+    if (now - lastDutyMs >= MOTOR_SETPOINT_INTERVAL_MS)
     {
-        Serial.print("Heartbeat last sent ms: ");
-        Serial.println(lastHeartbeatMs);
-        Serial.print("Heartbeat last error: ");
-        Serial.println(mcpErrorToString(lastHeartbeatError));
-        Serial.print("Duty last error: ");
-        Serial.println(mcpErrorToString(lastDutyError));
-        lastStatusMs = now;
+        Spark_DUTY_CYCLE_SETPOINT_t duty{
+            .SETPOINT = currentSpeed,
+            .ARBITRARY_FEEDFORWARD = 0,
+            .PID_SLOT = 0,
+            .ARBITRARY_FEEDFORWARD_UNITS = 1u,
+        };
+        lastDutyError = motor.set_duty_cycle_setpoint(duty);
+        lastDutyMs = now;
     }
+
+    // if (now - lastStatusMs >= 1000)
+    // {
+    //     Serial.print("Heartbeat last sent ms: ");
+    //     Serial.println(lastHeartbeatMs);
+    //     Serial.print("Heartbeat last error: ");
+    //     Serial.println(mcpErrorToString(lastHeartbeatError));
+    //     Serial.print("Duty last error: ");
+    //     Serial.println(mcpErrorToString(lastDutyError));
+    //     lastStatusMs = now;
+    // }
 }
