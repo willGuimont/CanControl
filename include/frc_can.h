@@ -22,6 +22,26 @@ namespace CanControl
     {
         uint32_t raw{0};
 
+        frc_can_id(uint32_t device_number = 0,
+                   uint32_t api_index = 0,
+                   uint32_t api_class = 0,
+                   uint32_t manufacturer_code = 0,
+                   uint32_t device_type = 0,
+                   bool eff = true,
+                   bool rtr = false,
+                   bool err = false)
+        {
+            raw = 0;
+            set_device_number(device_number);
+            set_api_index(api_index);
+            set_api_class(api_class);
+            set_manufacturer_code(manufacturer_code);
+            set_device_type(device_type);
+            set_flag_eff(eff);
+            set_flag_rtr(rtr);
+            set_flag_err(err);
+        }
+
         static constexpr unsigned SHIFT_device_number = 0;
         static constexpr uint32_t MASK_device_number = 0x3Fu; // 6 bits
 
@@ -89,6 +109,39 @@ namespace CanControl
             static constexpr unsigned SHIFT_replayNumber = 18;
             static constexpr uint64_t MASK_replayNumber = 0x3FULL;
 
+            RobotState(uint32_t matchTimeSeconds = 0,
+                       uint32_t matchNumber = 0,
+                       uint32_t replayNumber = 0,
+                       bool redAlliance = false,
+                       bool enabled = false,
+                       bool autonomous = false,
+                       bool testMode = false,
+                       bool systemWatchdog = false,
+                       uint32_t tournamentType = 0,
+                       uint32_t timeOfDay_yr = 0,
+                       uint32_t timeOfDay_month = 0,
+                       uint32_t timeOfDay_day = 0,
+                       uint32_t timeOfDay_hr = 0,
+                       uint32_t timeOfDay_min = 0,
+                       uint32_t timeOfDay_sec = 0)
+            {
+                raw = 0;
+                set_matchTimeSeconds(matchTimeSeconds);
+                set_matchNumber(matchNumber);
+                set_replayNumber(replayNumber);
+                set_redAlliance(redAlliance);
+                set_enabled(enabled);
+                set_autonomous(autonomous);
+                set_testMode(testMode);
+                set_systemWatchdog(systemWatchdog);
+                set_tournamentType(tournamentType);
+                set_timeOfDay_yr(timeOfDay_yr);
+                set_timeOfDay_month(timeOfDay_month);
+                set_timeOfDay_day(timeOfDay_day);
+                set_timeOfDay_hr(timeOfDay_hr);
+                set_timeOfDay_min(timeOfDay_min);
+                set_timeOfDay_sec(timeOfDay_sec);
+            }
             static constexpr unsigned SHIFT_redAlliance = 24;
             static constexpr uint64_t MASK_redAlliance = 0x1ULL;
 
