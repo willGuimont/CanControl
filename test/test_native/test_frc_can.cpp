@@ -42,13 +42,13 @@ void test_frc_can_id_flags()
     uint32_t base = make_raw_id();
 
     frc_can_id id_err{};
-    id_err.raw = base | CAN_ERR_FLAG;
+    id_err.raw = base | ERR_FLAG;
 
     frc_can_id id_rtr{};
-    id_rtr.raw = base | CAN_RTR_FLAG;
+    id_rtr.raw = base | RTR_FLAG;
 
     frc_can_id id_eff{};
-    id_eff.raw = base | CAN_EFF_FLAG;
+    id_eff.raw = base | EFF_FLAG;
 
     TEST_ASSERT_TRUE(id_err.flag_err());
     TEST_ASSERT_FALSE(id_err.flag_rtr());
