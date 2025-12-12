@@ -10,8 +10,7 @@ using namespace CanControl::SparkMax;
 
 static const CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 static const CAN_CLOCK MCP2515_OSC = MCP_8MHZ;
-static const unsigned long HEARTBEAT_INTERVAL_MS = 20;
-static const unsigned long MOTOR_SETPOINT_INTERVAL_MS = 10;
+static const unsigned long HEARTBEAT_INTERVAL_MS = 50;
 
 #ifndef MCP2515_CS_PIN
 #if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(ARDUINO_AVR_MEGA)
@@ -28,8 +27,11 @@ static const uint8_t MCP2515_CS_PIN = MCP2515_CS_PIN;
 #endif
 
 static MCP2515 mcp2515(MCP2515_CS_PIN);
-static constexpr uint8_t kSparkDeviceId = 11;
-static SparkCanDevice motor(mcp2515, kSparkDeviceId);
+static constexpr uint8_t motor_id_1 = 11;
+static SparkCanDevice motor_1(mcp2515, motor_id_1);
+
+static constexpr uint8_t motor_id_2 = 12;
+static SparkCanDevice motor_2(mcp2515, motor_id_2);
 
 static const String mcpErrorToString(MCP2515::ERROR e)
 {
@@ -129,25 +131,23 @@ void loop()
                 Serial.print("Set speed: ");
                 Serial.println(currentSpeed);
                 inBuf = "";
+
+                Spark_DUTY_CYCLE_SETPOINT_t duty{
+                    .SETPOINT = currentSpeed,
+                    .ARBITRARY_FEEDFORWARD = 0,
+                    .PID_SLOT = 0,
+                    .ARBITRARY_FEEDFORWARD_UNITS = 1u,
+                };
+
+                // Send speed only on change
+                lastDutyError = motor_1.set_duty_cycle_setpoint(duty);
+                lastDutyError = motor_2.set_duty_cycle_setpoint(duty);
             }
         }
         else
         {
             inBuf += c;
         }
-    }
-
-    static unsigned long lastDutyMs = 0;
-    if (now - lastDutyMs >= MOTOR_SETPOINT_INTERVAL_MS)
-    {
-        Spark_DUTY_CYCLE_SETPOINT_t duty{
-            .SETPOINT = currentSpeed,
-            .ARBITRARY_FEEDFORWARD = 0,
-            .PID_SLOT = 0,
-            .ARBITRARY_FEEDFORWARD_UNITS = 1u,
-        };
-        lastDutyError = motor.set_duty_cycle_setpoint(duty);
-        lastDutyMs = now;
     }
 
     // if (now - lastStatusMs >= 1000)
