@@ -10,7 +10,7 @@ using namespace CanControl::SparkMax;
 
 static const CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 static const CAN_CLOCK MCP2515_OSC = MCP_8MHZ;
-static const unsigned long HEARTBEAT_INTERVAL_MS = 50;
+static const unsigned long HEARTBEAT_INTERVAL_MS = 30;
 
 #ifndef MCP2515_CS_PIN
 #if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(ARDUINO_AVR_MEGA)
@@ -73,6 +73,10 @@ heartbeat::RobotState robot_state(
 );
 can_frame heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
 
+Spark_RESET_SAFE_PARAMETERS_t reset_frame{
+    .MAGIC_NUMBER = 36292,
+};
+
 void setup()
 {
 
@@ -91,10 +95,23 @@ void setup()
         setupErr = mcp2515.setBitrate(MCP2515_SPEED, MCP2515_OSC);
         Serial.print("MCP2515 setBitrate: ");
         Serial.println(mcpErrorToString(setupErr));
+        Serial.println();
 
         setupErr = mcp2515.setNormalMode();
         Serial.print("MCP2515 setNormalMode: ");
         Serial.println(mcpErrorToString(setupErr));
+        Serial.println();
+
+        Serial.println("Resetting all motor parameters");
+        motor_1.send_reset_safe_parameters(reset_frame);
+        motor_2.send_reset_safe_parameters(reset_frame);
+        Serial.println();
+
+        Serial.println("Available commands: ");
+        Serial.println("\t- Start with `s` to set speed (float)");
+        Serial.println("\t- Start with `p` to set position (float)");
+        Serial.println("Ready to accept commands...");
+        Serial.println();
     }
 }
 
@@ -113,35 +130,57 @@ void loop()
         lastHeartbeatMs = now;
     }
 
-    static float currentSpeed = 0.00f;
+    // Speed control
     static String inBuf = "";
     while (Serial.available())
     {
         char c = Serial.read();
         if (c == '\n' || c == '\r')
         {
-            if (inBuf.length() > 0)
+            // Command + at least one char of argument
+            if (inBuf.length() >= 2)
             {
-                float v = inBuf.toFloat();
-                if (v > 1.0f)
-                    v = 1.0f;
-                if (v < -1.0f)
-                    v = -1.0f;
-                currentSpeed = v;
-                Serial.print("Set speed: ");
-                Serial.println(currentSpeed);
+                if (inBuf[0] == 's')
+                {
+                    // Speed
+                    float v = (inBuf.substring(1)).toFloat();
+                    if (v > 1.0f)
+                        v = 1.0f;
+                    if (v < -1.0f)
+                        v = -1.0f;
+                    Serial.print("Set speed: ");
+                    Serial.println(v);
+
+                    Spark_DUTY_CYCLE_SETPOINT_t duty{
+                        .SETPOINT = v,
+                        .ARBITRARY_FEEDFORWARD = 0,
+                        .PID_SLOT = 0,
+                        .ARBITRARY_FEEDFORWARD_UNITS = 1u,
+                    };
+
+                    // Send speed only on change
+                    lastDutyError = motor_1.set_duty_cycle_setpoint(duty);
+                    lastDutyError = motor_2.set_duty_cycle_setpoint(duty);
+                }
+                else if (inBuf[0] == 'p')
+                {
+                    // Position
+                    int p = (inBuf.substring(1)).toFloat();
+                    Serial.print("Set position: ");
+                    Serial.println(p);
+
+                    Spark_POSITION_SETPOINT_t sp{
+                        .SETPOINT = p,
+                        .ARBITRARY_FEEDFORWARD = 0,
+                        .PID_SLOT = 0,
+                        .ARBITRARY_FEEDFORWARD_UNITS = 0,
+                    };
+
+                    motor_1.set_position_setpoint(sp);
+                }
+
+                // Clear buffer
                 inBuf = "";
-
-                Spark_DUTY_CYCLE_SETPOINT_t duty{
-                    .SETPOINT = currentSpeed,
-                    .ARBITRARY_FEEDFORWARD = 0,
-                    .PID_SLOT = 0,
-                    .ARBITRARY_FEEDFORWARD_UNITS = 1u,
-                };
-
-                // Send speed only on change
-                lastDutyError = motor_1.set_duty_cycle_setpoint(duty);
-                lastDutyError = motor_2.set_duty_cycle_setpoint(duty);
             }
         }
         else
@@ -149,15 +188,4 @@ void loop()
             inBuf += c;
         }
     }
-
-    // if (now - lastStatusMs >= 1000)
-    // {
-    //     Serial.print("Heartbeat last sent ms: ");
-    //     Serial.println(lastHeartbeatMs);
-    //     Serial.print("Heartbeat last error: ");
-    //     Serial.println(mcpErrorToString(lastHeartbeatError));
-    //     Serial.print("Duty last error: ");
-    //     Serial.println(mcpErrorToString(lastDutyError));
-    //     lastStatusMs = now;
-    // }
 }

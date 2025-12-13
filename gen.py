@@ -74,6 +74,14 @@ def send_aliases(frame_name: str) -> List[str]:
     return aliases
 
 
+def sanitize_comment(text: str) -> str:
+    """Collapse whitespace and strip to make safe for single-line C/C++ comments."""
+    if text is None:
+        return ""
+    # Collapse all whitespace (including newlines, tabs) to single spaces
+    return " ".join(str(text).split())
+
+
 def collect_frames_tx(spec: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     # Frames we originate (commands)
     return spec.get("nonPeriodicFrames", {})
@@ -107,17 +115,25 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     lines.append("};")
     lines.append("")
 
-    # Emit base IDs as constants
+    # Emit base IDs as constants, annotated with JSON name/description
     lines.append("// Base arbitration IDs (OR with device_id & SPARK_DEVICE_ID_MASK)")
     for key, frame in frames_all.items():
         name = c_ident(key.upper())
         arb = int(frame["arbId"])  # base arb id
+        frame_name = frame.get("name", key)
+        frame_desc = frame.get("description", "")
+        summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        lines.append(f"// {summary}")
         lines.append(f"#define SPARK_ARB_{name} {arb}u")
     lines.append("")
 
     # Convenience macros to test if an ID matches a frame type
     for key, frame in frames_all.items():
         name = c_ident(key.upper())
+        frame_name = frame.get("name", key)
+        frame_desc = frame.get("description", "")
+        summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        lines.append(f"// Match arbitration ID for frame {summary}")
         lines.append(f"#define SPARK_MATCH_{name}(id) ((((uint32_t)(id)) & ~SPARK_DEVICE_ID_MASK) == (uint32_t)SPARK_ARB_{name})")
     lines.append("")
 
@@ -128,8 +144,13 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         length_bytes = int(frame.get("lengthBytes", 0))
         rtr = bool(frame.get("rtr", False))
 
+        frame_name = frame.get("name", key)
+        frame_desc = frame.get("description", "")
+        frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+
         # Struct of values (omit if no signals or RTR-only with zero length)
-        value_fields: List[Tuple[str, str]] = []
+        # Annotate each field with the signal's name and description
+        value_fields: List[Tuple[str, str, str]] = []
         for sn, sinfo in sigs.items():
             if is_reserved_signal(sn):
                 continue
@@ -146,12 +167,18 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
             else:
                 # default to unsigned container
                 ctype = int_c_type(max(1, lbits), False)
-            value_fields.append((c_ident(sn), ctype))
+            sig_name = sinfo.get("name", sn)
+            sig_desc = sinfo.get("description", "")
+            sig_summary = sanitize_comment(f"{sig_name}: {sig_desc}" if sig_desc else str(sig_name))
+            value_fields.append((c_ident(sn), ctype, sig_summary))
 
         # Always emit a values struct so prototypes compile, even if empty
+        lines.append(f"// Frame values for {frame_summary}")
         lines.append(f"typedef struct {{")
         if value_fields:
-            for vn, ctype in value_fields:
+            for vn, ctype, doc in value_fields:
+                if doc:
+                    lines.append(f"    // {doc}")
                 lines.append(f"    {ctype} {vn};")
         else:
             lines.append("    uint8_t _reserved0; // no payload fields")
@@ -160,6 +187,7 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
 
         # Decode prototype (for any frame with payload length > 0)
         if length_bytes > 0:
+            lines.append(f"// Decode frame payload for {frame_summary}")
             lines.append(f"bool spark_decode_{fname}(const uint8_t* data, uint8_t dlc, Spark_{fname}_t* out);")
             # Inline helper for spark_can_frame wrapper
             lines.append(f"static inline bool spark_decode_{fname}_frame(const spark_can_frame& in, Spark_{fname}_t* out) {{ return spark_decode_{fname}(in.data, in.dlc, out); }}")
@@ -168,6 +196,10 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     # Emit builders only for TX frames (non-periodic commands)
     for key, frame in frames_tx.items():
         fname = c_ident(key.upper())
+        frame_name = frame.get("name", key)
+        frame_desc = frame.get("description", "")
+        frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        lines.append(f"// Build frame for {frame_summary}")
         lines.append(f"spark_can_frame spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values);")
         lines.append("")
 
@@ -181,16 +213,30 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         lines.append("    bool has_controller() const;")
         lines.append("    void set_device_id(uint8_t device_id);")
         lines.append("    uint8_t device_id() const;")
-        for key in frames_tx.keys():
+        for key, frame in frames_tx.items():
             fname = c_ident(key.upper())
+            frame_name = frame.get("name", key)
+            frame_desc = frame.get("description", "")
+            frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+            lines.append(f"    // Build CAN frame for {frame_summary}")
             lines.append(f"    spark_can_frame build_{fname}(const Spark_{fname}_t* values = nullptr) const;")
-        for key in frames_tx.keys():
+        for key, frame in frames_tx.items():
             fname = c_ident(key.upper())
             send_name = snake_ident(key)
+            frame_name = frame.get("name", key)
+            frame_desc = frame.get("description", "")
+            frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+            # Pointer overload
+            lines.append(f"    // Build and send {frame_summary} (pointer overload)")
             lines.append(f"    MCP2515::ERROR send_{send_name}(const Spark_{fname}_t* values = nullptr) const;")
+            # By-value overload
+            lines.append(f"    // Build and send {frame_summary} (by-value overload)")
             lines.append(f"    MCP2515::ERROR send_{send_name}(const Spark_{fname}_t& values) const {{ return send_{send_name}(&values); }}")
+            # Alias helpers
             for alias in send_aliases(key):
+                lines.append(f"    // Build and send {frame_summary} via alias '{alias}' (pointer overload)")
                 lines.append(f"    MCP2515::ERROR {alias}(const Spark_{fname}_t* values = nullptr) const {{ return send_{send_name}(values); }}")
+                lines.append(f"    // Build and send {frame_summary} via alias '{alias}' (by-value overload)")
                 lines.append(f"    MCP2515::ERROR {alias}(const Spark_{fname}_t& values) const {{ return send_{send_name}(values); }}")
         lines.append("private:")
         lines.append("    uint8_t device_id_;")
@@ -277,6 +323,10 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         length_bytes = int(frame.get("lengthBytes", 0))
         rtr = bool(frame.get("rtr", False))
         arb = int(frame["arbId"])  # base arb id
+        frame_name = frame.get("name", key)
+        frame_desc = frame.get("description", "")
+        frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        lines.append(f"// Build frame payload for {frame_summary}")
         lines.append(f"spark_can_frame spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values) {{")
         lines.append("    spark_can_frame out{};")
         lines.append(f"    out.id = (uint32_t)({arb}u) | ((uint32_t)device_id & SPARK_DEVICE_ID_MASK);")
@@ -356,15 +406,23 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         lines.append("    return controller_->sendMessage(&out);")
         lines.append("}")
         lines.append("")
-        for key in frames_tx.keys():
+        for key, frame in frames_tx.items():
             fname = c_ident(key.upper())
+            frame_name = frame.get("name", key)
+            frame_desc = frame.get("description", "")
+            frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+            lines.append(f"// Build frame for {frame_summary} using current device_id_")
             lines.append(f"spark_can_frame SparkCanDevice::build_{fname}(const Spark_{fname}_t* values) const {{")
             lines.append(f"    return spark_build_{fname}(device_id_, values);")
             lines.append("}")
             lines.append("")
-        for key in frames_tx.keys():
+        for key, frame in frames_tx.items():
             fname = c_ident(key.upper())
             send_name = snake_ident(key)
+            frame_name = frame.get("name", key)
+            frame_desc = frame.get("description", "")
+            frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+            lines.append(f"// Build and send {frame_summary} via MCP2515 controller")
             lines.append(f"MCP2515::ERROR SparkCanDevice::send_{send_name}(const Spark_{fname}_t* values) const {{")
             lines.append(f"    return dispatch_frame(spark_build_{fname}(device_id_, values));")
             lines.append("}")
@@ -377,6 +435,10 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         length_bytes = int(frame.get("lengthBytes", 0))
         if length_bytes <= 0:
             continue
+        frame_name = frame.get("name", key)
+        frame_desc = frame.get("description", "")
+        frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        lines.append(f"// Decode frame payload for {frame_summary}")
         lines.append(f"bool spark_decode_{fname}(const uint8_t* data, uint8_t dlc, Spark_{fname}_t* out) {{")
         lines.append("    if (!data || !out) return false;")
         lines.append(f"    if (dlc < {length_bytes}u) return false;")
