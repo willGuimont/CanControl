@@ -1,21 +1,18 @@
-#include <unity.h>
 #include <frc_can.h>
+#include <unity.h>
 
 using namespace CanControl;
 
-static const uint32_t device_type = 2;
+static const uint32_t device_type       = 2;
 static const uint32_t manufacturer_code = 8;
-static const uint32_t api_class = 1;
-static const uint32_t api_index = 0;
-static const uint32_t device_number = 3;
+static const uint32_t api_class         = 1;
+static const uint32_t api_index         = 0;
+static const uint32_t device_number     = 3;
 
 static uint32_t make_raw_id()
 {
-    return ((device_type & 0x1F) << 24) |
-           ((manufacturer_code & 0xFF) << 16) |
-           ((api_class & 0x3F) << 10) |
-           ((api_index & 0x0F) << 6) |
-           ((device_number & 0x3F) << 0);
+    return ((device_type & 0x1F) << 24) | ((manufacturer_code & 0xFF) << 16) | ((api_class & 0x3F) << 10) |
+           ((api_index & 0x0F) << 6) | ((device_number & 0x3F) << 0);
 }
 
 void test_frc_can_id_fields_from_raw()
@@ -63,7 +60,8 @@ void test_frc_can_id_flags()
     TEST_ASSERT_TRUE(id_eff.flag_eff());
 }
 
-void test_can_id_example() {
+void test_can_id_example()
+{
     frc_can_id id{};
     id.raw = 0b00010000000100000010000000100;
 
@@ -74,7 +72,7 @@ void test_can_id_example() {
     TEST_ASSERT_EQUAL_UINT32(4, id.device_number());
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     UNITY_BEGIN();
 

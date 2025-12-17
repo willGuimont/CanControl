@@ -1,15 +1,18 @@
-#include <SPI.h>
-#include <mcp2515.h>
+#include "sparkmax.h"
+#include "talonsrx.h"
+#include "victorspx.h"
 
+#include <SPI.h>
 #include <frc_can.h>
 #include <frc_can_utils.h>
-#include <spark_can.h>
+#include <low_sparkmax.h>
+#include <mcp2515.h>
 
 using namespace CanControl;
 using namespace CanControl::LowLevel::SparkMax;
 
-static const CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
-static const CAN_CLOCK MCP2515_OSC = MCP_8MHZ;
+static const CAN_SPEED     MCP2515_SPEED         = CAN_1000KBPS;
+static const CAN_CLOCK     MCP2515_OSC           = MCP_8MHZ;
 static const unsigned long HEARTBEAT_INTERVAL_MS = 30;
 
 #ifndef MCP2515_CS_PIN
@@ -27,11 +30,9 @@ static const uint8_t MCP2515_CS_PIN = MCP2515_CS_PIN;
 #endif
 
 static MCP2515 mcp2515(MCP2515_CS_PIN);
-static constexpr uint8_t motor_id_1 = 11;
-static SparkCanDevice motor_1(mcp2515, motor_id_1);
 
-// static constexpr uint8_t motor_id_2 = 12;
-// static SparkCanDevice motor_2(mcp2515, motor_id_2);
+static constexpr uint8_t motor_id_1 = 11;
+static SparkCanDevice    motor_1(mcp2515, motor_id_1);
 
 static const String mcpErrorToString(MCP2515::ERROR e)
 {
@@ -54,24 +55,23 @@ static const String mcpErrorToString(MCP2515::ERROR e)
     }
 }
 
-heartbeat::RobotState robot_state(
-    120,   // matchTimeSeconds
-    1,     // matchNumber
-    0,     // replayNumber
-    false, // redAlliance
-    true,  // enabled
-    true,  // autonomous
-    false, // testMode
-    true,  // systemWatchdog
-    0,     // tournamentType
-    25,    // timeOfDay_yr
-    1,     // timeOfDay_month
-    1,     // timeOfDay_day
-    12,    // timeOfDay_hr
-    0,     // timeOfDay_min
-    0      // timeOfDay_sec
+heartbeat::RobotState robot_state(120,   // matchTimeSeconds
+                                  1,     // matchNumber
+                                  0,     // replayNumber
+                                  false, // redAlliance
+                                  true,  // enabled
+                                  true,  // autonomous
+                                  false, // testMode
+                                  true,  // systemWatchdog
+                                  0,     // tournamentType
+                                  25,    // timeOfDay_yr
+                                  1,     // timeOfDay_month
+                                  1,     // timeOfDay_day
+                                  12,    // timeOfDay_hr
+                                  0,     // timeOfDay_min
+                                  0      // timeOfDay_sec
 );
-can_frame heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
+can_frame             heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
 
 Spark_RESET_SAFE_PARAMETERS_t reset_frame{
     .MAGIC_NUMBER = 36292,
@@ -117,25 +117,21 @@ void setup()
 
 void loop()
 {
-    static unsigned long lastHeartbeatMs = 0;
-    static unsigned long lastStatusMs = 0;
     unsigned long now = millis();
 
     // Heartbeat
-    static MCP2515::ERROR lastHeartbeatError = MCP2515::ERROR_OK;
-    static MCP2515::ERROR lastDutyError = MCP2515::ERROR_OK;
+    static unsigned long lastHeartbeatMs = 0;
     if (now - lastHeartbeatMs >= HEARTBEAT_INTERVAL_MS)
     {
-        lastHeartbeatError = mcp2515.sendMessage(&heartbeat_frame);
         lastHeartbeatMs = now;
     }
 
     // Read and parse incoming Spark Status 0 frames only
     {
-        can_frame rxFrame;
+        can_frame      rxFrame;
         MCP2515::ERROR readErr;
 
-        while ((readErr = mcp2515.readMessage(&rxFrame)) == MCP2515::ERROR_OK)
+        if ((readErr = mcp2515.readMessage(&rxFrame)) == MCP2515::ERROR_OK)
         {
             // Only handle extended Spark Status 0 frames
             uint32_t arbId = rxFrame.can_id & 0x1FFFFFFFu;
@@ -175,7 +171,7 @@ void loop()
         }
     }
 
-    // Speed control
+    // Commands
     static String inBuf = "";
     while (Serial.available())
     {
@@ -197,26 +193,26 @@ void loop()
                     Serial.println(speed);
 
                     Spark_DUTY_CYCLE_SETPOINT_t duty{
-                        .SETPOINT = speed,
-                        .ARBITRARY_FEEDFORWARD = 0,
-                        .PID_SLOT = 0,
+                        .SETPOINT                    = speed,
+                        .ARBITRARY_FEEDFORWARD       = 0,
+                        .PID_SLOT                    = 0,
                         .ARBITRARY_FEEDFORWARD_UNITS = 1u,
                     };
 
                     // Send speed only on change
-                    lastDutyError = motor_1.set_duty_cycle_setpoint(duty);
+                    motor_1.set_duty_cycle_setpoint(duty);
                 }
                 else if (inBuf[0] == 'p')
                 {
                     // Position
-                    int position = (inBuf.substring(1)).toFloat();
+                    float position = (inBuf.substring(1)).toFloat();
                     Serial.print("Set position: ");
                     Serial.println(position);
 
                     Spark_POSITION_SETPOINT_t sp{
-                        .SETPOINT = position,
-                        .ARBITRARY_FEEDFORWARD = 0,
-                        .PID_SLOT = 0,
+                        .SETPOINT                    = position,
+                        .ARBITRARY_FEEDFORWARD       = 0,
+                        .PID_SLOT                    = 0,
                         .ARBITRARY_FEEDFORWARD_UNITS = 0,
                     };
 

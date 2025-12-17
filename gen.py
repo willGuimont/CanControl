@@ -3,8 +3,8 @@
 Code generator for SPARK CAN frames
 
 Reads the JSON spec in doc/spark-frames-2.0.0-dev.11.json and emits:
- - include/spark_can.h
- - src/spark_can.cpp
+ - include/low_level/low_sparkmax.h
+ - src/low_level/low_sparkmax.cpp
 
 The generated C API provides, for each nonPeriodic frame, a typed struct of
 signal values (raw encoded units) and a function to build a CAN frame payload
@@ -23,8 +23,8 @@ from typing import Dict, Any, List, Tuple
 
 ROOT = Path(__file__).parent
 SPEC_PATH = ROOT / "doc" / "spark-frames-2.0.0-dev.11.json"
-OUT_H = ROOT / "include" / "spark_can.h"
-OUT_C = ROOT / "src" / "spark_can.cpp"
+OUT_H = ROOT / "include" / "low_level" / "low_sparkmax.h"
+OUT_C = ROOT / "src" / "low_level" / "low_sparkmax.cpp"
 
 
 def c_ident(name: str) -> str:
@@ -251,7 +251,7 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
 def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], frames_all: Dict[str, Dict[str, Any]]) -> str:
     lines: List[str] = []
     lines.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
-    lines.append("#include \"spark_can.h\"")
+    lines.append("#include \"low_level/low_sparkmax.h\"")
     lines.append("#include <string.h>")
     lines.append("")
     lines.append("namespace CanControl::LowLevel::SparkMax {")
