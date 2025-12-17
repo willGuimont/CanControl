@@ -1,6 +1,3 @@
-// Shared low-level helpers for packing/unpacking CAN payload bits and
-// converting our internal frame representation to the mcp2515 can_frame.
-
 #pragma once
 
 #include "frc_can.h"
@@ -8,6 +5,15 @@
 #include <mcp2515.h>
 #include <stdint.h>
 #include <string.h>
+
+// Shared low-level helpers for packing/unpacking CAN payload bits and
+// converting our internal frame representation to the mcp2515 can_frame.
+//
+// This header defines a small, generic CAN frame type and bitfield
+// packing/unpacking helpers that are reused by all low-level device
+// protocol layers (SparkMax, CTRE, etc.). Higher-level classes should
+// not generally depend on it directly; instead they use the typed
+// wrappers in low_sparkmax.h, low_ctrelectronics.h, etc.
 
 namespace CanControl::LowLevel
 {

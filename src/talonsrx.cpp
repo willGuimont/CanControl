@@ -45,19 +45,13 @@ namespace CanControl
         return controller_->sendMessage(&hw);
     }
 
-    MCP2515::ERROR TalonSrxMotor::send_global_enable(bool enable)
+    MCP2515::ERROR TalonSrxMotor::send_global_enable(MCP2515& controller, bool enable)
     {
-        if (controller_ == nullptr)
-        {
-            return MCP2515::ERROR_FAILINIT;
-        }
-
         talon_can_frame low = build_global_enable(enable);
 
         can_frame hw{};
         basic_to_can_frame(low, &hw);
-
-        return controller_->sendMessage(&hw);
+        return controller.sendMessage(&hw);
     }
 
 } // namespace CanControl

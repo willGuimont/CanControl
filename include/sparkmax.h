@@ -7,6 +7,7 @@
 namespace CanControl
 {
     // High-level wrapper around the low-level SparkMax CAN API.
+    // The motor also needs to receive a heartbeat signal (see main.cpp for an example)
     class SparkMax
     {
       public:
@@ -35,6 +36,10 @@ namespace CanControl
 
         // Convenience helper to stop the motor (zero duty cycle).
         MCP2515::ERROR stop();
+
+        // Reset most writable parameters to their default values, preserving
+        // CAN ID, motor type, idle mode, PWM deadband, and duty-cycle offset.
+        MCP2515::ERROR reset_safe_parameters();
 
       private:
         CanControl::LowLevel::SparkMax::SparkCanDevice device_;

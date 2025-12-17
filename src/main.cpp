@@ -9,31 +9,33 @@
 #include <mcp2515.h>
 
 using namespace CanControl;
-using namespace CanControl::LowLevel::SparkMax;
 
-static const CAN_SPEED     MCP2515_SPEED         = CAN_1000KBPS;
-static const CAN_CLOCK     MCP2515_OSC           = MCP_8MHZ;
-static const unsigned long HEARTBEAT_INTERVAL_MS = 30;
+// Configuration for the FRC can protocol
+static constexpr CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
+static constexpr CAN_CLOCK MCP2515_OSC   = MCP_8MHZ;
 
 #ifndef MCP2515_CS_PIN
 #if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(ARDUINO_AVR_MEGA)
-static const uint8_t MCP2515_CS_PIN = 53;
+static constexpr uint8_t mcp2515_cs_pin = 53;
 #elif defined(ARDUINO_AVR_UNO) || defined(__AVR_ATmega328P__) || defined(ARDUINO_AVR_NANO)
-static const uint8_t MCP2515_CS_PIN = 10;
+static constexpr uint8_t mcp2515_cs_pin = 10;
 #else
-#warning "Unknown board: defaulting MCP2515_CS_PIN to 10. Define MCP2515_CS_PIN via build_flags to override."
-static const uint8_t MCP2515_CS_PIN = 10;
+#warning "Unknown board: defaulting mcp2515_cs_pin to 10. Define MCP2515_CS_PIN via build_flags to override."
+static constexpr uint8_t mcp2515_cs_pin = 10;
 #endif
 #else
 // MCP2515_CS_PIN provided by build system
-static const uint8_t MCP2515_CS_PIN = MCP2515_CS_PIN;
+static constexpr uint8_t mcp2515_cs_pin = MCP2515_CS_PIN;
 #endif
 
-static MCP2515 mcp2515(MCP2515_CS_PIN);
+// Controller to the MCP2515 chip, be sure to specify the correct CS pin
+static MCP2515 mcp2515(mcp2515_cs_pin);
 
-static constexpr uint8_t motor_id_1 = 11;
-static SparkCanDevice    motor_1(mcp2515, motor_id_1);
+// Creating the motor
+static constexpr uint8_t motor_id = 11;
+static SparkMax          motor(mcp2515, motor_id);
 
+// Utility to show MCP2515 errors as strings
 static const String mcpErrorToString(MCP2515::ERROR e)
 {
     switch (e)
@@ -55,38 +57,42 @@ static const String mcpErrorToString(MCP2515::ERROR e)
     }
 }
 
-heartbeat::RobotState robot_state(120,   // matchTimeSeconds
-                                  1,     // matchNumber
-                                  0,     // replayNumber
-                                  false, // redAlliance
-                                  true,  // enabled
-                                  true,  // autonomous
-                                  false, // testMode
-                                  true,  // systemWatchdog
-                                  0,     // tournamentType
-                                  25,    // timeOfDay_yr
-                                  1,     // timeOfDay_month
-                                  1,     // timeOfDay_day
-                                  12,    // timeOfDay_hr
-                                  0,     // timeOfDay_min
-                                  0      // timeOfDay_sec
-);
-can_frame             heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
-
-Spark_RESET_SAFE_PARAMETERS_t reset_frame{
-    .MAGIC_NUMBER = 36292,
-};
+// You need to send a heartbeat periodically for the motors to be enabled.
+// This mirrors the frame the RoboRIO would send.
+// See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
+// details.
+static const unsigned long heartbeat_interval_ms = 20;
+heartbeat::RobotState      robot_state(120,   // matchTimeSeconds
+                                       1,     // matchNumber
+                                       0,     // replayNumber
+                                       false, // redAlliance
+                                       true,  // enabled
+                                       true,  // autonomous
+                                       false, // testMode
+                                       true,  // systemWatchdog
+                                       0,     // tournamentType
+                                       25,    // timeOfDay_yr
+                                       1,     // timeOfDay_month
+                                       1,     // timeOfDay_day
+                                       12,    // timeOfDay_hr
+                                       0,     // timeOfDay_min
+                                       0      // timeOfDay_sec
+     );
+can_frame                  heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
 
 void setup()
 {
 
+    // Initialize serial
     Serial.begin(115200);
     while (!Serial)
         ;
-    Serial.print("Starting CanControl on pin ");
-    Serial.println(MCP2515_CS_PIN);
 
+    // Initialize MCP2515
     {
+        Serial.print("Starting CanControl on pin ");
+        Serial.println(mcp2515_cs_pin);
+
         MCP2515::ERROR setupErr;
         setupErr = mcp2515.reset();
         Serial.print("MCP2515 reset: ");
@@ -103,30 +109,33 @@ void setup()
         Serial.println();
 
         Serial.println("Resetting all motor parameters");
-        motor_1.send_reset_safe_parameters(reset_frame);
-        // motor_2.send_reset_safe_parameters(reset_frame);
-        Serial.println();
-
-        Serial.println("Available commands: ");
-        Serial.println("\t- Start with `s` to set speed (float)");
-        Serial.println("\t- Start with `p` to set position (float)");
-        Serial.println("Ready to accept commands...");
+        MCP2515::ERROR resetErr = motor.reset_safe_parameters();
+        Serial.print("SparkMax reset_safe_parameters: ");
+        Serial.println(mcpErrorToString(resetErr));
         Serial.println();
     }
+
+    // Print commands for the serial interface
+    Serial.println("Available commands: ");
+    Serial.println("\t- Start with `s` to set speed (float)");
+    Serial.println("\t- Start with `p` to set position (float)");
+    Serial.println("Ready to accept commands...");
+    Serial.println();
 }
 
 void loop()
 {
-    unsigned long now = millis();
 
-    // Heartbeat
+    // Send heartbeat every heartbeat_interval_ms
     static unsigned long lastHeartbeatMs = 0;
-    if (now - lastHeartbeatMs >= HEARTBEAT_INTERVAL_MS)
+    unsigned long        now             = millis();
+    if (now - lastHeartbeatMs >= heartbeat_interval_ms)
     {
         lastHeartbeatMs = now;
     }
 
     // Read and parse incoming Spark Status 0 frames only
+    // TODO move that to SparkMax class
     {
         can_frame      rxFrame;
         MCP2515::ERROR readErr;
@@ -137,8 +146,8 @@ void loop()
             uint32_t arbId = rxFrame.can_id & 0x1FFFFFFFu;
             if (SPARK_MATCH_STATUS_0(arbId))
             {
-                Spark_STATUS_0_t status{};
-                if (spark_decode_STATUS_0(rxFrame.data, rxFrame.can_dlc, &status))
+                CanControl::LowLevel::SparkMax::Spark_STATUS_0_t status{};
+                if (CanControl::LowLevel::SparkMax::spark_decode_STATUS_0(rxFrame.data, rxFrame.can_dlc, &status))
                 {
                     uint8_t deviceId = (uint8_t)(arbId & SPARK_DEVICE_ID_MASK);
 
@@ -192,15 +201,10 @@ void loop()
                     Serial.print("Set speed: ");
                     Serial.println(speed);
 
-                    Spark_DUTY_CYCLE_SETPOINT_t duty{
-                        .SETPOINT                    = speed,
-                        .ARBITRARY_FEEDFORWARD       = 0,
-                        .PID_SLOT                    = 0,
-                        .ARBITRARY_FEEDFORWARD_UNITS = 1u,
-                    };
-
-                    // Send speed only on change
-                    motor_1.set_duty_cycle_setpoint(duty);
+                    // Send speed command via high-level SparkMax wrapper
+                    // Be sure to only send the command on change
+                    // Otherwise it will put too much stress on the MCP2515
+                    motor.set_duty_cycle(speed);
                 }
                 else if (inBuf[0] == 'p')
                 {
@@ -209,15 +213,8 @@ void loop()
                     Serial.print("Set position: ");
                     Serial.println(position);
 
-                    Spark_POSITION_SETPOINT_t sp{
-                        .SETPOINT                    = position,
-                        .ARBITRARY_FEEDFORWARD       = 0,
-                        .PID_SLOT                    = 0,
-                        .ARBITRARY_FEEDFORWARD_UNITS = 0,
-                    };
-
-                    // Send speed only on change
-                    motor_1.set_position_setpoint(sp);
+                    // Send position command via high-level SparkMax wrapper
+                    motor.set_position(position);
                 }
 
                 // Clear buffer

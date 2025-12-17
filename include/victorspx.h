@@ -7,8 +7,9 @@
 
 namespace CanControl
 {
-    // High-level convenience wrapper for Victor SPX using the
-    // CTRE non-FRC PercentOutput framing (see low_ctrelectronics).
+    // High-level wrapper around the low-level CTRE API.
+    // See
+    // https://github.com/CrossTheRoadElec/Phoenix5-Examples/blob/master/HERO%20C%23/HERO%20Low%20Level%20Percent%20Output%20Example/Program.cs
     class VictorSpxMotor
     {
       public:
@@ -24,7 +25,7 @@ namespace CanControl
         MCP2515::ERROR set_percent_output(float percent_output);
 
         // Send the CTRE global enable/disable frame.
-        MCP2515::ERROR send_global_enable(bool enable);
+        static MCP2515::ERROR send_global_enable(MCP2515& controller, bool enable);
 
       private:
         MCP2515* controller_;

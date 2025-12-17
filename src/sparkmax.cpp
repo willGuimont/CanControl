@@ -5,6 +5,7 @@ namespace CanControl
     using LowLevel::SparkMax::Spark_DUTY_CYCLE_SETPOINT_t;
     using LowLevel::SparkMax::Spark_POSITION_SETPOINT_t;
     using LowLevel::SparkMax::Spark_VELOCITY_SETPOINT_t;
+    using LowLevel::SparkMax::Spark_RESET_SAFE_PARAMETERS_t;
     using LowLevel::SparkMax::SparkCanDevice;
 
     SparkMax::SparkMax(MCP2515& controller, uint8_t device_id) : device_(controller, device_id) {}
@@ -74,5 +75,12 @@ namespace CanControl
     MCP2515::ERROR SparkMax::stop()
     {
         return set_duty_cycle(0.0f);
+    }
+
+    MCP2515::ERROR SparkMax::reset_safe_parameters()
+    {
+        Spark_RESET_SAFE_PARAMETERS_t frame{};
+        frame.MAGIC_NUMBER = 36292u;
+        return device_.send_reset_safe_parameters(frame);
     }
 } // namespace CanControl
