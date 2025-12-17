@@ -6,7 +6,7 @@
 #include <spark_can.h>
 
 using namespace CanControl;
-using namespace CanControl::SparkMax;
+using namespace CanControl::LowLevel::SparkMax;
 
 static const CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 static const CAN_CLOCK MCP2515_OSC = MCP_8MHZ;

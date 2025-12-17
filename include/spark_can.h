@@ -4,17 +4,13 @@
 #include <string.h>
 #include <mcp2515.h>
 #include "frc_can.h"
+#include "low_level.h"
 
-namespace CanControl::SparkMax {
+namespace CanControl::LowLevel::SparkMax {
 
 #define SPARK_DEVICE_ID_MASK 0x3Fu
 
-struct spark_can_frame {
-    uint32_t id;  // 29-bit extended ID
-    uint8_t dlc;  // data length (0-8)
-    uint8_t data[8];
-    bool is_rtr;
-};
+using spark_can_frame = ::CanControl::LowLevel::basic_can_frame;
 
 // Base arbitration IDs (OR with device_id & SPARK_DEVICE_ID_MASK)
 // Legacy Status 0: This frame exists purely to inform old software that is not aware of firmware version 25+ that the SPARK is present
@@ -8672,5 +8668,5 @@ private:
     MCP2515::ERROR dispatch_frame(const spark_can_frame& frame) const;
 };
 
-} // namespace CanControl::SparkMax
+} // namespace CanControl::LowLevel::SparkMax
 
