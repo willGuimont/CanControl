@@ -30,8 +30,8 @@ static MCP2515 mcp2515(MCP2515_CS_PIN);
 static constexpr uint8_t motor_id_1 = 11;
 static SparkCanDevice motor_1(mcp2515, motor_id_1);
 
-static constexpr uint8_t motor_id_2 = 12;
-static SparkCanDevice motor_2(mcp2515, motor_id_2);
+// static constexpr uint8_t motor_id_2 = 12;
+// static SparkCanDevice motor_2(mcp2515, motor_id_2);
 
 static const String mcpErrorToString(MCP2515::ERROR e)
 {
@@ -104,7 +104,7 @@ void setup()
 
         Serial.println("Resetting all motor parameters");
         motor_1.send_reset_safe_parameters(reset_frame);
-        motor_2.send_reset_safe_parameters(reset_frame);
+        // motor_2.send_reset_safe_parameters(reset_frame);
         Serial.println();
 
         Serial.println("Available commands: ");
@@ -130,6 +130,51 @@ void loop()
         lastHeartbeatMs = now;
     }
 
+    // Read and parse incoming Spark Status 0 frames only
+    {
+        can_frame rxFrame;
+        MCP2515::ERROR readErr;
+
+        while ((readErr = mcp2515.readMessage(&rxFrame)) == MCP2515::ERROR_OK)
+        {
+            // Only handle extended Spark Status 0 frames
+            uint32_t arbId = rxFrame.can_id & 0x1FFFFFFFu;
+            if (SPARK_MATCH_STATUS_0(arbId))
+            {
+                Spark_STATUS_0_t status{};
+                if (spark_decode_STATUS_0(rxFrame.data, rxFrame.can_dlc, &status))
+                {
+                    uint8_t deviceId = (uint8_t)(arbId & SPARK_DEVICE_ID_MASK);
+
+                    Serial.print("Status0 spark_id=");
+                    Serial.print(deviceId);
+                    Serial.print(" arb=0x");
+                    Serial.print(arbId, HEX);
+                    Serial.print(" applied=");
+                    Serial.print(status.APPLIED_OUTPUT);
+                    Serial.print(" voltage_raw=");
+                    Serial.print(status.VOLTAGE);
+                    Serial.print(" current_raw=");
+                    Serial.print(status.CURRENT);
+                    Serial.print(" temp=");
+                    Serial.print(status.MOTOR_TEMPERATURE);
+                    Serial.print(" HF=");
+                    Serial.print(status.HARD_FORWARD_LIMIT_REACHED);
+                    Serial.print(" HR=");
+                    Serial.print(status.HARD_REVERSE_LIMIT_REACHED);
+                    Serial.print(" SF=");
+                    Serial.print(status.SOFT_FORWARD_LIMIT_REACHED);
+                    Serial.print(" SR=");
+                    Serial.print(status.SOFT_REVERSE_LIMIT_REACHED);
+                    Serial.print(" inv=");
+                    Serial.print(status.INVERTED);
+                    Serial.print(" phb=");
+                    Serial.println(status.PRIMARY_HEARTBEAT_LOCK);
+                }
+            }
+        }
+    }
+
     // Speed control
     static String inBuf = "";
     while (Serial.available())
@@ -143,16 +188,16 @@ void loop()
                 if (inBuf[0] == 's')
                 {
                     // Speed
-                    float v = (inBuf.substring(1)).toFloat();
-                    if (v > 1.0f)
-                        v = 1.0f;
-                    if (v < -1.0f)
-                        v = -1.0f;
+                    float speed = (inBuf.substring(1)).toFloat();
+                    if (speed > 1.0f)
+                        speed = 1.0f;
+                    if (speed < -1.0f)
+                        speed = -1.0f;
                     Serial.print("Set speed: ");
-                    Serial.println(v);
+                    Serial.println(speed);
 
                     Spark_DUTY_CYCLE_SETPOINT_t duty{
-                        .SETPOINT = v,
+                        .SETPOINT = speed,
                         .ARBITRARY_FEEDFORWARD = 0,
                         .PID_SLOT = 0,
                         .ARBITRARY_FEEDFORWARD_UNITS = 1u,
@@ -160,22 +205,22 @@ void loop()
 
                     // Send speed only on change
                     lastDutyError = motor_1.set_duty_cycle_setpoint(duty);
-                    lastDutyError = motor_2.set_duty_cycle_setpoint(duty);
                 }
                 else if (inBuf[0] == 'p')
                 {
                     // Position
-                    int p = (inBuf.substring(1)).toFloat();
+                    int position = (inBuf.substring(1)).toFloat();
                     Serial.print("Set position: ");
-                    Serial.println(p);
+                    Serial.println(position);
 
                     Spark_POSITION_SETPOINT_t sp{
-                        .SETPOINT = p,
+                        .SETPOINT = position,
                         .ARBITRARY_FEEDFORWARD = 0,
                         .PID_SLOT = 0,
                         .ARBITRARY_FEEDFORWARD_UNITS = 0,
                     };
 
+                    // Send speed only on change
                     motor_1.set_position_setpoint(sp);
                 }
 
