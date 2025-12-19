@@ -141,7 +141,7 @@ for the Victor SPX arbitration ID.
 ## Generated Spark MAX Low-Level API
 
 The low-level Spark MAX protocol bindings are generated from
-`doc/spark-frames-2.0.0-dev.11.json` by `gen.py` and live in:
+`doc/spark-frames-2.0.0-dev.11.json` (available from [REVrobotics/REV-Specs](https://github.com/REVrobotics/REV-Specs)) by `gen.py` and live in:
 
 - `include/low_level/low_sparkmax.h`
 - `src/low_level/low_sparkmax.cpp`
