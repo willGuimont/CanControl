@@ -80,7 +80,7 @@ heartbeat::RobotState      robot_state(120,   // matchTimeSeconds
                                        0,     // timeOfDay_min
                                        0      // timeOfDay_sec
      );
-can_frame                  heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
+can_frame                  heartbeat_frame   = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
 static const unsigned long talon_interval_ms = 0;
 
 void print_help()

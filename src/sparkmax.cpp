@@ -4,8 +4,8 @@ namespace CanControl
 {
     using LowLevel::SparkMax::Spark_DUTY_CYCLE_SETPOINT_t;
     using LowLevel::SparkMax::Spark_POSITION_SETPOINT_t;
-    using LowLevel::SparkMax::Spark_VELOCITY_SETPOINT_t;
     using LowLevel::SparkMax::Spark_RESET_SAFE_PARAMETERS_t;
+    using LowLevel::SparkMax::Spark_VELOCITY_SETPOINT_t;
     using LowLevel::SparkMax::SparkCanDevice;
 
     SparkMax::SparkMax(MCP2515& controller, uint8_t device_id) : device_(controller, device_id) {}
