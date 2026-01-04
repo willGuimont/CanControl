@@ -36,7 +36,7 @@ so you do not need a native CAN-capable MCU.
   - `CS` pin configurable via `MCP2515_CS_PIN` (defaults to 53 on Mega, 10 on Uno)
 - CAN motor controllers on the same CAN bus:
   - Spark MAX (REV Robotics)
-  - Talon SRX / Victor SPX (Cross The Road Electronics)
+  - Talon SRX / Victor SPX (Cross The Road Electronics) (**Needs to be FRC unlocked, see instructions below**)
 
 Wiring is the usual MCP2515+CAN transceiver wiring (CANH/CANL twisted pair,
 proper termination at the ends of the bus).
@@ -80,8 +80,6 @@ framework = arduino
 board = megaatmega2560
 
 lib_deps =
-    autowp/autowp-mcp2515@^1.3.1
-    coryjfowler/mcp_can@^1.5.1
     https://github.com/willGuimont/CanControl.git
 ```
 
@@ -109,6 +107,13 @@ motor.set_duty_cycle(0.25f);
 
 ## CTRE Talon SRX & Victor SPX
 
+Using CTRE devices requires that they be "FRC unlocked" to accept non-FRC
+frames.
+The FRC lock will be enabled by default and be persistent across power cycles if the
+device was ever connected to an FRC roboRIO.
+To unlock the device, you need to disconnect it from the roboRIO and power it while
+holding the reset button for about 5 seconds until the LED blinks green.
+
 For CTRE devices there are two layers:
 
 - Low-level helpers in `include/low_level/low_ctrelectronics.h`
@@ -116,7 +121,7 @@ For CTRE devices there are two layers:
   - `CanControl::TalonSrxMotor` in `include/talonsrx.h`
   - `CanControl::VictorSpxMotor` in `include/victorspx.h`
 
-Example (pseudo-code):
+Example:
 
 ```cpp
 #include "talonsrx.h"
