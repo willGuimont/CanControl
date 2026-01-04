@@ -32,8 +32,10 @@ static constexpr uint8_t mcp2515_cs_pin = MCP2515_CS_PIN;
 static MCP2515 mcp2515(mcp2515_cs_pin);
 
 // Creating the motor
-static constexpr uint8_t motor_id = 11;
-static SparkMax          motor(mcp2515, motor_id);
+static constexpr uint8_t spark_motor_id = 11;
+static SparkMax          spark(mcp2515, spark_motor_id);
+static constexpr uint8_t talon_motor_id = 30;
+static TalonSrxMotor     talon(mcp2515, talon_motor_id);
 
 // Utility to show MCP2515 errors as strings
 static const String mcpErrorToString(MCP2515::ERROR e)
@@ -61,7 +63,7 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 // This mirrors the frame the RoboRIO would send.
 // See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
 // details.
-static const unsigned long heartbeat_interval_ms = 20;
+static const unsigned long heartbeat_interval_ms = 150;
 heartbeat::RobotState      robot_state(120,   // matchTimeSeconds
                                        1,     // matchNumber
                                        0,     // replayNumber
@@ -79,6 +81,17 @@ heartbeat::RobotState      robot_state(120,   // matchTimeSeconds
                                        0      // timeOfDay_sec
      );
 can_frame                  heartbeat_frame = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
+static const unsigned long talon_interval_ms = 0;
+
+void print_help()
+{
+    Serial.println("Available commands: ");
+    Serial.println("\t- Start with `s` to set speed (float)");
+    Serial.println("\t- Start with `p` to set position (float)");
+    Serial.println("\t- `h` for help");
+    Serial.println("Ready to accept commands...");
+    Serial.println();
+}
 
 void setup()
 {
@@ -109,76 +122,84 @@ void setup()
         Serial.println();
 
         Serial.println("Resetting all motor parameters");
-        MCP2515::ERROR resetErr = motor.reset_safe_parameters();
+        MCP2515::ERROR resetErr = spark.reset_safe_parameters();
         Serial.print("SparkMax reset_safe_parameters: ");
         Serial.println(mcpErrorToString(resetErr));
         Serial.println();
     }
 
-    // Print commands for the serial interface
-    Serial.println("Available commands: ");
-    Serial.println("\t- Start with `s` to set speed (float)");
-    Serial.println("\t- Start with `p` to set position (float)");
-    Serial.println("Ready to accept commands...");
-    Serial.println();
+    print_help();
 }
 
 void loop()
 {
+    static float speed = 0;
 
     // Send heartbeat every heartbeat_interval_ms
-    static unsigned long lastHeartbeatMs = 0;
-    unsigned long        now             = millis();
-    if (now - lastHeartbeatMs >= heartbeat_interval_ms)
+    unsigned long        now                 = millis();
+    static unsigned long heartbeat_last_sent = 0;
+    if (now - heartbeat_last_sent >= heartbeat_interval_ms)
     {
-        lastHeartbeatMs = now;
+        // Heartbeat for the spark
+        // mcp2515.sendMessage(&heartbeat_frame);
+        // Heartbeat for the talon
+        TalonSrxMotor::send_global_enable(mcp2515, true);
+        heartbeat_last_sent = now;
+    }
+
+    // TalonSRX needs to be constantly fed the speed
+    static unsigned long speed_last_sent = 0;
+    if (now - speed_last_sent >= talon_interval_ms)
+    {
+        talon.set_percent_output(speed);
+        speed_last_sent = now;
     }
 
     // Read and parse incoming Spark Status 0 frames only
     // TODO move that to SparkMax class
-    {
-        can_frame      rxFrame;
-        MCP2515::ERROR readErr;
+    // {
+    //     can_frame      rxFrame;
+    //     MCP2515::ERROR readErr;
 
-        if ((readErr = mcp2515.readMessage(&rxFrame)) == MCP2515::ERROR_OK)
-        {
-            // Only handle extended Spark Status 0 frames
-            uint32_t arbId = rxFrame.can_id & 0x1FFFFFFFu;
-            if (SPARK_MATCH_STATUS_0(arbId))
-            {
-                CanControl::LowLevel::SparkMax::Spark_STATUS_0_t status{};
-                if (CanControl::LowLevel::SparkMax::spark_decode_STATUS_0(rxFrame.data, rxFrame.can_dlc, &status))
-                {
-                    uint8_t deviceId = (uint8_t)(arbId & SPARK_DEVICE_ID_MASK);
+    //     if ((readErr = mcp2515.readMessage(&rxFrame)) == MCP2515::ERROR_OK)
+    //     {
+    //         // Only handle extended Spark Status 0 frames
+    //         uint32_t arbId = rxFrame.can_id & 0x1FFFFFFFu;
+    //         if (SPARK_MATCH_STATUS_0(arbId))
+    //         {
+    //             CanControl::LowLevel::SparkMax::Spark_STATUS_0_t status{};
+    //             if (CanControl::LowLevel::SparkMax::spark_decode_STATUS_0(rxFrame.data, rxFrame.can_dlc, &status))
+    //             {
+    //                 uint8_t deviceId = (uint8_t)(arbId & SPARK_DEVICE_ID_MASK);
 
-                    Serial.print("Status0 spark_id=");
-                    Serial.print(deviceId);
-                    Serial.print(" arb=0x");
-                    Serial.print(arbId, HEX);
-                    Serial.print(" applied=");
-                    Serial.print(status.APPLIED_OUTPUT);
-                    Serial.print(" voltage_raw=");
-                    Serial.print(status.VOLTAGE);
-                    Serial.print(" current_raw=");
-                    Serial.print(status.CURRENT);
-                    Serial.print(" temp=");
-                    Serial.print(status.MOTOR_TEMPERATURE);
-                    Serial.print(" HF=");
-                    Serial.print(status.HARD_FORWARD_LIMIT_REACHED);
-                    Serial.print(" HR=");
-                    Serial.print(status.HARD_REVERSE_LIMIT_REACHED);
-                    Serial.print(" SF=");
-                    Serial.print(status.SOFT_FORWARD_LIMIT_REACHED);
-                    Serial.print(" SR=");
-                    Serial.print(status.SOFT_REVERSE_LIMIT_REACHED);
-                    Serial.print(" inv=");
-                    Serial.print(status.INVERTED);
-                    Serial.print(" phb=");
-                    Serial.println(status.PRIMARY_HEARTBEAT_LOCK);
-                }
-            }
-        }
-    }
+    //                 Serial.print("Status0 spark_id=");
+    //                 Serial.print(deviceId);
+    //                 Serial.print(" arb=0x");
+    //                 Serial.print(arbId, HEX);
+    //                 Serial.print(" applied=");
+    //                 Serial.print(status.APPLIED_OUTPUT);
+    //                 Serial.print(" voltage_raw=");
+    //                 Serial.print(status.VOLTAGE);
+    //                 Serial.print(" current_raw=");
+    //                 Serial.print(status.CURRENT);
+    //                 Serial.print(" temp=");
+    //                 Serial.print(status.MOTOR_TEMPERATURE);
+    //                 Serial.print(" HF=");
+    //                 Serial.print(status.HARD_FORWARD_LIMIT_REACHED);
+    //                 Serial.print(" HR=");
+    //                 Serial.print(status.HARD_REVERSE_LIMIT_REACHED);
+    //                 Serial.print(" SF=");
+    //                 Serial.print(status.SOFT_FORWARD_LIMIT_REACHED);
+    //                 Serial.print(" SR=");
+    //                 Serial.print(status.SOFT_REVERSE_LIMIT_REACHED);
+    //                 Serial.print(" inv=");
+    //                 Serial.print(status.INVERTED);
+    //                 Serial.print(" phb=");
+    //                 Serial.println(status.PRIMARY_HEARTBEAT_LOCK);
+    //             }
+    //         }
+    //     }
+    // }
 
     // Commands
     static String inBuf = "";
@@ -193,7 +214,7 @@ void loop()
                 if (inBuf[0] == 's')
                 {
                     // Speed
-                    float speed = (inBuf.substring(1)).toFloat();
+                    speed = (inBuf.substring(1)).toFloat();
                     if (speed > 1.0f)
                         speed = 1.0f;
                     if (speed < -1.0f)
@@ -204,7 +225,7 @@ void loop()
                     // Send speed command via high-level SparkMax wrapper
                     // Be sure to only send the command on change
                     // Otherwise it will put too much stress on the MCP2515
-                    motor.set_duty_cycle(speed);
+                    spark.set_duty_cycle(speed);
                 }
                 else if (inBuf[0] == 'p')
                 {
@@ -214,7 +235,11 @@ void loop()
                     Serial.println(position);
 
                     // Send position command via high-level SparkMax wrapper
-                    motor.set_position(position);
+                    spark.set_position(position);
+                }
+                else if (inBuf[0] == 'h')
+                {
+                    print_help();
                 }
 
                 // Clear buffer
