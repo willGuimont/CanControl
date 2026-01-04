@@ -18,8 +18,7 @@ so you do not need a native CAN-capable MCU.
   - `CanControl::SparkMax`
   - `CanControl::TalonSrxMotor`
   - `CanControl::VictorSpxMotor`
-- Auto-generated low-level Spark MAX CAN protocol based on [REV's published
-  - JSON spec](https://github.com/REVrobotics/REV-Specs) (see `doc/spark-frames-2.0.0-dev.11.json` and `gen.py`).
+- Auto-generated low-level Spark MAX CAN protocol based on [REV's published - JSON spec](https://github.com/REVrobotics/REV-Specs) (see `doc/spark-frames-2.0.0-dev.11.json` and `gen.py`).
 - Simple FRC-style heartbeat frame generator.
 - CTRE interfacing based on [the only available public documentation of their CAN protocol](https://github.com/CrossTheRoadElec/Phoenix5-Examples/blob/master/HERO%20C%23/HERO%20Low%20Level%20Percent%20Output%20Example/Program.cs)
 - Works on Arduino Mega 2560 and Uno (via MCP2515 breakout).
