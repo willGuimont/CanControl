@@ -63,7 +63,7 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 // This mirrors the frame the RoboRIO would send.
 // See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
 // details.
-static const unsigned long heartbeat_interval_ms = 150;
+static const unsigned long heartbeat_interval_ms = 10;
 heartbeat::RobotState      robot_state(120,   // matchTimeSeconds
                                        1,     // matchNumber
                                        0,     // replayNumber
@@ -93,6 +93,12 @@ void print_help()
     Serial.println();
 }
 
+enum CommandMode
+{
+    Speed,
+    Position,
+};
+
 void setup()
 {
 
@@ -120,12 +126,6 @@ void setup()
         Serial.print("MCP2515 setNormalMode: ");
         Serial.println(mcpErrorToString(setupErr));
         Serial.println();
-
-        Serial.println("Resetting all motor parameters");
-        MCP2515::ERROR resetErr = spark.reset_safe_parameters();
-        Serial.print("SparkMax reset_safe_parameters: ");
-        Serial.println(mcpErrorToString(resetErr));
-        Serial.println();
     }
 
     print_help();
@@ -133,7 +133,9 @@ void setup()
 
 void loop()
 {
-    static float speed = 0;
+    static float       speed        = 0;
+    static float       position     = 0;
+    static CommandMode command_mode = Speed;
 
     // Send heartbeat every heartbeat_interval_ms
     unsigned long        now                 = millis();
@@ -141,7 +143,7 @@ void loop()
     if (now - heartbeat_last_sent >= heartbeat_interval_ms)
     {
         // Heartbeat for the spark
-        // mcp2515.sendMessage(&heartbeat_frame);
+        mcp2515.sendMessage(&heartbeat_frame);
         // Heartbeat for the talon
         TalonSrxMotor::send_global_enable(mcp2515, true);
         heartbeat_last_sent = now;
@@ -151,7 +153,19 @@ void loop()
     static unsigned long speed_last_sent = 0;
     if (now - speed_last_sent >= talon_interval_ms)
     {
-        talon.set_percent_output(speed);
+        switch (command_mode)
+        {
+        case Speed:
+            spark.set_duty_cycle(speed);
+            talon.set_percent_output(speed);
+            break;
+        case Position:
+            spark.set_position(position);
+            break;
+        default:
+            break;
+        }
+
         speed_last_sent = now;
     }
 
@@ -219,23 +233,17 @@ void loop()
                         speed = 1.0f;
                     if (speed < -1.0f)
                         speed = -1.0f;
+                    command_mode = Speed;
                     Serial.print("Set speed: ");
                     Serial.println(speed);
-
-                    // Send speed command via high-level SparkMax wrapper
-                    // Be sure to only send the command on change
-                    // Otherwise it will put too much stress on the MCP2515
-                    spark.set_duty_cycle(speed);
                 }
                 else if (inBuf[0] == 'p')
                 {
                     // Position
-                    float position = (inBuf.substring(1)).toFloat();
+                    position = (inBuf.substring(1)).toFloat();
+                    command_mode = Position;
                     Serial.print("Set position: ");
                     Serial.println(position);
-
-                    // Send position command via high-level SparkMax wrapper
-                    spark.set_position(position);
                 }
                 else if (inBuf[0] == 'h')
                 {
