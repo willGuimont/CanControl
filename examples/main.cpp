@@ -37,6 +37,12 @@ static SparkMax          spark(mcp2515, spark_motor_id);
 static constexpr uint8_t talon_motor_id = 30;
 static TalonSrxMotor     talon(mcp2515, talon_motor_id);
 
+// PID constants
+static constexpr float spark_p = 0.1;
+static constexpr float spark_i = 0.0;
+static constexpr float spark_d = 0.0;
+static constexpr float spark_f = 0.0;
+
 // Utility to show MCP2515 errors as strings
 static const String mcpErrorToString(MCP2515::ERROR e)
 {
@@ -63,25 +69,25 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 // This mirrors the frame the RoboRIO would send.
 // See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
 // details.
-static const unsigned long heartbeat_interval_ms = 10;
-heartbeat::RobotState      robot_state(120,   // matchTimeSeconds
-                                       1,     // matchNumber
-                                       0,     // replayNumber
-                                       false, // redAlliance
-                                       true,  // enabled
-                                       true,  // autonomous
-                                       false, // testMode
-                                       true,  // systemWatchdog
-                                       0,     // tournamentType
-                                       25,    // timeOfDay_yr
-                                       1,     // timeOfDay_month
-                                       1,     // timeOfDay_day
-                                       12,    // timeOfDay_hr
-                                       0,     // timeOfDay_min
-                                       0      // timeOfDay_sec
-     );
-can_frame                  heartbeat_frame   = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
-static const unsigned long talon_interval_ms = 0;
+static constexpr unsigned long heartbeat_interval_ms = 10;
+heartbeat::RobotState          robot_state(120,   // matchTimeSeconds
+                                           1,     // matchNumber
+                                           0,     // replayNumber
+                                           false, // redAlliance
+                                           true,  // enabled
+                                           true,  // autonomous
+                                           false, // testMode
+                                           true,  // systemWatchdog
+                                           0,     // tournamentType
+                                           25,    // timeOfDay_yr
+                                           1,     // timeOfDay_month
+                                           1,     // timeOfDay_day
+                                           12,    // timeOfDay_hr
+                                           0,     // timeOfDay_min
+                                           0      // timeOfDay_sec
+         );
+can_frame                      heartbeat_frame   = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
+static constexpr unsigned long talon_interval_ms = 0;
 
 void print_help()
 {
@@ -126,6 +132,26 @@ void setup()
         Serial.print("MCP2515 setNormalMode: ");
         Serial.println(mcpErrorToString(setupErr));
         Serial.println();
+
+        Serial.println("Resetting all motor parameters");
+        MCP2515::ERROR reset_err = spark.reset_safe_parameters();
+        Serial.print("SparkMax reset_safe_parameters: ");
+        Serial.println(mcpErrorToString(reset_err));
+        Serial.println();
+
+        Serial.println("Setting PID parameters");
+        int pid_err = spark.set_pid_p(spark_p);
+        pid_err |= spark.set_pid_i(spark_i);
+        pid_err |= spark.set_pid_d(spark_d);
+        pid_err |= spark.set_pid_f(spark_f);
+        if (pid_err != MCP2515::ERROR_OK)
+        {
+            Serial.println("Error setting PID parameters");
+        }
+        else
+        {
+            Serial.println("PID parameters set");
+        }
     }
 
     print_help();
@@ -240,7 +266,7 @@ void loop()
                 else if (inBuf[0] == 'p')
                 {
                     // Position
-                    position = (inBuf.substring(1)).toFloat();
+                    position     = (inBuf.substring(1)).toFloat();
                     command_mode = Position;
                     Serial.print("Set position: ");
                     Serial.println(position);

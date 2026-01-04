@@ -52,6 +52,7 @@ dependency to another PlatformIO project.
 ```bash
 git clone https://github.com/willGuimont/CanControl.git
 cd CanControl
+git submodule update --init --recursive
 
 # Build for Arduino Mega 2560
 pio run -e mega

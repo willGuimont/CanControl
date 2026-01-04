@@ -22,9 +22,12 @@ from typing import Dict, Any, List, Tuple
 
 
 ROOT = Path(__file__).parent
-SPEC_PATH = ROOT / "doc" / "spark-frames-2.0.0-dev.11.json"
+SPEC_PATH = ROOT / "third_party" / "REV-Specs" / "can-frames" / "spark-frames-2.0.0-dev.11"
 OUT_H = ROOT / "include" / "low_level" / "low_sparkmax.h"
 OUT_C = ROOT / "src" / "low_level" / "low_sparkmax.cpp"
+OUT_PARAMS_H = ROOT / "include" / "low_level" / "low_sparkmax_params.h"
+OUT_PARAMS_CPP = ROOT / "src" / "low_level" / "low_sparkmax_params.cpp"
+PARAM_MD = ROOT / "third_party" / "REV-Specs" / "parameters" / "SparkParameters-v0.1.2.md"
 
 
 def c_ident(name: str) -> str:
@@ -476,6 +479,200 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     return "\n".join(lines) + "\n"
 
 
+def render_params(md_path: Path) -> Tuple[str, str]:
+    """Parse the SparkParameters markdown and render a header/source pair.
+
+    Returns (header_str, source_str).
+    """
+    text = md_path.read_text()
+    lines = text.splitlines()
+
+    # Parse enums in the top section
+    enums: Dict[str, List[str]] = {}
+    i = 0
+    # Find start of enums section
+    while i < len(lines) and "custom enumeration types" not in lines[i]:
+        i += 1
+    # advance past the heading
+    while i < len(lines) and not lines[i].strip().startswith("InputMode"):
+        i += 1
+    # Read enum blocks until we hit the parameters table heading
+    current_enum = None
+    while i < len(lines):
+        l = lines[i].rstrip()
+        if l.strip().startswith("##"):
+            # stop if we've reached parameters section
+            if "configurable parameters" in l:
+                break
+        if l.endswith(":") and not l.startswith("|"):
+            current_enum = l[:-1].strip()
+            enums[current_enum] = []
+        elif l.strip().startswith("*") or l.strip().startswith("-"):
+            # value line like " * PWM"
+            m = re.sub(r"^[\*\-]\s*", "", l.strip())
+            if current_enum and m:
+                enums[current_enum].append(m.strip())
+        i += 1
+
+    # Parse the markdown table of parameters
+    params: List[Dict[str, str]] = []
+    # find header row
+    hdr_idx = None
+    for idx, l in enumerate(lines):
+        if l.strip().startswith("| Name") and "ID" in l:
+            hdr_idx = idx
+            break
+    if hdr_idx is not None:
+        # rows start after header and separator
+        j = hdr_idx + 2
+        while j < len(lines):
+            row = lines[j].strip()
+            if not row.startswith("|"):
+                break
+            cols = [c.strip() for c in row.split("|")][1:-1]
+            if len(cols) < 6:
+                j += 1
+                continue
+            name, pid, ptype, mode, default, desc = cols[:6]
+            params.append({
+                "name": name,
+                "id": pid,
+                "type": ptype,
+                "mode": mode,
+                "default": default,
+                "desc": desc,
+            })
+            j += 1
+
+    # Render header
+    h: List[str] = []
+    h.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
+    h.append("#pragma once")
+    h.append("#include <stdint.h>")
+    h.append('#include "low_level/low_sparkmax.h"')
+    h.append('#include <mcp2515.h>')
+    h.append("")
+    h.append("namespace CanControl::LowLevel::SparkMax {")
+    h.append("")
+
+    # Emit enums (prefix each member with the enum name to avoid collisions)
+    for ename, vals in enums.items():
+        cn = c_ident(ename)
+        prefix = c_ident(ename).upper()
+        h.append(f"// Enum {ename}")
+        h.append(f"enum class {cn} : uint32_t {{")
+        for idx, v in enumerate(vals):
+            ev = c_ident(v).upper()
+            member = f"{prefix}_{ev}"
+            h.append(f"    {member} = {idx},")
+        h.append("};")
+        h.append("")
+
+    # Generic write helper
+    h.append("// Generic parameter write helper")
+    h.append("MCP2515::ERROR write_parameter_raw(const SparkCanDevice& dev, uint8_t parameter_id, uint32_t value);")
+    h.append("")
+
+    # Prototypes for each parameter (suffix function names with parameter ID to ensure uniqueness)
+    for p in params:
+        pname = p["name"]
+        pid = int(p["id"]) if p["id"] else 0
+        ptype = p["type"].upper()
+        # determine C type
+        ctype = "uint32_t"
+        enum_type = None
+        if ptype == "FLOAT":
+            ctype = "float"
+        elif ptype == "BOOL" or ptype == "BOOLEAN":
+            ctype = "bool"
+        elif ptype == "UINT32":
+            # detect enum via default like InputMode.PWM
+            m = re.match(r"([A-Za-z0-9_]+)\.", p["default"]) if p["default"] else None
+            if m and m.group(1) in enums:
+                enum_type = c_ident(m.group(1))
+                ctype = enum_type
+            else:
+                ctype = "uint32_t"
+        elif ptype == "INT32" or ptype == "INT":
+            ctype = "int32_t"
+
+        func_base = c_ident(pname).lower()
+        # Skip generating helpers for 'Reserved' parameters to avoid noisy duplicates
+        if func_base == "reserved" or func_base.startswith("reserved"):
+            continue
+        func_name = f"set_parameter_{func_base}"
+        h.append(f"// {pname} (ID {pid}) -- {p.get('desc','')}")
+        h.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, {ctype} value);")
+        h.append("")
+
+    h.append("} // namespace CanControl::LowLevel::SparkMax")
+    h.append("")
+
+    # Render source
+    s: List[str] = []
+    s.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
+    s.append('#include "low_level/low_sparkmax_params.h"')
+    s.append("#include <string.h>")
+    s.append("")
+    s.append("namespace CanControl::LowLevel::SparkMax {")
+    s.append("")
+
+    s.append("MCP2515::ERROR write_parameter_raw(const SparkCanDevice& dev, uint8_t parameter_id, uint32_t value) {")
+    s.append("    Spark_PARAMETER_WRITE_t pw{};")
+    s.append("    pw.PARAMETER_ID = parameter_id;")
+    s.append("    pw.VALUE = value;")
+    s.append("    return dev.send_parameter_write(pw);")
+    s.append("}")
+    s.append("")
+
+    # Implement parameter setters (function names include parameter ID suffix)
+    for p in params:
+        pname = p["name"]
+        pid = int(p["id"]) if p["id"] else 0
+        ptype = p["type"].upper()
+        m = re.match(r"([A-Za-z0-9_]+)\.", p["default"]) if p["default"] else None
+        uses_enum = m and m.group(1) in enums
+        func_base = c_ident(pname).lower()
+        # Skip generating helpers for 'Reserved' parameters
+        if func_base == "reserved" or func_base.startswith("reserved"):
+            continue
+        func_name = f"set_parameter_{func_base}"
+        if ptype == "FLOAT":
+            s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, float value) {{")
+            s.append("    union { float f; uint32_t u; } conv = { .f = value };")
+            s.append(f"    return write_parameter_raw(dev, {pid}, conv.u);")
+            s.append("}")
+            s.append("")
+        elif ptype == "BOOL" or ptype == "BOOLEAN":
+            s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, bool value) {{")
+            s.append(f"    return write_parameter_raw(dev, {pid}, value ? 1u : 0u);")
+            s.append("}")
+            s.append("")
+        elif ptype == "UINT32":
+            if uses_enum:
+                enum_name = c_ident(m.group(1))
+                s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, {enum_name} value) {{")
+                s.append(f"    return write_parameter_raw(dev, {pid}, static_cast<uint32_t>(value));")
+                s.append("}")
+                s.append("")
+            else:
+                s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, uint32_t value) {{")
+                s.append(f"    return write_parameter_raw(dev, {pid}, value);")
+                s.append("}")
+                s.append("")
+        else:
+            # fallback
+            s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, uint32_t value) {{")
+            s.append(f"    return write_parameter_raw(dev, {pid}, value);")
+            s.append("}")
+            s.append("")
+
+    s.append("} // namespace CanControl::LowLevel::SparkMax")
+    s.append("")
+
+    return ("\n".join(h) + "\n", "\n".join(s) + "\n")
+
+
 def main() -> None:
     spec = json.loads(SPEC_PATH.read_text())
     frames_tx = collect_frames_tx(spec)
@@ -491,6 +688,16 @@ def main() -> None:
     OUT_H.write_text(header)
     OUT_C.write_text(source)
     print(f"Generated {OUT_H} and {OUT_C}")
+
+    # Generate parameter helpers (enums + write functions)
+    if PARAM_MD.exists():
+        params_header, params_source = render_params(PARAM_MD)
+        OUT_PARAMS_H.parent.mkdir(parents=True, exist_ok=True)
+        OUT_PARAMS_H.write_text(params_header)
+        OUT_PARAMS_CPP.write_text(params_source)
+        print(f"Wrote parameter files {OUT_PARAMS_H} and {OUT_PARAMS_CPP}")
+    else:
+        print(f"Parameter spec {PARAM_MD} not found; skipping parameter code generation")
 
 
 if __name__ == "__main__":
