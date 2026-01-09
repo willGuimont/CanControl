@@ -1,5 +1,8 @@
+#pragma once
+
 #include <can.h>
-#include <frc_can.h>
+
+#include "low_level/frc_can.h"
 
 namespace CanControl
 {

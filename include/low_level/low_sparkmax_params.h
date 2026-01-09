@@ -1,8 +1,8 @@
 // AUTO-GENERATED FILE. DO NOT EDIT. See gen.py
 #pragma once
 #include <stdint.h>
-#include "low_level/low_sparkmax.h"
 #include <mcp2515.h>
+#include "low_level/low_sparkmax.h"
 
 namespace CanControl::LowLevel::SparkMax {
 

@@ -254,8 +254,8 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
 def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], frames_all: Dict[str, Dict[str, Any]]) -> str:
     lines: List[str] = []
     lines.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
-    lines.append("#include \"low_level/low_sparkmax.h\"")
     lines.append("#include <string.h>")
+    lines.append("#include \"low_level/low_sparkmax.h\"")
     lines.append("")
     lines.append("namespace CanControl::LowLevel::SparkMax {")
     lines.append("")
@@ -549,8 +549,8 @@ def render_params(md_path: Path) -> Tuple[str, str]:
     h.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
     h.append("#pragma once")
     h.append("#include <stdint.h>")
-    h.append('#include "low_level/low_sparkmax.h"')
     h.append('#include <mcp2515.h>')
+    h.append('#include "low_level/low_sparkmax.h"')
     h.append("")
     h.append("namespace CanControl::LowLevel::SparkMax {")
     h.append("")
@@ -611,8 +611,8 @@ def render_params(md_path: Path) -> Tuple[str, str]:
     # Render source
     s: List[str] = []
     s.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
-    s.append('#include "low_level/low_sparkmax_params.h"')
     s.append("#include <string.h>")
+    s.append('#include "low_level/low_sparkmax_params.h"')
     s.append("")
     s.append("namespace CanControl::LowLevel::SparkMax {")
     s.append("")

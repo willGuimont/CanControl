@@ -1,10 +1,10 @@
 #pragma once
 
-#include "frc_can.h"
-
 #include <mcp2515.h>
 #include <stdint.h>
 #include <string.h>
+
+#include "low_level/frc_can.h"
 
 // Shared low-level helpers for packing/unpacking CAN payload bits and
 // converting our internal frame representation to the mcp2515 can_frame.

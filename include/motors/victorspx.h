@@ -1,9 +1,9 @@
 #pragma once
 
-#include "low_level/low_ctrelectronics.h"
-
 #include <mcp2515.h>
 #include <stdint.h>
+
+#include "low_level/low_ctrelectronics.h"
 
 namespace CanControl
 {

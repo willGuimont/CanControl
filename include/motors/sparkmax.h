@@ -1,10 +1,9 @@
 #pragma once
 
-#include "low_level/low_sparkmax.h"
-#include "low_level/low_sparkmax_params.h"
-
 #include <mcp2515.h>
 
+#include "low_level/low_sparkmax.h"
+#include "low_level/low_sparkmax_params.h"
 namespace CanControl
 {
     // High-level wrapper around the low-level SparkMax CAN API.
