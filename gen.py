@@ -103,7 +103,6 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     lines.append("#pragma once")
     lines.append("#include <stdint.h>")
     lines.append("#include <string.h>")
-    lines.append("#include <mcp2515.h>")
     lines.append("#include \"frc_can.h\"")
     lines.append("#include \"low_level.h\"")
     lines.append("")
@@ -204,48 +203,6 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         lines.append(f"spark_can_frame spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values);")
         lines.append("")
 
-    if frames_tx:
-        lines.append("class SparkCanDevice {")
-        lines.append("public:")
-        lines.append("    explicit SparkCanDevice(uint8_t device_id);")
-        lines.append("    SparkCanDevice(MCP2515& controller, uint8_t device_id);")
-        lines.append("    void set_controller(MCP2515& controller);")
-        lines.append("    MCP2515* controller() const;")
-        lines.append("    bool has_controller() const;")
-        lines.append("    void set_device_id(uint8_t device_id);")
-        lines.append("    uint8_t device_id() const;")
-        for key, frame in frames_tx.items():
-            fname = c_ident(key.upper())
-            frame_name = frame.get("name", key)
-            frame_desc = frame.get("description", "")
-            frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
-            lines.append(f"    // Build CAN frame for {frame_summary}")
-            lines.append(f"    spark_can_frame build_{fname}(const Spark_{fname}_t* values = nullptr) const;")
-        for key, frame in frames_tx.items():
-            fname = c_ident(key.upper())
-            send_name = snake_ident(key)
-            frame_name = frame.get("name", key)
-            frame_desc = frame.get("description", "")
-            frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
-            # Pointer overload
-            lines.append(f"    // Build and send {frame_summary} (pointer overload)")
-            lines.append(f"    MCP2515::ERROR send_{send_name}(const Spark_{fname}_t* values = nullptr) const;")
-            # By-value overload
-            lines.append(f"    // Build and send {frame_summary} (by-value overload)")
-            lines.append(f"    MCP2515::ERROR send_{send_name}(const Spark_{fname}_t& values) const {{ return send_{send_name}(&values); }}")
-            # Alias helpers
-            for alias in send_aliases(key):
-                lines.append(f"    // Build and send {frame_summary} via alias '{alias}' (pointer overload)")
-                lines.append(f"    MCP2515::ERROR {alias}(const Spark_{fname}_t* values = nullptr) const {{ return send_{send_name}(values); }}")
-                lines.append(f"    // Build and send {frame_summary} via alias '{alias}' (by-value overload)")
-                lines.append(f"    MCP2515::ERROR {alias}(const Spark_{fname}_t& values) const {{ return send_{send_name}(values); }}")
-        lines.append("private:")
-        lines.append("    uint8_t device_id_;")
-        lines.append("    MCP2515* controller_;")
-        lines.append("    MCP2515::ERROR dispatch_frame(const spark_can_frame& frame) const;")
-        lines.append("};")
-        lines.append("")
-
     lines.append("} // namespace CanControl::LowLevel::SparkMax")
     lines.append("")
     return "\n".join(lines) + "\n"
@@ -259,6 +216,7 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     lines.append("")
     lines.append("namespace CanControl::LowLevel::SparkMax {")
     lines.append("")
+    # Was moved to low_level.h
     # lines.append("static inline uint8_t get_bit(const uint8_t* buf, uint32_t bit_index) {")
     # lines.append("    uint32_t byte_index = bit_index >> 3;")
     # lines.append("    uint8_t bit_offset = bit_index & 7u;")
@@ -334,7 +292,8 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         lines.append(f"    out.dlc = {length_bytes}u;")
         lines.append(f"    out.is_rtr = {'true' if rtr else 'false'};")
         if length_bytes > 0 and not rtr:
-            lines.append(f"    memset(out.data, 0, {length_bytes});")
+            # memset is redundant because out{} zero-initializes the array
+            # memset(out.data, 0, {length_bytes});
             # pack each signal
             for sn, sinfo in sigs.items():
                 if is_reserved_signal(sn):
@@ -367,67 +326,14 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
                     lines.append(f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
         else:
             # no payload or RTR frame
-            if length_bytes > 0:
-                lines.append(f"    memset(out.data, 0, {length_bytes});")
+            pass
+            # if length_bytes > 0:
+            #    lines.append(f"    memset(out.data, 0, {length_bytes});")
         lines.append("    return out;")
         lines.append("}")
         lines.append("")
 
-    if frames_tx:
-        lines.append("SparkCanDevice::SparkCanDevice(uint8_t device_id) : device_id_(device_id & SPARK_DEVICE_ID_MASK), controller_(nullptr) {}")
-        lines.append("")
-        lines.append("SparkCanDevice::SparkCanDevice(MCP2515& controller, uint8_t device_id) : device_id_(device_id & SPARK_DEVICE_ID_MASK), controller_(&controller) {}")
-        lines.append("")
-        lines.append("void SparkCanDevice::set_controller(MCP2515& controller) {")
-        lines.append("    controller_ = &controller;")
-        lines.append("}")
-        lines.append("")
-        lines.append("MCP2515* SparkCanDevice::controller() const {")
-        lines.append("    return controller_;")
-        lines.append("}")
-        lines.append("")
-        lines.append("bool SparkCanDevice::has_controller() const {")
-        lines.append("    return controller_ != nullptr;")
-        lines.append("}")
-        lines.append("")
-        lines.append("void SparkCanDevice::set_device_id(uint8_t device_id) {")
-        lines.append("    device_id_ = device_id & SPARK_DEVICE_ID_MASK;")
-        lines.append("}")
-        lines.append("")
-        lines.append("uint8_t SparkCanDevice::device_id() const {")
-        lines.append("    return device_id_;")
-        lines.append("}")
-        lines.append("")
-        lines.append("MCP2515::ERROR SparkCanDevice::dispatch_frame(const spark_can_frame& frame) const {")
-        lines.append("    if (!controller_) {")
-        lines.append("        return MCP2515::ERROR_FAIL;")
-        lines.append("    }")
-        lines.append("    struct can_frame out{};")
-        lines.append("    ::CanControl::LowLevel::basic_to_can_frame(frame, &out);")
-        lines.append("    return controller_->sendMessage(&out);")
-        lines.append("}")
-        lines.append("")
-        for key, frame in frames_tx.items():
-            fname = c_ident(key.upper())
-            frame_name = frame.get("name", key)
-            frame_desc = frame.get("description", "")
-            frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
-            lines.append(f"// Build frame for {frame_summary} using current device_id_")
-            lines.append(f"spark_can_frame SparkCanDevice::build_{fname}(const Spark_{fname}_t* values) const {{")
-            lines.append(f"    return spark_build_{fname}(device_id_, values);")
-            lines.append("}")
-            lines.append("")
-        for key, frame in frames_tx.items():
-            fname = c_ident(key.upper())
-            send_name = snake_ident(key)
-            frame_name = frame.get("name", key)
-            frame_desc = frame.get("description", "")
-            frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
-            lines.append(f"// Build and send {frame_summary} via MCP2515 controller")
-            lines.append(f"MCP2515::ERROR SparkCanDevice::send_{send_name}(const Spark_{fname}_t* values) const {{")
-            lines.append(f"    return dispatch_frame(spark_build_{fname}(device_id_, values));")
-            lines.append("}")
-            lines.append("")
+
 
     # Decode functions for all frames with payloads
     for key, frame in frames_all.items():
@@ -549,7 +455,7 @@ def render_params(md_path: Path) -> Tuple[str, str]:
     h.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
     h.append("#pragma once")
     h.append("#include <stdint.h>")
-    h.append('#include <mcp2515.h>')
+
     h.append('#include "low_level/low_sparkmax.h"')
     h.append("")
     h.append("namespace CanControl::LowLevel::SparkMax {")
@@ -570,41 +476,40 @@ def render_params(md_path: Path) -> Tuple[str, str]:
 
     # Generic write helper
     h.append("// Generic parameter write helper")
-    h.append("MCP2515::ERROR write_parameter_raw(const SparkCanDevice& dev, uint8_t parameter_id, uint32_t value);")
+    h.append("int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value);")
     h.append("")
 
-    # Prototypes for each parameter (suffix function names with parameter ID to ensure uniqueness)
+    # Generic set_parameter overloads
+    h.append("// Generic set_parameter overloads")
+    h.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value);")
+    h.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value);")
+    h.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value);")
+    h.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value);")
+    h.append("")
+
+    # Defines for each parameter
     for p in params:
         pname = p["name"]
         pid = int(p["id"]) if p["id"] else 0
-        ptype = p["type"].upper()
-        # determine C type
-        ctype = "uint32_t"
-        enum_type = None
-        if ptype == "FLOAT":
-            ctype = "float"
-        elif ptype == "BOOL" or ptype == "BOOLEAN":
-            ctype = "bool"
-        elif ptype == "UINT32":
-            # detect enum via default like InputMode.PWM
-            m = re.match(r"([A-Za-z0-9_]+)\.", p["default"]) if p["default"] else None
-            if m and m.group(1) in enums:
-                enum_type = c_ident(m.group(1))
-                ctype = enum_type
-            else:
-                ctype = "uint32_t"
-        elif ptype == "INT32" or ptype == "INT":
-            ctype = "int32_t"
-
-        func_base = c_ident(pname).lower()
-        # Skip generating helpers for 'Reserved' parameters to avoid noisy duplicates
-        if func_base == "reserved" or func_base.startswith("reserved"):
+        
+        # Skip 'Reserved' parameters to avoid redefinition warnings
+        if pname.lower() == "reserved" or pname.lower().startswith("reserved"):
             continue
-        func_name = f"set_parameter_{func_base}"
-        h.append(f"// {pname} (ID {pid}) -- {p.get('desc','')}")
-        h.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, {ctype} value);")
-        h.append("")
 
+        ptype = p["type"].upper()
+        # determine C type suffix
+        type_suffix = "UINT"
+        if ptype == "FLOAT":
+            type_suffix = "FLOAT"
+        elif ptype == "BOOL" or ptype == "BOOLEAN":
+            type_suffix = "BOOL"
+        elif ptype == "INT32" or ptype == "INT":
+            type_suffix = "INT"
+        
+        define_name = f"SPARK_PARAM_{c_ident(pname).upper()}_{type_suffix}"
+        h.append(f"#define {define_name} {pid}")
+
+    h.append("")
     h.append("} // namespace CanControl::LowLevel::SparkMax")
     h.append("")
 
@@ -612,60 +517,40 @@ def render_params(md_path: Path) -> Tuple[str, str]:
     s: List[str] = []
     s.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
     s.append("#include <string.h>")
+    s.append("#include <mcp2515.h>")
     s.append('#include "low_level/low_sparkmax_params.h"')
     s.append("")
     s.append("namespace CanControl::LowLevel::SparkMax {")
     s.append("")
 
-    s.append("MCP2515::ERROR write_parameter_raw(const SparkCanDevice& dev, uint8_t parameter_id, uint32_t value) {")
+    s.append("int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value) {")
     s.append("    Spark_PARAMETER_WRITE_t pw{};")
     s.append("    pw.PARAMETER_ID = parameter_id;")
     s.append("    pw.VALUE = value;")
-    s.append("    return dev.send_parameter_write(pw);")
+    s.append("    struct can_frame out{};")
+    s.append("    ::CanControl::LowLevel::basic_to_can_frame(spark_build_PARAMETER_WRITE(device_id, &pw), &out);")
+    s.append("    return (int)controller.sendMessage(&out);")
     s.append("}")
     s.append("")
 
-    # Implement parameter setters (function names include parameter ID suffix)
-    for p in params:
-        pname = p["name"]
-        pid = int(p["id"]) if p["id"] else 0
-        ptype = p["type"].upper()
-        m = re.match(r"([A-Za-z0-9_]+)\.", p["default"]) if p["default"] else None
-        uses_enum = m and m.group(1) in enums
-        func_base = c_ident(pname).lower()
-        # Skip generating helpers for 'Reserved' parameters
-        if func_base == "reserved" or func_base.startswith("reserved"):
-            continue
-        func_name = f"set_parameter_{func_base}"
-        if ptype == "FLOAT":
-            s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, float value) {{")
-            s.append("    union { float f; uint32_t u; } conv = { .f = value };")
-            s.append(f"    return write_parameter_raw(dev, {pid}, conv.u);")
-            s.append("}")
-            s.append("")
-        elif ptype == "BOOL" or ptype == "BOOLEAN":
-            s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, bool value) {{")
-            s.append(f"    return write_parameter_raw(dev, {pid}, value ? 1u : 0u);")
-            s.append("}")
-            s.append("")
-        elif ptype == "UINT32":
-            if uses_enum:
-                enum_name = c_ident(m.group(1))
-                s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, {enum_name} value) {{")
-                s.append(f"    return write_parameter_raw(dev, {pid}, static_cast<uint32_t>(value));")
-                s.append("}")
-                s.append("")
-            else:
-                s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, uint32_t value) {{")
-                s.append(f"    return write_parameter_raw(dev, {pid}, value);")
-                s.append("}")
-                s.append("")
-        else:
-            # fallback
-            s.append(f"MCP2515::ERROR {func_name}(const SparkCanDevice& dev, uint32_t value) {{")
-            s.append(f"    return write_parameter_raw(dev, {pid}, value);")
-            s.append("}")
-            s.append("")
+    # Implement generic overloads
+    s.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value) {")
+    s.append("    union { float f; uint32_t u; } conv = { .f = value };")
+    s.append("    return write_parameter_raw(controller, device_id, param_id, conv.u);")
+    s.append("}")
+    s.append("")
+    s.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value) {")
+    s.append("    return write_parameter_raw(controller, device_id, param_id, value);")
+    s.append("}")
+    s.append("")
+    s.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value) {")
+    s.append("    return write_parameter_raw(controller, device_id, param_id, (uint32_t)value);")
+    s.append("}")
+    s.append("")
+    s.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value) {")
+    s.append("    return write_parameter_raw(controller, device_id, param_id, value ? 1u : 0u);")
+    s.append("}")
+    s.append("")
 
     s.append("} // namespace CanControl::LowLevel::SparkMax")
     s.append("")

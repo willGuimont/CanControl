@@ -1,9 +1,10 @@
 #pragma once
 
-#include <mcp2515.h>
-
 #include "low_level/low_sparkmax.h"
 #include "low_level/low_sparkmax_params.h"
+
+#include <mcp2515.h>
+
 namespace CanControl
 {
     // High-level wrapper around the low-level SparkMax CAN API.
@@ -76,6 +77,9 @@ namespace CanControl
         MCP2515::ERROR reset_safe_parameters();
 
       private:
-        CanControl::LowLevel::SparkMax::SparkCanDevice device_;
+        MCP2515::ERROR dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame) const;
+
+        MCP2515* controller_;
+        uint8_t  device_id_;
     };
 } // namespace CanControl
