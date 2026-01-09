@@ -20,6 +20,9 @@
     "dependencies": {
         "autowp/autowp-mcp2515": "^1.3.1"
     },
+    "headers": [
+        "CanControl.h"
+    ],
     "frameworks": "*",
     "platforms": "*"
 }

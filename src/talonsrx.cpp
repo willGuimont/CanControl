@@ -1,4 +1,4 @@
-#include "talonsrx.h"
+#include "motors/talonsrx.h"
 
 namespace CanControl
 {

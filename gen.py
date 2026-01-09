@@ -22,7 +22,7 @@ from typing import Dict, Any, List, Tuple
 
 
 ROOT = Path(__file__).parent
-SPEC_PATH = ROOT / "third_party" / "REV-Specs" / "can-frames" / "spark-frames-2.0.0-dev.11"
+SPEC_PATH = ROOT / "third_party" / "REV-Specs" / "can-frames" / "spark-frames-2.1.0"
 OUT_H = ROOT / "include" / "low_level" / "low_sparkmax.h"
 OUT_C = ROOT / "src" / "low_level" / "low_sparkmax.cpp"
 OUT_PARAMS_H = ROOT / "include" / "low_level" / "low_sparkmax_params.h"

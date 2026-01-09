@@ -1,4 +1,4 @@
-#include "sparkmax.h"
+#include "motors/sparkmax.h"
 
 #include "low_level/low_sparkmax_params.h"
 

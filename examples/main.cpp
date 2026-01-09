@@ -1,7 +1,4 @@
 #include <SPI.h>
-#include <frc_can.h>
-#include <frc_can_utils.h>
-#include <low_sparkmax.h>
 #include <mcp2515.h>
 
 #include "CanControl.h"
