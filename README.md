@@ -61,13 +61,50 @@ pio run -e mega
 pio run -e mega -t upload
 ```
 
-The main example sketch is in `src/main.cpp`. It:
+The main example sketch is in `src/main.cpp`.
 
-- Configures the MCP2515.
-- Creates a single `SparkMax` instance.
-- Sends a one-shot "reset safe parameters" to the Spark.
-- Listens for Spark Status 0 frames and prints them over serial.
-- Lets you type commands over USB serial to change speed/position.
+## Examples
+
+Quick steps to run the example sketch:
+
+- Build & upload (PlatformIO):
+  - `pio run -e mega`
+  - `pio run -e mega -t upload`
+- Open the serial monitor at 115200:
+  - `pio device monitor -e mega -b 115200`
+
+What the example does:
+
+- Configures the `MCP2515` CAN controller and sets the bitrate.
+- Creates a `SparkMax` and `TalonSrxMotor` instance bound to the `MCP2515`.
+- Sends periodic FRC-style heartbeat frames and the CTRE global-enable frame so controllers remain enabled.
+- Resets Spark MAX user parameters once on startup.
+- Accepts simple serial commands to control the motor:
+  - `s<float>` — set speed percent (e.g. `s0.5` = 50%)
+  - `p<float>` — set position (Spark MAX)
+  - `h` — print help
+
+Heartbeat and CTRE enable API examples:
+
+```cpp
+// send a default zero heartbeat (FRC style)
+CanControl::send_heartbeat(mcp2515, CanControl::heartbeat::RobotState{});
+
+// send CTRE global enable (Talon/Victor)
+CanControl::TalonSrxMotor::send_global_enable(mcp2515, true);
+```
+
+Use the serial commands to drive the motor at low speed first and verify wiring.
+
+## Troubleshooting
+
+- No motor response: verify `MCP2515_CS_PIN` matches wiring and the MCP2515 is in normal mode.
+- Bitrate mismatch: ensure `setBitrate(...)` is set to `CAN_1000KBPS` for FRC controllers.
+- CAN termination: ensure 120Ω termination at both ends of the bus.
+- CTRE devices not responding: verify they are FRC-unlocked (see CTRE section below).
+- Use the serial monitor to inspect startup messages printed by the example (MCP2515 reset/status, PID set results).
+
+Safety: test at low duty (e.g. `s0.1`) with motors disconnected from mechanisms or props until behavior is verified.
 
 ### Using as a library in your own PIO project
 

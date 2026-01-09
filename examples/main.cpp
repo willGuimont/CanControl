@@ -1,12 +1,10 @@
-#include "sparkmax.h"
-#include "talonsrx.h"
-#include "victorspx.h"
-
 #include <SPI.h>
 #include <frc_can.h>
 #include <frc_can_utils.h>
 #include <low_sparkmax.h>
 #include <mcp2515.h>
+
+#include "CanControl.h"
 
 using namespace CanControl;
 
@@ -70,23 +68,6 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 // See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
 // details.
 static constexpr unsigned long heartbeat_interval_ms = 10;
-heartbeat::RobotState          robot_state(120,   // matchTimeSeconds
-                                           1,     // matchNumber
-                                           0,     // replayNumber
-                                           false, // redAlliance
-                                           true,  // enabled
-                                           true,  // autonomous
-                                           false, // testMode
-                                           true,  // systemWatchdog
-                                           0,     // tournamentType
-                                           25,    // timeOfDay_yr
-                                           1,     // timeOfDay_month
-                                           1,     // timeOfDay_day
-                                           12,    // timeOfDay_hr
-                                           0,     // timeOfDay_min
-                                           0      // timeOfDay_sec
-         );
-can_frame                      heartbeat_frame   = to_can_frame(heartbeat::to_frc_can_frame(robot_state));
 static constexpr unsigned long talon_interval_ms = 0;
 
 void print_help()
@@ -168,9 +149,8 @@ void loop()
     static unsigned long heartbeat_last_sent = 0;
     if (now - heartbeat_last_sent >= heartbeat_interval_ms)
     {
-        // Heartbeat for the spark
-        mcp2515.sendMessage(&heartbeat_frame);
-        // Heartbeat for the talon
+        // Heartbeat for the spark (FRC-style) and CTRE global-enable
+        send_heartbeat(mcp2515, heartbeat::RobotState{});
         TalonSrxMotor::send_global_enable(mcp2515, true);
         heartbeat_last_sent = now;
     }
@@ -200,18 +180,16 @@ void loop()
     // {
     //     can_frame      rxFrame;
     //     MCP2515::ERROR readErr;
-
     //     if ((readErr = mcp2515.readMessage(&rxFrame)) == MCP2515::ERROR_OK)
     //     {
     //         // Only handle extended Spark Status 0 frames
     //         uint32_t arbId = rxFrame.can_id & 0x1FFFFFFFu;
     //         if (SPARK_MATCH_STATUS_0(arbId))
     //         {
-    //             CanControl::LowLevel::SparkMax::Spark_STATUS_0_t status{};
-    //             if (CanControl::LowLevel::SparkMax::spark_decode_STATUS_0(rxFrame.data, rxFrame.can_dlc, &status))
+    //             LowLevel::SparkMax::Spark_STATUS_0_t status{};
+    //             if (LowLevel::SparkMax::spark_decode_STATUS_0(rxFrame.data, rxFrame.can_dlc, &status))
     //             {
     //                 uint8_t deviceId = (uint8_t)(arbId & SPARK_DEVICE_ID_MASK);
-
     //                 Serial.print("Status0 spark_id=");
     //                 Serial.print(deviceId);
     //                 Serial.print(" arb=0x");
