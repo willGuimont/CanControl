@@ -491,7 +491,7 @@ def render_params(md_path: Path) -> Tuple[str, str]:
     for p in params:
         pname = p["name"]
         pid = int(p["id"]) if p["id"] else 0
-        
+
         # Skip 'Reserved' parameters to avoid redefinition warnings
         if pname.lower() == "reserved" or pname.lower().startswith("reserved"):
             continue
@@ -505,7 +505,7 @@ def render_params(md_path: Path) -> Tuple[str, str]:
             type_suffix = "BOOL"
         elif ptype == "INT32" or ptype == "INT":
             type_suffix = "INT"
-        
+
         define_name = f"SPARK_PARAM_{c_ident(pname).upper()}_{type_suffix}"
         h.append(f"#define {define_name} {pid}")
 

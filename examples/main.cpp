@@ -1,7 +1,7 @@
+#include "CanControl.h"
+
 #include <SPI.h>
 #include <mcp2515.h>
-
-#include "CanControl.h"
 
 using namespace CanControl;
 
@@ -27,7 +27,7 @@ static constexpr uint8_t mcp2515_cs_pin = MCP2515_CS_PIN;
 static MCP2515 mcp2515(mcp2515_cs_pin);
 
 // Creating the motor
-static constexpr uint8_t spark_motor_id = 11;
+static constexpr uint8_t spark_motor_id = 1;
 static SparkMax          spark(mcp2515, spark_motor_id);
 static constexpr uint8_t talon_motor_id = 30;
 static TalonSrxMotor     talon(mcp2515, talon_motor_id);
@@ -64,8 +64,24 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 // This mirrors the frame the RoboRIO would send.
 // See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
 // details.
-static constexpr unsigned long heartbeat_interval_ms = 10;
-static constexpr unsigned long talon_interval_ms = 0;
+static constexpr unsigned long     heartbeat_interval_ms = 10;
+static constexpr unsigned long     talon_interval_ms     = 0;
+static const heartbeat::RobotState robot_state(120,   // matchTimeSeconds
+                                               1,     // matchNumber
+                                               0,     // replayNumber
+                                               false, // redAlliance
+                                               true,  // enabled
+                                               true,  // autonomous
+                                               false, // testMode
+                                               true,  // systemWatchdog
+                                               0,     // tournamentType
+                                               25,    // timeOfDay_yr
+                                               1,     // timeOfDay_month
+                                               1,     // timeOfDay_day
+                                               12,    // timeOfDay_hr
+                                               0,     // timeOfDay_min
+                                               0      // timeOfDay_sec
+);
 
 void print_help()
 {
@@ -147,7 +163,7 @@ void loop()
     if (now - heartbeat_last_sent >= heartbeat_interval_ms)
     {
         // Heartbeat for the spark (FRC-style) and CTRE global-enable
-        send_heartbeat(mcp2515, heartbeat::RobotState{});
+        send_heartbeat(mcp2515, robot_state);
         TalonSrxMotor::send_global_enable(mcp2515, true);
         heartbeat_last_sent = now;
     }
