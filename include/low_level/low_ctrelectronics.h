@@ -1,9 +1,9 @@
 #pragma once
 
+#include "low_level/low_level.h"
+
 #include <stdint.h>
 #include <string.h>
-
-#include "low_level/low_level.h"
 
 // Low-level helpers for building Talon SRX / Victor SPX CAN frames
 // using the non-FRC firmware control scheme documented by CTRE.

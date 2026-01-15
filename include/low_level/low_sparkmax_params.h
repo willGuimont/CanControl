@@ -1,95 +1,108 @@
 // AUTO-GENERATED FILE. DO NOT EDIT. See gen.py
 #pragma once
-#include <stdint.h>
 #include "low_level/low_sparkmax.h"
 
-namespace CanControl::LowLevel::SparkMax {
+#include <stdint.h>
 
-// Enum InputMode
-enum class InputMode : uint32_t {
-    INPUTMODE_PWM = 0,
-    INPUTMODE_CAN = 1,
-    INPUTMODE_USB = 2,
-};
+namespace CanControl::LowLevel::SparkMax
+{
 
-// Enum MotorType
-enum class MotorType : uint32_t {
-    MOTORTYPE_BRUSHED = 0,
-    MOTORTYPE_BRUSHLESS = 1,
-};
+    // Enum InputMode
+    enum class InputMode : uint32_t
+    {
+        INPUTMODE_PWM = 0,
+        INPUTMODE_CAN = 1,
+        INPUTMODE_USB = 2,
+    };
 
-// Enum IdleMode
-enum class IdleMode : uint32_t {
-    IDLEMODE_COAST = 0,
-    IDLEMODE_BRAKE = 1,
-};
+    // Enum MotorType
+    enum class MotorType : uint32_t
+    {
+        MOTORTYPE_BRUSHED   = 0,
+        MOTORTYPE_BRUSHLESS = 1,
+    };
 
-// Enum Sensor
-enum class Sensor : uint32_t {
-    SENSOR_NONE = 0,
-    SENSOR_MAIN_ENCODER = 1,
-    SENSOR_ANALOG = 2,
-    SENSOR_ALT_ENCODER = 3,
-    SENSOR_DUTY_CYCLE = 4,
-};
+    // Enum IdleMode
+    enum class IdleMode : uint32_t
+    {
+        IDLEMODE_COAST = 0,
+        IDLEMODE_BRAKE = 1,
+    };
 
-// Enum ControlType
-enum class ControlType : uint32_t {
-    CONTROLTYPE_DUTY_CYCLE = 0,
-    CONTROLTYPE_VELOCITY = 1,
-    CONTROLTYPE_VOLTAGE = 2,
-    CONTROLTYPE_POSITION = 3,
-    CONTROLTYPE_SMARTMOTION = 4,
-    CONTROLTYPE_SMARTVELOCITY = 5,
-    CONTROLTYPE_MAXMOTION_POSITION = 6,
-    CONTROLTYPE_MAXMOTION_VELOCITY = 7,
-};
+    // Enum Sensor
+    enum class Sensor : uint32_t
+    {
+        SENSOR_NONE         = 0,
+        SENSOR_MAIN_ENCODER = 1,
+        SENSOR_ANALOG       = 2,
+        SENSOR_ALT_ENCODER  = 3,
+        SENSOR_DUTY_CYCLE   = 4,
+    };
 
-// Enum VoltageCompMode
-enum class VoltageCompMode : uint32_t {
-    VOLTAGECOMPMODE_NO_VOLTAGE_COMP = 0,
-    VOLTAGECOMPMODE_CLOSED_LOOP_VOLTAGE_OUTPUT = 1,
-    VOLTAGECOMPMODE_NOMINAL_VOLTAGE_COMP = 2,
-};
+    // Enum ControlType
+    enum class ControlType : uint32_t
+    {
+        CONTROLTYPE_DUTY_CYCLE         = 0,
+        CONTROLTYPE_VELOCITY           = 1,
+        CONTROLTYPE_VOLTAGE            = 2,
+        CONTROLTYPE_POSITION           = 3,
+        CONTROLTYPE_SMARTMOTION        = 4,
+        CONTROLTYPE_SMARTVELOCITY      = 5,
+        CONTROLTYPE_MAXMOTION_POSITION = 6,
+        CONTROLTYPE_MAXMOTION_VELOCITY = 7,
+    };
 
-// Enum AccelerationStrategy
-enum class AccelerationStrategy : uint32_t {
-    ACCELERATIONSTRATEGY_TRAPEZOIDAL = 0,
-    ACCELERATIONSTRATEGY_SCURVE = 1,
-};
+    // Enum VoltageCompMode
+    enum class VoltageCompMode : uint32_t
+    {
+        VOLTAGECOMPMODE_NO_VOLTAGE_COMP            = 0,
+        VOLTAGECOMPMODE_CLOSED_LOOP_VOLTAGE_OUTPUT = 1,
+        VOLTAGECOMPMODE_NOMINAL_VOLTAGE_COMP       = 2,
+    };
 
-// Enum AnalogMode
-enum class AnalogMode : uint32_t {
-    ANALOGMODE_ABSOLUTE = 0,
-    ANALOGMODE_RELATIVE = 1,
-};
+    // Enum AccelerationStrategy
+    enum class AccelerationStrategy : uint32_t
+    {
+        ACCELERATIONSTRATEGY_TRAPEZOIDAL = 0,
+        ACCELERATIONSTRATEGY_SCURVE      = 1,
+    };
 
-// Enum CompatibilityPort
-enum class CompatibilityPort : uint32_t {
-    COMPATIBILITYPORT_DEFAULT = 0,
-    COMPATIBILITYPORT_ALTERNATE_ENCODER = 1,
-};
+    // Enum AnalogMode
+    enum class AnalogMode : uint32_t
+    {
+        ANALOGMODE_ABSOLUTE = 0,
+        ANALOGMODE_RELATIVE = 1,
+    };
 
-// Enum DutyCycleMode
-enum class DutyCycleMode : uint32_t {
-    DUTYCYCLEMODE_ABSOLUTE = 0,
-    DUTYCYCLEMODE_RELATIVE = 1,
-    DUTYCYCLEMODE_RELATIVE_STARTING_OFFSET = 2,
-};
+    // Enum CompatibilityPort
+    enum class CompatibilityPort : uint32_t
+    {
+        COMPATIBILITYPORT_DEFAULT           = 0,
+        COMPATIBILITYPORT_ALTERNATE_ENCODER = 1,
+    };
 
-// Enum MAXMotionPositionMode
-enum class MAXMotionPositionMode : uint32_t {
-    MAXMOTIONPOSITIONMODE_TRAPEZOIDAL = 0,
-};
+    // Enum DutyCycleMode
+    enum class DutyCycleMode : uint32_t
+    {
+        DUTYCYCLEMODE_ABSOLUTE                 = 0,
+        DUTYCYCLEMODE_RELATIVE                 = 1,
+        DUTYCYCLEMODE_RELATIVE_STARTING_OFFSET = 2,
+    };
 
-// Generic parameter write helper
-int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value);
+    // Enum MAXMotionPositionMode
+    enum class MAXMotionPositionMode : uint32_t
+    {
+        MAXMOTIONPOSITIONMODE_TRAPEZOIDAL = 0,
+    };
 
-// Generic set_parameter overloads
-int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value);
-int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value);
-int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value);
-int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value);
+    // Generic parameter write helper
+    int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value);
+
+    // Generic set_parameter overloads
+    int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value);
+    int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value);
+    int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value);
+    int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value);
 
 #define SPARK_PARAM_CAN_ID_UINT 0
 #define SPARK_PARAM_INPUT_MODE_UINT 1
@@ -258,4 +271,3 @@ int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool
 #define SPARK_PARAM_PARAM_TABLE_VERSION_UINT 198
 
 } // namespace CanControl::LowLevel::SparkMax
-

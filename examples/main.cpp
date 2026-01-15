@@ -65,7 +65,7 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 // See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
 // details.
 static constexpr unsigned long     heartbeat_interval_ms = 10;
-static constexpr unsigned long     talon_interval_ms     = 0;
+static constexpr unsigned long     update_inteval_ms     = 0;
 static const heartbeat::RobotState robot_state(120,   // matchTimeSeconds
                                                1,     // matchNumber
                                                0,     // replayNumber
@@ -170,7 +170,7 @@ void loop()
 
     // TalonSRX needs to be constantly fed the speed
     static unsigned long speed_last_sent = 0;
-    if (now - speed_last_sent >= talon_interval_ms)
+    if (now - speed_last_sent >= update_inteval_ms)
     {
         switch (command_mode)
         {

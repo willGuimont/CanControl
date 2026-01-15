@@ -1,9 +1,9 @@
 #pragma once
 
+#include "low_level/frc_can_utils.h"
 #include "motors/sparkmax.h"
 #include "motors/talonsrx.h"
 #include "motors/victorspx.h"
-#include "low_level/frc_can_utils.h"
 
 namespace CanControl
 {
