@@ -14,7 +14,7 @@ namespace CanControl
 
     /**
      * @brief Sends a heartbeat frame to the CAN bus using the provided RobotState.
-     * 
+     *
      * @param controller Reference to the MCP2515 controller.
      * @param state The RobotState object containing enablement flags.
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -28,7 +28,7 @@ namespace CanControl
 
     /**
      * @brief Sends a heartbeat frame from a pre-constructed FRC CAN frame.
-     * 
+     *
      * @param controller Reference to the MCP2515 controller.
      * @param frame The FRC CAN frame to send.
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -41,7 +41,7 @@ namespace CanControl
 
     /**
      * @brief Converts a RobotState to a raw CAN frame for transmission.
-     * 
+     *
      * @param state The RobotState object.
      * @return can_frame The raw CAN frame.
      */
@@ -52,7 +52,7 @@ namespace CanControl
 
     /**
      * @brief Creates a default RobotState with Motors Enabled and System Watchdog valid.
-     * 
+     *
      * @return heartbeat::RobotState A default enabled state.
      */
     inline heartbeat::RobotState default_heartbeat()

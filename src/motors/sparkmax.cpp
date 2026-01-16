@@ -11,7 +11,7 @@ namespace CanControl
 
     /**
      * @brief Construct a new Spark Max object
-     * 
+     *
      * @param controller Reference to the MCP2515 controller.
      * @param device_id CAN ID of the motor controller (0-63).
      */
@@ -46,7 +46,7 @@ namespace CanControl
 
     /**
      * @brief Sets the duty cycle (percent output) of the motor.
-     * 
+     *
      * @param duty The duty cycle to set, from -1.0 to 1.0.
      * @param pid_slot The PID slot to use (0-3).
      * @param arbitrary_feedforward Arbitrary feedforward value.
@@ -73,7 +73,7 @@ namespace CanControl
 
     /**
      * @brief Sets the target position for the motor (requires PID configuration).
-     * 
+     *
      * @param position Target position in rotations.
      * @param pid_slot The PID slot to use (0-3).
      * @param arbitrary_feedforward Arbitrary feedforward value.
@@ -94,7 +94,7 @@ namespace CanControl
 
     /**
      * @brief Sets the target velocity for the motor (requires PID configuration).
-     * 
+     *
      * @param velocity Target velocity in RPM.
      * @param pid_slot The PID slot to use (0-3).
      * @param arbitrary_feedforward Arbitrary feedforward value.
@@ -115,7 +115,7 @@ namespace CanControl
 
     /**
      * @brief Stops the motor by setting duty cycle to 0.
-     * 
+     *
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
     MCP2515::ERROR SparkMax::stop()
@@ -125,7 +125,7 @@ namespace CanControl
 
     /**
      * @brief Resets the motor parameters to their factory defaults.
-     * 
+     *
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
     MCP2515::ERROR SparkMax::reset_safe_parameters()
@@ -151,7 +151,7 @@ namespace CanControl
 
     /**
      * @brief Sets the Proportional (P) gain for the PID controller.
-     * 
+     *
      * @param p The P gain value.
      * @param slot The PID slot to update (0-3).
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -163,7 +163,7 @@ namespace CanControl
 
     /**
      * @brief Sets the Integral (I) gain for the PID controller.
-     * 
+     *
      * @param i The I gain value.
      * @param slot The PID slot to update (0-3).
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -175,7 +175,7 @@ namespace CanControl
 
     /**
      * @brief Sets the Derivative (D) gain for the PID controller.
-     * 
+     *
      * @param d The D gain value.
      * @param slot The PID slot to update (0-3).
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -187,7 +187,7 @@ namespace CanControl
 
     /**
      * @brief Sets the Feedforward (F) gain for the PID controller.
-     * 
+     *
      * @param f The F gain value.
      * @param slot The PID slot to update (0-3).
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -199,7 +199,7 @@ namespace CanControl
 
     /**
      * @brief Sets the motor type (Brushed or Brushless).
-     * 
+     *
      * @param t The motor type enum.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -212,7 +212,7 @@ namespace CanControl
 
     /**
      * @brief Configures the primary sensor for closed-loop control.
-     * 
+     *
      * @param s The sensor type (e.g., specific internal encoder or external sensor).
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -226,7 +226,7 @@ namespace CanControl
 
     /**
      * @brief Inverts the motor output direction.
-     * 
+     *
      * @param inverted True to invert, false otherwise.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -239,7 +239,7 @@ namespace CanControl
 
     /**
      * @brief Sets the Integral Zone (IZone) for the PID controller.
-     * 
+     *
      * @param slot The PID slot to update (0-3).
      * @param izone The IZone value.
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -251,7 +251,7 @@ namespace CanControl
 
     /**
      * @brief Sets the Derivative Filter (DFilter) for the PID controller.
-     * 
+     *
      * @param slot The PID slot to update (0-3).
      * @param dfilter The filter value.
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -263,7 +263,7 @@ namespace CanControl
 
     /**
      * @brief Sets the minimum output for the PID controller.
-     * 
+     *
      * @param slot The PID slot to update (0-3).
      * @param v The minimum output value.
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -275,7 +275,7 @@ namespace CanControl
 
     /**
      * @brief Sets the maximum output for the PID controller.
-     * 
+     *
      * @param slot The PID slot to update (0-3).
      * @param v The maximum output value.
      * @return MCP2515::ERROR Status of the CAN transmission.
@@ -287,7 +287,7 @@ namespace CanControl
 
     /**
      * @brief Enables or disables position PID wrapping (for continuous rotation mechanisms).
-     * 
+     *
      * @param en True to enable, false to disable.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -300,7 +300,7 @@ namespace CanControl
 
     /**
      * @brief Sets the minimum input value for the position PID controller.
-     * 
+     *
      * @param v The minimum input value.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -313,7 +313,7 @@ namespace CanControl
 
     /**
      * @brief Sets the maximum input value for the position PID controller.
-     * 
+     *
      * @param v The maximum input value.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -326,7 +326,7 @@ namespace CanControl
 
     /**
      * @brief Sets the polarity of the forward limit switch.
-     * 
+     *
      * @param polarity True for normally open, false for normally closed (or vice versa, check datasheet).
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -340,7 +340,7 @@ namespace CanControl
 
     /**
      * @brief Sets the polarity of the reverse limit switch.
-     * 
+     *
      * @param polarity True for normally open, false for normally closed (or vice versa, check datasheet).
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -354,7 +354,7 @@ namespace CanControl
 
     /**
      * @brief Enables the forward hard limit switch.
-     * 
+     *
      * @param en True to enable, false to disable.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -367,7 +367,7 @@ namespace CanControl
 
     /**
      * @brief Enables the reverse hard limit switch.
-     * 
+     *
      * @param en True to enable, false to disable.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -380,7 +380,7 @@ namespace CanControl
 
     /**
      * @brief Enables the forward soft limit.
-     * 
+     *
      * @param en True to enable, false to disable.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -393,7 +393,7 @@ namespace CanControl
 
     /**
      * @brief Enables the reverse soft limit.
-     * 
+     *
      * @param en True to enable, false to disable.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -406,7 +406,7 @@ namespace CanControl
 
     /**
      * @brief Sets the encoder counts per revolution (CPR).
-     * 
+     *
      * @param counts The counts per revolution.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -419,7 +419,7 @@ namespace CanControl
 
     /**
      * @brief Inverts the encoder direction.
-     * 
+     *
      * @param inv True to invert, false otherwise.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */

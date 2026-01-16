@@ -1,20 +1,20 @@
 /**
  * CanControl example - William Guimont-Martin 2025-2026 (https://github.com/willGuimont/CanControl)
  * Example showing how to setup and use FRC CAN motors using Arduino chips.
- * 
+ *
  * See README.md for wiring.
  */
+#include "CanControl.h"
+
 #include <SPI.h>
 #include <mcp2515.h>
-
-#include "CanControl.h"
 
 using namespace CanControl;
 
 // Configuration for the FRC can protocol
 static constexpr CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 // Check the oscillator on your MCP2515
-static constexpr CAN_CLOCK MCP2515_OSC   = MCP_8MHZ;
+static constexpr CAN_CLOCK MCP2515_OSC = MCP_8MHZ;
 // With an 8 MHz MCP2515 oscillator the SPI SCK must be kept below.
 // Use 10 MHz only when the MCP2515 module has a 16/20 MHz oscillator.
 static constexpr uint32_t SPI_CLOCK_SPEED = (MCP2515_OSC == MCP_8MHZ) ? 4000000UL : 10000000UL;
@@ -80,10 +80,12 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 // This mirrors the frame the RoboRIO would send.
 // See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
 // details.
-// Heartbeat must be sent quickly enough to avoid the motor to stop, but not too quickly for the MCP2515's buffers filled
-static constexpr unsigned long     heartbeat_interval_ms = 5;
-// Sending updates to the motor can be done less frequently. For SparkMax, a command can be sent only once and it will continue at that speed as long as the heartbeat is present
-static constexpr unsigned long     update_inteval_ms     = 20;
+// Heartbeat must be sent quickly enough to avoid the motor to stop, but not too quickly for the MCP2515's buffers
+// filled
+static constexpr unsigned long heartbeat_interval_ms = 5;
+// Sending updates to the motor can be done less frequently. For SparkMax, a command can be sent only once and it will
+// continue at that speed as long as the heartbeat is present
+static constexpr unsigned long update_inteval_ms = 20;
 
 // Create a default robot state
 // The important part is that the robot state has the `enabled` and `systemWatchdog` fields set to `true`
@@ -119,13 +121,20 @@ void setup()
         Serial.print("Starting CanControl on pin ");
         Serial.println(MCP2515_CS_PIN);
         Serial.print("MCP2515 oscillator: ");
-        if (MCP2515_OSC == MCP_8MHZ) {
+        if (MCP2515_OSC == MCP_8MHZ)
+        {
             Serial.println("8 MHz");
-        } else if (MCP2515_OSC == MCP_16MHZ) {
+        }
+        else if (MCP2515_OSC == MCP_16MHZ)
+        {
             Serial.println("16 MHz");
-        } else if (MCP2515_OSC == MCP_20MHZ) {
+        }
+        else if (MCP2515_OSC == MCP_20MHZ)
+        {
             Serial.println("20 MHz");
-        } else {
+        }
+        else
+        {
             Serial.println("unknown");
         }
         Serial.print("SPI clock (Hz): ");
@@ -178,9 +187,9 @@ void setup()
 
 void loop()
 {
-    static float       speed         = 0;
-    static float       position      = 0;
-    static CommandMode command_mode  = Speed;
+    static float       speed        = 0;
+    static float       position     = 0;
+    static CommandMode command_mode = Speed;
 
     // Send heartbeat every heartbeat_interval_ms milliseconds
     unsigned long        now                 = millis();
@@ -198,7 +207,8 @@ void loop()
 
     // SparkMax can be sent speed only on change
     // TalonSRX needs to be constantly fed the speed
-    // Since in robotics applications (e.g., controlling a motor from a joystick) the speed rarely stays constant, we send it repeatively here
+    // Since in robotics applications (e.g., controlling a motor from a joystick) the speed rarely stays constant, we
+    // send it repeatively here
     now                                  = millis();
     static unsigned long speed_last_sent = 0;
     if (now - speed_last_sent >= update_inteval_ms)

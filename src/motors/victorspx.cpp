@@ -7,7 +7,7 @@ namespace CanControl
 
     /**
      * @brief Construct a new Victor Spx Motor object
-     * 
+     *
      * @param controller Reference to the MCP2515 controller.
      * @param device_id CAN ID of the motor controller (0-63).
      */
@@ -38,7 +38,7 @@ namespace CanControl
 
     /**
      * @brief Sets the percent output of the motor.
-     * 
+     *
      * @param percent_output The duty cycle to set, from -1.0 to 1.0.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
@@ -59,7 +59,7 @@ namespace CanControl
 
     /**
      * @brief Sends the Global Enable frame required for CTRE motors (Talon SRX / Victor SPX) to operate.
-     * 
+     *
      * @param controller Reference to the MCP2515 controller.
      * @param enable True to enable the motors, false to disable.
      * @return MCP2515::ERROR Status of the CAN transmission.

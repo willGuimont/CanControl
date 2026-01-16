@@ -19,21 +19,21 @@ namespace CanControl::LowLevel
 {
     /**
      * @brief Generic 29-bit extended CAN frame used by higher-level device-specific code.
-     * 
-     * This intermediate structure allows for easier manipulation of CAN data 
+     *
+     * This intermediate structure allows for easier manipulation of CAN data
      * before packing it into the hardware-specific `can_frame`.
      */
     struct basic_can_frame
     {
-        uint32_t id;  /**< 29-bit extended ID (no flags) */
-        uint8_t  dlc; /**< Data length code (0-8) */
+        uint32_t id;      /**< 29-bit extended ID (no flags) */
+        uint8_t  dlc;     /**< Data length code (0-8) */
         uint8_t  data[8]; /**< Data payload */
-        bool     is_rtr; /**< Remote transmission request flag */
+        bool     is_rtr;  /**< Remote transmission request flag */
     };
 
     /**
      * @brief Reads a single bit from a byte buffer.
-     * 
+     *
      * @param buf The data buffer.
      * @param bit_index The index of the bit to read (0-indexed).
      * @return uint8_t The value of the bit (0 or 1).
@@ -47,7 +47,7 @@ namespace CanControl::LowLevel
 
     /**
      * @brief Unpacks a multi-bit field from a byte buffer.
-     * 
+     *
      * @param buf The data buffer to read from.
      * @param bit_pos The starting bit position.
      * @param bit_len The length of the field in bits.
@@ -79,7 +79,7 @@ namespace CanControl::LowLevel
 
     /**
      * @brief Sets or clears a single bit in a byte buffer.
-     * 
+     *
      * @param buf The data buffer to modify.
      * @param bit_index The index of the bit to set.
      * @param bit The value to write (non-zero for 1, 0 for 0).
@@ -96,7 +96,7 @@ namespace CanControl::LowLevel
 
     /**
      * @brief Packs a multi-bit field into a byte buffer.
-     * 
+     *
      * @param buf The data buffer to write to.
      * @param bit_pos The starting bit position.
      * @param bit_len The length of the field in bits.
@@ -126,9 +126,9 @@ namespace CanControl::LowLevel
 
     /**
      * @brief Converts a user-friendly `basic_can_frame` to the library-specific `can_frame`.
-     * 
+     *
      * Adapts the 29-bit ID to the format expected by the MCP2515 library (setting EFF flags).
-     * 
+     *
      * @param in The input basic frame.
      * @param out Pointer to the output mcp2515 frame.
      */
