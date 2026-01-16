@@ -1,13 +1,20 @@
-#include "CanControl.h"
-
+/**
+ * CanControl example - William Guimont-Martin 2025-2026
+ * Example showing how to setup and use FRC CAN motors using Arduino chips.
+ */
 #include <SPI.h>
 #include <mcp2515.h>
+
+#include "CanControl.h"
 
 using namespace CanControl;
 
 // Configuration for the FRC can protocol
 static constexpr CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 static constexpr CAN_CLOCK MCP2515_OSC   = MCP_8MHZ;
+// With an 8 MHz MCP2515 oscillator the SPI SCK must be kept below.
+// Use 10 MHz only when the MCP2515 module has a 16/20 MHz oscillator.
+static constexpr uint32_t SPI_CLOCK = (MCP2515_OSC == MCP_8MHZ) ? 8000000ul : 10000000UL;
 
 #ifndef MCP2515_CS_PIN
 #if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(ARDUINO_AVR_MEGA)
@@ -24,13 +31,13 @@ static constexpr uint8_t mcp2515_cs_pin = MCP2515_CS_PIN;
 #endif
 
 // Controller to the MCP2515 chip, be sure to specify the correct CS pin
-static MCP2515 mcp2515(mcp2515_cs_pin);
+static MCP2515 mcp2515(mcp2515_cs_pin, SPI_CLOCK);
 
 // Creating the motor
-static constexpr uint8_t spark_motor_id = 1;
+static constexpr uint8_t spark_motor_id = 11;
 static SparkMax          spark(mcp2515, spark_motor_id);
-static constexpr uint8_t talon_motor_id = 30;
-static TalonSrxMotor     talon(mcp2515, talon_motor_id);
+// static constexpr uint8_t talon_motor_id = 30;
+// static TalonSrxMotor     talon(mcp2515, talon_motor_id);
 
 // PID constants
 static constexpr float spark_p = 0.1;
@@ -64,14 +71,14 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 // This mirrors the frame the RoboRIO would send.
 // See https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat for more
 // details.
-static constexpr unsigned long     heartbeat_interval_ms = 10;
-static constexpr unsigned long     update_inteval_ms     = 0;
+static constexpr unsigned long     heartbeat_interval_ms = 5;
+static constexpr unsigned long     update_inteval_ms     = 20;
 static const heartbeat::RobotState robot_state(120,   // matchTimeSeconds
                                                1,     // matchNumber
                                                0,     // replayNumber
                                                false, // redAlliance
                                                true,  // enabled
-                                               true,  // autonomous
+                                               false, // autonomous
                                                false, // testMode
                                                true,  // systemWatchdog
                                                0,     // tournamentType
@@ -122,8 +129,8 @@ void setup()
         Serial.println(mcpErrorToString(setupErr));
         Serial.println();
 
-        setupErr = mcp2515.setNormalMode();
-        Serial.print("MCP2515 setNormalMode: ");
+        setupErr = mcp2515.setNormalOneShotMode();
+        Serial.print("MCP2515 setNormalOneShotMode: ");
         Serial.println(mcpErrorToString(setupErr));
         Serial.println();
 
@@ -153,9 +160,11 @@ void setup()
 
 void loop()
 {
-    static float       speed        = 0;
-    static float       position     = 0;
-    static CommandMode command_mode = Speed;
+    static float       speed         = 0;
+    static float       last_speed    = 0;
+    static float       position      = 0;
+    static float       last_position = 0;
+    static CommandMode command_mode  = Speed;
 
     // Send heartbeat every heartbeat_interval_ms
     unsigned long        now                 = millis();
@@ -164,19 +173,26 @@ void loop()
     {
         // Heartbeat for the spark (FRC-style) and CTRE global-enable
         send_heartbeat(mcp2515, robot_state);
-        TalonSrxMotor::send_global_enable(mcp2515, true);
+        // TalonSRX and VictorSPX need a global enable
+        // TalonSrxMotor::send_global_enable(mcp2515, true);
         heartbeat_last_sent = now;
     }
 
+    // SparkMax can be sent speed only on change
     // TalonSRX needs to be constantly fed the speed
+    now                                  = millis();
     static unsigned long speed_last_sent = 0;
     if (now - speed_last_sent >= update_inteval_ms)
     {
         switch (command_mode)
         {
         case Speed:
-            spark.set_duty_cycle(speed);
-            talon.set_percent_output(speed);
+            if (speed != last_speed)
+            {
+
+                spark.set_duty_cycle(speed);
+            }
+            // talon.set_percent_output(speed);
             break;
         case Position:
             spark.set_position(position);
