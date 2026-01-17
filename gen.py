@@ -27,10 +27,16 @@ OUT_H = ROOT / "include" / "low_level" / "low_sparkmax.h"
 OUT_C = ROOT / "src" / "low_level" / "low_sparkmax.cpp"
 OUT_PARAMS_H = ROOT / "include" / "low_level" / "low_sparkmax_params.h"
 OUT_PARAMS_CPP = ROOT / "src" / "low_level" / "low_sparkmax_params.cpp"
-PARAM_MD = ROOT / "third_party" / "REV-Specs" / "parameters" / "SparkParameters-v0.1.2.md"
+PARAM_MD = (
+    ROOT / "third_party" / "REV-Specs" / "parameters" / "SparkParameters-v0.1.2.md"
+)
 
 
 def c_ident(name: str) -> str:
+    """
+    Sanitizes a string to be a valid C identifier.
+    Replaces non-alphanumeric characters with underscores and ensures it doesn't start with a digit.
+    """
     # Keep alnum and underscore; replace others with underscore; ensure not starting with digit
     s = re.sub(r"[^0-9A-Za-z_]", "_", name)
     if re.match(r"^[0-9]", s):
@@ -39,10 +45,14 @@ def c_ident(name: str) -> str:
 
 
 def is_reserved_signal(sig_name: str) -> bool:
-    return sig_name.upper().startswith("RESERVED") or sig_name.upper().endswith("_RESERVED")
+    """Checks if a signal name implies it is reserved/unused."""
+    return sig_name.upper().startswith("RESERVED") or sig_name.upper().endswith(
+        "_RESERVED"
+    )
 
 
 def int_c_type(length_bits: int, signed: bool) -> str:
+    """Returns the smallest C integer type that can hold the specified number of bits."""
     if length_bits <= 8:
         return "int8_t" if signed else "uint8_t"
     if length_bits <= 16:
@@ -53,16 +63,19 @@ def int_c_type(length_bits: int, signed: bool) -> str:
 
 
 def float_c_type(length_bits: int) -> str:
+    """Returns 'float' or 'double' based on bit length."""
     if length_bits <= 32:
         return "float"
     return "double"
 
 
 def snake_ident(name: str) -> str:
+    """Converts a name to snake_case C identifier."""
     return c_ident(name.lower())
 
 
 def send_aliases(frame_name: str) -> List[str]:
+    """Generates alias names for sending functions (e.g., 'set_foo' for 'foo_setpoint')."""
     aliases: List[str] = []
     lower = frame_name.lower()
     primary = c_ident(lower)
@@ -86,25 +99,32 @@ def sanitize_comment(text: str) -> str:
 
 
 def collect_frames_tx(spec: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Extracts non-periodic (command) frames from the spec."""
     # Frames we originate (commands)
     return spec.get("nonPeriodicFrames", {})
 
 
 def collect_frames_all(spec: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Combines periodic and non-periodic frames into one dictionary."""
     all_frames: Dict[str, Dict[str, Any]] = {}
     all_frames.update(spec.get("periodicFrames", {}) or {})
     all_frames.update(spec.get("nonPeriodicFrames", {}) or {})
     return all_frames
 
 
-def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], frames_all: Dict[str, Dict[str, Any]]) -> str:
+def render_header(
+    spec: Dict[str, Any],
+    frames_tx: Dict[str, Dict[str, Any]],
+    frames_all: Dict[str, Dict[str, Any]],
+) -> str:
+    """Generates the content for the C++ header file (low_sparkmax.h)."""
     lines: List[str] = []
     lines.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
     lines.append("#pragma once")
     lines.append("#include <stdint.h>")
     lines.append("#include <string.h>")
-    lines.append("#include \"frc_can.h\"")
-    lines.append("#include \"low_level.h\"")
+    lines.append('#include "frc_can.h"')
+    lines.append('#include "low_level.h"')
     lines.append("")
     lines.append("namespace CanControl::LowLevel::SparkMax {")
     lines.append("")
@@ -122,7 +142,9 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         arb = int(frame["arbId"])  # base arb id
         frame_name = frame.get("name", key)
         frame_desc = frame.get("description", "")
-        summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        summary = sanitize_comment(
+            f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name)
+        )
         lines.append(f"// {summary}")
         lines.append(f"#define SPARK_ARB_{name} {arb}u")
     lines.append("")
@@ -132,9 +154,13 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         name = c_ident(key.upper())
         frame_name = frame.get("name", key)
         frame_desc = frame.get("description", "")
-        summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        summary = sanitize_comment(
+            f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name)
+        )
         lines.append(f"// Match arbitration ID for frame {summary}")
-        lines.append(f"#define SPARK_MATCH_{name}(id) ((((uint32_t)(id)) & ~SPARK_DEVICE_ID_MASK) == (uint32_t)SPARK_ARB_{name})")
+        lines.append(
+            f"#define SPARK_MATCH_{name}(id) ((((uint32_t)(id)) & ~SPARK_DEVICE_ID_MASK) == (uint32_t)SPARK_ARB_{name})"
+        )
     lines.append("")
 
     # Emit per-frame structs and builders
@@ -146,7 +172,9 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
 
         frame_name = frame.get("name", key)
         frame_desc = frame.get("description", "")
-        frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        frame_summary = sanitize_comment(
+            f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name)
+        )
 
         # Struct of values (omit if no signals or RTR-only with zero length)
         # Annotate each field with the signal's name and description
@@ -169,7 +197,9 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
                 ctype = int_c_type(max(1, lbits), False)
             sig_name = sinfo.get("name", sn)
             sig_desc = sinfo.get("description", "")
-            sig_summary = sanitize_comment(f"{sig_name}: {sig_desc}" if sig_desc else str(sig_name))
+            sig_summary = sanitize_comment(
+                f"{sig_name}: {sig_desc}" if sig_desc else str(sig_name)
+            )
             value_fields.append((c_ident(sn), ctype, sig_summary))
 
         # Always emit a values struct so prototypes compile, even if empty
@@ -188,9 +218,13 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         # Decode prototype (for any frame with payload length > 0)
         if length_bytes > 0:
             lines.append(f"// Decode frame payload for {frame_summary}")
-            lines.append(f"bool spark_decode_{fname}(const uint8_t* data, uint8_t dlc, Spark_{fname}_t* out);")
+            lines.append(
+                f"bool spark_decode_{fname}(const uint8_t* data, uint8_t dlc, Spark_{fname}_t* out);"
+            )
             # Inline helper for spark_can_frame wrapper
-            lines.append(f"static inline bool spark_decode_{fname}_frame(const spark_can_frame& in, Spark_{fname}_t* out) {{ return spark_decode_{fname}(in.data, in.dlc, out); }}")
+            lines.append(
+                f"static inline bool spark_decode_{fname}_frame(const spark_can_frame& in, Spark_{fname}_t* out) {{ return spark_decode_{fname}(in.data, in.dlc, out); }}"
+            )
             lines.append("")
 
     # Emit builders only for TX frames (non-periodic commands)
@@ -198,9 +232,13 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         fname = c_ident(key.upper())
         frame_name = frame.get("name", key)
         frame_desc = frame.get("description", "")
-        frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        frame_summary = sanitize_comment(
+            f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name)
+        )
         lines.append(f"// Build frame for {frame_summary}")
-        lines.append(f"spark_can_frame spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values);")
+        lines.append(
+            f"spark_can_frame spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values);"
+        )
         lines.append("")
 
     lines.append("} // namespace CanControl::LowLevel::SparkMax")
@@ -208,11 +246,16 @@ def render_header(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
     return "\n".join(lines) + "\n"
 
 
-def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], frames_all: Dict[str, Dict[str, Any]]) -> str:
+def render_source(
+    spec: Dict[str, Any],
+    frames_tx: Dict[str, Dict[str, Any]],
+    frames_all: Dict[str, Dict[str, Any]],
+) -> str:
+    """Generates the content for the C++ source file (low_sparkmax.cpp)."""
     lines: List[str] = []
     lines.append("// AUTO-GENERATED FILE. DO NOT EDIT. See gen.py")
     lines.append("#include <string.h>")
-    lines.append("#include \"low_level/low_sparkmax.h\"")
+    lines.append('#include "low_level/low_sparkmax.h"')
     lines.append("")
     lines.append("namespace CanControl::LowLevel::SparkMax {")
     lines.append("")
@@ -284,11 +327,17 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         arb = int(frame["arbId"])  # base arb id
         frame_name = frame.get("name", key)
         frame_desc = frame.get("description", "")
-        frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        frame_summary = sanitize_comment(
+            f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name)
+        )
         lines.append(f"// Build frame payload for {frame_summary}")
-        lines.append(f"spark_can_frame spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values) {{")
+        lines.append(
+            f"spark_can_frame spark_build_{fname}(uint8_t device_id, const Spark_{fname}_t* values) {{"
+        )
         lines.append("    spark_can_frame out{};")
-        lines.append(f"    out.id = (uint32_t)({arb}u) | ((uint32_t)device_id & SPARK_DEVICE_ID_MASK);")
+        lines.append(
+            f"    out.id = (uint32_t)({arb}u) | ((uint32_t)device_id & SPARK_DEVICE_ID_MASK);"
+        )
         lines.append(f"    out.dlc = {length_bytes}u;")
         lines.append(f"    out.is_rtr = {'true' if rtr else 'false'};")
         if length_bytes > 0 and not rtr:
@@ -306,24 +355,48 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
                 # Determine casting/bit pattern
                 if stype == "float":
                     if lbits <= 32:
-                        lines.append(f"    union {{ float f; uint32_t u; }} _{vname} = {{ .f = values ? values->{vname} : 0.0f }};")
-                        lines.append(f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, (uint64_t)_{vname}.u, {'true' if big else 'false'});")
+                        lines.append(
+                            f"    union {{ float f; uint32_t u; }} _{vname} = {{ .f = values ? values->{vname} : 0.0f }};"
+                        )
+                        lines.append(
+                            f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, (uint64_t)_{vname}.u, {'true' if big else 'false'});"
+                        )
                     else:
-                        lines.append(f"    union {{ double d; uint64_t u; }} _{vname} = {{ .d = values ? (double)values->{vname} : 0.0 }};")
-                        lines.append(f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}.u, {'true' if big else 'false'});")
+                        lines.append(
+                            f"    union {{ double d; uint64_t u; }} _{vname} = {{ .d = values ? (double)values->{vname} : 0.0 }};"
+                        )
+                        lines.append(
+                            f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}.u, {'true' if big else 'false'});"
+                        )
                 elif stype == "boolean":
-                    lines.append(f"    uint64_t _{vname} = values && values->{vname} ? 1u : 0u;")
-                    lines.append(f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+                    lines.append(
+                        f"    uint64_t _{vname} = values && values->{vname} ? 1u : 0u;"
+                    )
+                    lines.append(
+                        f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});"
+                    )
                 elif stype == "int":
                     # sign-extend within bit length by masking
-                    mask = (1 << min(lbits, 63)) - 1 if lbits < 64 else 0xFFFFFFFFFFFFFFFF
-                    lines.append(f"    int64_t _{vname}_s = values ? (int64_t)values->{vname} : 0;")
+                    mask = (
+                        (1 << min(lbits, 63)) - 1 if lbits < 64 else 0xFFFFFFFFFFFFFFFF
+                    )
+                    lines.append(
+                        f"    int64_t _{vname}_s = values ? (int64_t)values->{vname} : 0;"
+                    )
                     # Mask to bit length preserving two's complement representation
-                    lines.append(f"    uint64_t _{vname} = (uint64_t)_{vname}_s & (({ '0xFFFFFFFFFFFFFFFFull' if lbits==64 else f'(1ull<<{lbits})-1ull' }));")
-                    lines.append(f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+                    lines.append(
+                        f"    uint64_t _{vname} = (uint64_t)_{vname}_s & (({ '0xFFFFFFFFFFFFFFFFull' if lbits==64 else f'(1ull<<{lbits})-1ull' }));"
+                    )
+                    lines.append(
+                        f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});"
+                    )
                 else:  # uint or unknown
-                    lines.append(f"    uint64_t _{vname} = values ? (uint64_t)values->{vname} : 0ull;")
-                    lines.append(f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});")
+                    lines.append(
+                        f"    uint64_t _{vname} = values ? (uint64_t)values->{vname} : 0ull;"
+                    )
+                    lines.append(
+                        f"    ::CanControl::LowLevel::pack_field(out.data, {bpos}u, {lbits}u, _{vname}, {'true' if big else 'false'});"
+                    )
         else:
             # no payload or RTR frame
             pass
@@ -332,8 +405,6 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
         lines.append("    return out;")
         lines.append("}")
         lines.append("")
-
-
 
     # Decode functions for all frames with payloads
     for key, frame in frames_all.items():
@@ -344,9 +415,13 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
             continue
         frame_name = frame.get("name", key)
         frame_desc = frame.get("description", "")
-        frame_summary = sanitize_comment(f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name))
+        frame_summary = sanitize_comment(
+            f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name)
+        )
         lines.append(f"// Decode frame payload for {frame_summary}")
-        lines.append(f"bool spark_decode_{fname}(const uint8_t* data, uint8_t dlc, Spark_{fname}_t* out) {{")
+        lines.append(
+            f"bool spark_decode_{fname}(const uint8_t* data, uint8_t dlc, Spark_{fname}_t* out) {{"
+        )
         lines.append("    if (!data || !out) return false;")
         lines.append(f"    if (dlc < {length_bytes}u) return false;")
         # unpack each signal
@@ -360,22 +435,38 @@ def render_source(spec: Dict[str, Any], frames_tx: Dict[str, Dict[str, Any]], fr
             vname = c_ident(sn)
             if stype == "float":
                 if lbits <= 32:
-                    lines.append(f"    uint32_t _{vname}_u = (uint32_t)::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
-                    lines.append(f"    union {{ uint32_t u; float f; }} _{vname} = {{ .u = _{vname}_u }};")
+                    lines.append(
+                        f"    uint32_t _{vname}_u = (uint32_t)::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});"
+                    )
+                    lines.append(
+                        f"    union {{ uint32_t u; float f; }} _{vname} = {{ .u = _{vname}_u }};"
+                    )
                     lines.append(f"    out->{vname} = _{vname}.f;")
                 else:
-                    lines.append(f"    uint64_t _{vname}_u = ::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
-                    lines.append(f"    union {{ uint64_t u; double d; }} _{vname} = {{ .u = _{vname}_u }};")
+                    lines.append(
+                        f"    uint64_t _{vname}_u = ::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});"
+                    )
+                    lines.append(
+                        f"    union {{ uint64_t u; double d; }} _{vname} = {{ .u = _{vname}_u }};"
+                    )
                     lines.append(f"    out->{vname} = _{vname}.d;")
             elif stype == "boolean":
-                lines.append(f"    out->{vname} = ::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'}) ? true : false;")
+                lines.append(
+                    f"    out->{vname} = ::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'}) ? true : false;"
+                )
             elif stype == "int":
-                lines.append(f"    uint64_t _{vname}_u = ::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
+                lines.append(
+                    f"    uint64_t _{vname}_u = ::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});"
+                )
                 # sign-extend
-                lines.append(f"    if ({lbits}u < 64u && (_{vname}_u & (1ull << ({lbits}u - 1u)))) {{ _{vname}_u |= ~((1ull<<{lbits})-1ull); }}")
+                lines.append(
+                    f"    if ({lbits}u < 64u && (_{vname}_u & (1ull << ({lbits}u - 1u)))) {{ _{vname}_u |= ~((1ull<<{lbits})-1ull); }}"
+                )
                 lines.append(f"    out->{vname} = (int64_t)_{vname}_u;")
             else:  # uint or unknown
-                lines.append(f"    out->{vname} = ::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});")
+                lines.append(
+                    f"    out->{vname} = ::CanControl::LowLevel::unpack_field(data, {bpos}u, {lbits}u, {'true' if big else 'false'});"
+                )
         lines.append("    return true;")
         lines.append("}")
         lines.append("")
@@ -440,14 +531,16 @@ def render_params(md_path: Path) -> Tuple[str, str]:
                 j += 1
                 continue
             name, pid, ptype, mode, default, desc = cols[:6]
-            params.append({
-                "name": name,
-                "id": pid,
-                "type": ptype,
-                "mode": mode,
-                "default": default,
-                "desc": desc,
-            })
+            params.append(
+                {
+                    "name": name,
+                    "id": pid,
+                    "type": ptype,
+                    "mode": mode,
+                    "default": default,
+                    "desc": desc,
+                }
+            )
             j += 1
 
     # Render header
@@ -476,15 +569,25 @@ def render_params(md_path: Path) -> Tuple[str, str]:
 
     # Generic write helper
     h.append("// Generic parameter write helper")
-    h.append("int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value);")
+    h.append(
+        "int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value);"
+    )
     h.append("")
 
     # Generic set_parameter overloads
     h.append("// Generic set_parameter overloads")
-    h.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value);")
-    h.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value);")
-    h.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value);")
-    h.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value);")
+    h.append(
+        "int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value);"
+    )
+    h.append(
+        "int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value);"
+    )
+    h.append(
+        "int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value);"
+    )
+    h.append(
+        "int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value);"
+    )
     h.append("")
 
     # Defines for each parameter
@@ -523,32 +626,48 @@ def render_params(md_path: Path) -> Tuple[str, str]:
     s.append("namespace CanControl::LowLevel::SparkMax {")
     s.append("")
 
-    s.append("int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value) {")
+    s.append(
+        "int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value) {"
+    )
     s.append("    Spark_PARAMETER_WRITE_t pw{};")
     s.append("    pw.PARAMETER_ID = parameter_id;")
     s.append("    pw.VALUE = value;")
     s.append("    struct can_frame out{};")
-    s.append("    ::CanControl::LowLevel::basic_to_can_frame(spark_build_PARAMETER_WRITE(device_id, &pw), &out);")
+    s.append(
+        "    ::CanControl::LowLevel::basic_to_can_frame(spark_build_PARAMETER_WRITE(device_id, &pw), &out);"
+    )
     s.append("    return (int)controller.sendMessage(&out);")
     s.append("}")
     s.append("")
 
     # Implement generic overloads
-    s.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value) {")
+    s.append(
+        "int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value) {"
+    )
     s.append("    union { float f; uint32_t u; } conv = { .f = value };")
     s.append("    return write_parameter_raw(controller, device_id, param_id, conv.u);")
     s.append("}")
     s.append("")
-    s.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value) {")
+    s.append(
+        "int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value) {"
+    )
     s.append("    return write_parameter_raw(controller, device_id, param_id, value);")
     s.append("}")
     s.append("")
-    s.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value) {")
-    s.append("    return write_parameter_raw(controller, device_id, param_id, (uint32_t)value);")
+    s.append(
+        "int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value) {"
+    )
+    s.append(
+        "    return write_parameter_raw(controller, device_id, param_id, (uint32_t)value);"
+    )
     s.append("}")
     s.append("")
-    s.append("int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value) {")
-    s.append("    return write_parameter_raw(controller, device_id, param_id, value ? 1u : 0u);")
+    s.append(
+        "int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value) {"
+    )
+    s.append(
+        "    return write_parameter_raw(controller, device_id, param_id, value ? 1u : 0u);"
+    )
     s.append("}")
     s.append("")
 
@@ -582,7 +701,9 @@ def main() -> None:
         OUT_PARAMS_CPP.write_text(params_source)
         print(f"Wrote parameter files {OUT_PARAMS_H} and {OUT_PARAMS_CPP}")
     else:
-        print(f"Parameter spec {PARAM_MD} not found; skipping parameter code generation")
+        print(
+            f"Parameter spec {PARAM_MD} not found; skipping parameter code generation"
+        )
 
 
 if __name__ == "__main__":

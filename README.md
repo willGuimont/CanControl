@@ -1,110 +1,61 @@
 # CanControl
 
-Control CAN-based motor controllers from Arduino boards using a cheap MCP2515
-CAN shield. CanControl currently supports:
+**CanControl** is a library for controlling CAN-based motor controllers (REV Spark MAX, CTRE Talon SRX, Victor SPX) from **Arduino** boards using an **MCP2515 CAN Shield**.
+CanControl currently supports:
 
-- [REV Robotics Spark MAX](https://www.revrobotics.com/rev-11-2158/) (FRC brushless/brushed motor controller)
-- [CTRE Talon SRX](https://store.ctr-electronics.com/products/talon-srx) (PercentOutput)
-- [CTRE Victor SPX](https://store.ctr-electronics.com/products/victor-spx) (PercentOutput)
+- [REV Robotics Spark MAX](https://www.revrobotics.com/rev-11-2158/) (full support)
+- [CTRE Talon SRX](https://store.ctr-electronics.com/products/talon-srx) (PercentOutput only)
+- [CTRE Victor SPX](https://store.ctr-electronics.com/products/victor-spx) (PercentOutput only)
 
-All communication goes through an MCP2515 controller on the Arduino SPI bus,
-so you do not need a native CAN-capable MCU.
 
----
+It handles the necessary FRC-style "Heartbeat" frames and providing high-level wrappers, so you can control FRC motor controllers without a roboRIO.
 
 ## Features
-
 - High-level C++ wrappers:
   - `CanControl::SparkMax`
   - `CanControl::TalonSrxMotor`
   - `CanControl::VictorSpxMotor`
-- Auto-generated low-level Spark MAX CAN protocol based on [REV's published - JSON spec](https://github.com/REVrobotics/REV-Specs) (see `gen.py` and `third_party/REV-Specs/`).
-- Simple FRC-style heartbeat frame generator.
-- CTRE interfacing based on [the only available public documentation of their CAN protocol](https://github.com/CrossTheRoadElec/Phoenix5-Examples/blob/master/HERO%20C%23/HERO%20Low%20Level%20Percent%20Output%20Example/Program.cs)
-- Works on Arduino Mega 2560 and Uno (via MCP2515 breakout).
+- [Universal heartbeat](https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat) frames to keep FRC motor controllers enabled.
+- Full features from the SparkMax
+  - Low-level Spark MAX CAN protocol is auto-generated from REV's JSON spec (see `gen.py` and `third_party/REV-Specs/`).
+- CTRE (Talon SRX / Victor SPX) support — percent/duty-cycle only
+  - CTRE integration is implemented from [the only available public example for percent output](https://github.com/CrossTheRoadElec/Phoenix5-Examples/blob/master/HERO%20C%23/HERO%20Low%20Level%20Percent%20Output%20Example/Program.cs); no further official CAN protocol docs were provided by CTRE.
 
 ---
 
-## Hardware & Requirements
+## Hardware
+1.  **Arduino Board**: tested with **Arduino Uno** and **Arduino Mega 2560**.
+2.  **MCP2515 CAN Module**: Standard SPI-based CAN controller board (often labeled "TJA1050 + MCP2515").
+3.  **CAN Motor Controller**: REV Spark MAX, CTRE Talon SRX, or Victor SPX.
+4.  **120Ω Termination Resistor**: **CRITICAL**. You MUST have a 120Ω resistor connected between CAN-H and CAN-L at the ends of your bus to prevent signal reflection.
 
-- Arduino compatible board
-  - Tested with: **Arduino Mega 2560** (`env:mega`)
-  - Also configured for: **Arduino Uno** (`env:uno`)
-- MCP2515 CAN controller breakout (e.g. "TJA1050 + MCP2515" boards)
-  - SPI connected to the Arduino (SCK/MOSI/MISO)
-  - `CS` pin configurable via `MCP2515_CS_PIN` (defaults to 53 on Mega, 10 on Uno)
-- CAN motor controllers on the same CAN bus:
-  - Spark MAX (REV Robotics)
-  - Talon SRX / Victor SPX (Cross The Road Electronics) (**Needs to be FRC unlocked, see instructions below**)
+###  Wiring Instructions
 
-Wiring is the usual MCP2515+CAN transceiver wiring (CANH/CANL twisted pair,
-proper termination at the ends of the bus).
+#### MCP2515 Connections
+
+The MCP2515 communicates via **SPI**. Connect it to your Arduino as follows:
+
+| Pin Name | Arduino Uno Pin | Arduino Mega Pin | Description |
+| :--- | :--- | :--- | :--- |
+| **VCC** | 5V | 5V | Power |
+| **GND** | GND | GND | Ground |
+| **CS** | **10** | **53** | Chip Select (Configurable in `main.cpp`) |
+| **SO / MISO** | 12 | 50 | Master In Slave Out |
+| **SI / MOSI** | 11 | 51 | Master Out Slave In |
+| **SCK** | 13 | 52 | SPI Clock |
+| **INT** | 2 (Optional) | 2 (Optional) | Interrupt (not strictly required for basic TX) |
+
+#### CAN Bus Wiring
+
+1.  **CAN High (H)**: Connect MCP2515 `H` to Motor Controller `Yellow` wire.
+2.  **CAN Low (L)**: Connect MCP2515 `L` to Motor Controller `Green` wire.
+3.  **Termination**: Ensure a **120Ω resistor** connects `H` and `L` at the furthers point of the bus (often the MCP2515 itself has a jumper for this, check your module). In any case, you must have a resistor on both ends of the bus.
+
+> **Note**: Spark MAX controllers do **not** have built-in termination. You must add the resistor yourself if it's the last device in the chain.
 
 ---
 
-## Getting Started (PlatformIO)
-
-This repo is a PlatformIO project. You can use it directly, or add it as a
-dependency to another PlatformIO project.
-
-### Cloning and building this repo
-
-```bash
-git clone https://github.com/willGuimont/CanControl.git
-cd CanControl
-git submodule update --init --recursive
-
-# Build for Arduino Mega 2560
-pio run -e mega
-
-# (Optional) Upload depending on your upload_port
-pio run -e mega -t upload
-```
-
-The main example sketch is in `src/main.cpp`.
-
-## Examples
-
-Quick steps to run the example sketch:
-
-- Build & upload (PlatformIO):
-  - `pio run -e mega`
-  - `pio run -e mega -t upload`
-- Open the serial monitor at 115200:
-  - `pio device monitor -e mega -b 115200`
-
-What the example does:
-
-- Configures the `MCP2515` CAN controller and sets the bitrate.
-- Creates a `SparkMax` and `TalonSrxMotor` instance bound to the `MCP2515`.
-- Sends periodic FRC-style heartbeat frames and the CTRE global-enable frame so controllers remain enabled.
-- Resets Spark MAX user parameters once on startup.
-- Accepts simple serial commands to control the motor:
-  - `s<float>` — set speed percent (e.g. `s0.5` = 50%)
-  - `p<float>` — set position (Spark MAX)
-  - `h` — print help
-
-Heartbeat and CTRE enable API examples:
-
-```cpp
-// send a default zero heartbeat (FRC style)
-CanControl::send_heartbeat(mcp2515, CanControl::heartbeat::RobotState{});
-
-// send CTRE global enable (Talon/Victor)
-CanControl::TalonSrxMotor::send_global_enable(mcp2515, true);
-```
-
-Use the serial commands to drive the motor at low speed first and verify wiring.
-
-## Troubleshooting
-
-- No motor response: verify `MCP2515_CS_PIN` matches wiring and the MCP2515 is in normal mode.
-- Bitrate mismatch: ensure `setBitrate(...)` is set to `CAN_1000KBPS` for FRC controllers.
-- CAN termination: ensure 120Ω termination at both ends of the bus.
-- CTRE devices not responding: verify they are FRC-unlocked (see CTRE section below).
-- Use the serial monitor to inspect startup messages printed by the example (MCP2515 reset/status, PID set results).
-
-Safety: test at low duty (e.g. `s0.1`) with motors disconnected from mechanisms or props until behavior is verified.
+## Installation & Usage
 
 ### Using as a library in your own PIO project
 
@@ -120,25 +71,38 @@ lib_deps =
     https://github.com/willGuimont/CanControl.git
 ```
 
-Then in your code:
+### Using with Arduino IDE
 
-```cpp
-#include "sparkmax.h"
+Coming soon...
 
-static MCP2515 mcp2515(53);          // CS pin
-static constexpr uint8_t kMotorId = 11;
-static CanControl::SparkMax motor(mcp2515, kMotorId);
-
-mcp2515.reset();
-mcp2515.setBitrate(CAN_1000KBPS, MCP_8MHZ);
-mcp2515.setNormalMode();
-
-// Optional: reset user-configurable parameters on the Spark MAX
-motor.reset_safe_parameters();
-
-// Run the motor at 25% duty cycle
-motor.set_duty_cycle(0.25f);
+### Cloning and Building (Development)
+```bash
+git clone https://github.com/willGuimont/CanControl.git
+cd CanControl
+git submodule update --init --recursive
 ```
+
+### Build and Upload (PlatformIO)
+Open the project in VS Code with PlatformIO.
+
+**For Arduino Uno:**
+```bash
+pio run -e uno -t upload
+```
+
+**For Arduino Mega:**
+```bash
+pio run -e mega -t upload
+```
+
+### Usage
+The example sketch (`examples/main.cpp`) immediately starts a "Heartbeat" to keep motors enabled. You can control a motor using the Serial Monitor (Baud Rate: **115200**).
+
+**Serial Commands:**
+*   `s0.5`: Set Speed to 50%
+*   `s-0.5`: Set Speed to -50%
+*   `s0`: Stop Motor
+*   `h`: Help menu
 
 ---
 
@@ -151,39 +115,12 @@ device was ever connected to an FRC roboRIO.
 To unlock the device, you need to disconnect it from the roboRIO and power it while
 holding the reset button for about 5 seconds until the LED blinks green.
 
-For CTRE devices there are two layers:
-
-- Low-level helpers in `include/low_level/low_ctrelectronics.h`
-- High-level wrappers:
-  - `CanControl::TalonSrxMotor` in `include/talonsrx.h`
-  - `CanControl::VictorSpxMotor` in `include/victorspx.h`
-
-Example:
-
-```cpp
-#include "talonsrx.h"
-
-MCP2515 mcp2515(53);
-CanControl::TalonSrxMotor talon(mcp2515, 3);   // CAN ID 3
-
-// MCP2515 init...
-
-// Send CTRE "global enable" (non-FRC frame)
-CanControl::TalonSrxMotor::send_global_enable(mcp2515, true);
-
-// 50% PercentOutput
-talon.set_percent_output(0.5f);
-```
-
-`VictorSpxMotor` works the same way but internally calls a different builder
-for the Victor SPX arbitration ID.
-
 ---
 
 ## Generated Spark MAX Low-Level API
 
 The low-level Spark MAX protocol bindings are generated from
-`doc/spark-frames-2.0.0-dev.11.json` (available from [REVrobotics/REV-Specs](https://github.com/REVrobotics/REV-Specs)) by `gen.py` and live in:
+`doc/spark-frames-2.1.0.json` (available from [REVrobotics/REV-Specs](https://github.com/REVrobotics/REV-Specs)) by `gen.py` and live in:
 
 - `include/low_level/low_sparkmax.h`
 - `src/low_level/low_sparkmax.cpp`
@@ -191,14 +128,23 @@ The low-level Spark MAX protocol bindings are generated from
 These files are **auto-generated** (see the header comment) and should not be
 edited by hand. Instead, update the JSON spec or generator and re-run `gen.py`.
 
-The high-level `SparkMax` class in `include/sparkmax.h` wraps the generated
-`SparkCanDevice` and provides friendly methods:
+The high-level `SparkMax` class in `include/sparkmax.h` wraps these generated structures to provide a user-friendly C++ API.
 
-- `set_duty_cycle(float duty)`
-- `set_position(float position)`
-- `set_velocity(float velocity)`
-- `reset_safe_parameters()`
-- `stop()`
+---
+
+## Analysis Tools
+
+Located in the `tools/` directory (install requirements with `pip install pyserial`):
+
+*   **`can_monitor.py`**: Live monitor that talks to the Arduino sketch to print/log CAN traffic.
+    ```bash
+    python tools/can_monitor.py --port COM3 --output log.csv
+    ```
+
+*   **`compare_logs.py`**: Compare two CSV logs to find timing differences or missing messages.
+    ```bash
+    python tools/compare_logs.py good_log.csv bad_log.csv
+    ```
 
 ---
 
@@ -223,6 +169,10 @@ The native tests live under `test/test_native`, and embedded tests under
 
 ---
 
-## License
+## Troubleshooting
 
-MIT. See the `LICENSE` file for details.
+*   **"Sticky Fault for CAN Bus Error"**: This usually means **missing termination**. Add a 120Ω resistor between Green/Yellow wires.
+*   **Motor LEDs Flashing Orange/Green**: The motor is seeing *some* valid frames but timing out frequently. Check wiring and termination or heartbeat frequency.
+*   **CTRE Motors**: Must be **Factory Defaulted** or not "FRC Locked". If they were used on a roboRIO, hold the B/C button on boot to factory reset.
+
+---

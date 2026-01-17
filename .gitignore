@@ -7,3 +7,4 @@
 /doc/*.xlsx
 .venv/
 .idea/
+*.csv

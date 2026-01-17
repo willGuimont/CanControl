@@ -17,16 +17,27 @@
 
 namespace CanControl::LowLevel
 {
-    // Generic 29-bit extended CAN frame used by higher-level device-specific
-    // code (Spark MAX, other motor controllers, etc.).
+    /**
+     * @brief Generic 29-bit extended CAN frame used by higher-level device-specific code.
+     * 
+     * This intermediate structure allows for easier manipulation of CAN data 
+     * before packing it into the hardware-specific `can_frame`.
+     */
     struct basic_can_frame
     {
-        uint32_t id;  // 29-bit extended ID (no flags)
-        uint8_t  dlc; // data length (0-8)
-        uint8_t  data[8];
-        bool     is_rtr; // remote transmission request flag
+        uint32_t id;  /**< 29-bit extended ID (no flags) */
+        uint8_t  dlc; /**< Data length code (0-8) */
+        uint8_t  data[8]; /**< Data payload */
+        bool     is_rtr; /**< Remote transmission request flag */
     };
 
+    /**
+     * @brief Reads a single bit from a byte buffer.
+     * 
+     * @param buf The data buffer.
+     * @param bit_index The index of the bit to read (0-indexed).
+     * @return uint8_t The value of the bit (0 or 1).
+     */
     inline uint8_t get_bit(const uint8_t* buf, uint32_t bit_index)
     {
         uint32_t byte_index = bit_index >> 3;
@@ -34,6 +45,15 @@ namespace CanControl::LowLevel
         return (uint8_t)((buf[byte_index] >> bit_offset) & 1u);
     }
 
+    /**
+     * @brief Unpacks a multi-bit field from a byte buffer.
+     * 
+     * @param buf The data buffer to read from.
+     * @param bit_pos The starting bit position.
+     * @param bit_len The length of the field in bits.
+     * @param big_endian True if the data is stored in big-endian format.
+     * @return uint64_t The unpacked value.
+     */
     inline uint64_t unpack_field(const uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, bool big_endian)
     {
         if (big_endian && (bit_pos % 8u == 0u) && (bit_len % 8u == 0u))
@@ -57,6 +77,13 @@ namespace CanControl::LowLevel
         return val;
     }
 
+    /**
+     * @brief Sets or clears a single bit in a byte buffer.
+     * 
+     * @param buf The data buffer to modify.
+     * @param bit_index The index of the bit to set.
+     * @param bit The value to write (non-zero for 1, 0 for 0).
+     */
     inline void set_bit(uint8_t* buf, uint32_t bit_index, uint8_t bit)
     {
         uint32_t byte_index = bit_index >> 3;
@@ -67,6 +94,15 @@ namespace CanControl::LowLevel
             buf[byte_index] &= (uint8_t)~(1u << bit_offset);
     }
 
+    /**
+     * @brief Packs a multi-bit field into a byte buffer.
+     * 
+     * @param buf The data buffer to write to.
+     * @param bit_pos The starting bit position.
+     * @param bit_len The length of the field in bits.
+     * @param raw The value to pack.
+     * @param big_endian True if the data should be stored in big-endian format.
+     */
     inline void pack_field(uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, uint64_t raw, bool big_endian)
     {
         if (big_endian && (bit_pos % 8u == 0u) && (bit_len % 8u == 0u))
@@ -88,8 +124,14 @@ namespace CanControl::LowLevel
         }
     }
 
-    // Convert our basic_can_frame into a mcp2515 can_frame using the
-    // FRC/WPILib-style 29-bit arbitration ID layout defined in frc_can.h.
+    /**
+     * @brief Converts a user-friendly `basic_can_frame` to the library-specific `can_frame`.
+     * 
+     * Adapts the 29-bit ID to the format expected by the MCP2515 library (setting EFF flags).
+     * 
+     * @param in The input basic frame.
+     * @param out Pointer to the output mcp2515 frame.
+     */
     inline void basic_to_can_frame(const basic_can_frame& in, struct can_frame* out)
     {
         out->can_id = (uint32_t)(in.id & CanControl::frc_can_id::MASK_frc_id) | EFF_FLAG;

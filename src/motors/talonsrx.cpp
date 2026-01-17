@@ -5,6 +5,12 @@ namespace CanControl
     using namespace LowLevel;
     using namespace LowLevel::TalonSrx;
 
+    /**
+     * @brief Construct a new Talon Srx Motor object
+     * 
+     * @param controller Reference to the MCP2515 controller
+     * @param device_id CAN ID of the motor controller (0-63)
+     */
     TalonSrxMotor::TalonSrxMotor(MCP2515& controller, uint8_t device_id)
         : controller_(&controller), device_id_(device_id)
     {
@@ -30,6 +36,13 @@ namespace CanControl
         return device_id_;
     }
 
+    /**
+     * @brief Sets the percent output of the motor.
+     * 
+     * @param percent_output The duty cycle to set, from -1.0 to 1.0. 
+     *                       Values outside this range will be clamped by the controller (or should be clamped here).
+     * @return MCP2515::ERROR Status of the CAN transmission.
+     */
     MCP2515::ERROR TalonSrxMotor::set_percent_output(float percent_output)
     {
         if (controller_ == nullptr)
@@ -45,6 +58,13 @@ namespace CanControl
         return controller_->sendMessage(&hw);
     }
 
+    /**
+     * @brief Sends the Global Enable frame required for CTRE motors (Talon SRX / Victor SPX) to operate.
+     * 
+     * @param controller Reference to the MCP2515 controller.
+     * @param enable True to enable the motors, false to disable.
+     * @return MCP2515::ERROR Status of the CAN transmission.
+     */
     MCP2515::ERROR TalonSrxMotor::send_global_enable(MCP2515& controller, bool enable)
     {
         talon_can_frame low = build_global_enable(enable);

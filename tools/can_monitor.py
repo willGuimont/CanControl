@@ -5,12 +5,31 @@ import csv
 import sys
 import re
 
+"""
+can_monitor.py
+
+A simple tool to monitor CAN bus traffic via a serial connection to an Arduino CAN sniffer (see examples/can_sniffer).
+It parses the serial output, prints formatted messages to the console, and optionally logs
+traffic to a CSV file.
+
+Usage:
+    python tools/can_monitor.py --port COM3 --baud 115200 --output log.csv
+"""
+
 
 def parse_line(line):
     """
-    Parses a line from the CAN sniffer.
-    Expected format: "CANID : <id> Device ID : <dev_id> <byte0_bin> <byte1_bin> ..."
-    Example: "CANID : 218159104 Device ID : 0 00000000 00000000 ..."
+    Parses a single line of output from the Arduino CAN sniffer.
+
+    Expected format:
+        "CANID : <id> Device ID : <dev_id> <byte0_bin> <byte1_bin> ..."
+
+    Args:
+        line (str): The raw serial line string.
+
+    Returns:
+        dict: A dictionary containing 'timestamp', 'can_id', 'data_len', 'data' (list of ints),
+              and 'raw_line', or None if parsing failed.
     """
     try:
         line = line.strip()
@@ -54,6 +73,10 @@ def parse_line(line):
 
 
 def main():
+    """
+    Main entry point for the CAN monitor tool.
+    Handles command line arguments, serial connection, and logging loop.
+    """
     parser = argparse.ArgumentParser(description="Monitor CAN bus via Arduino Sniffer")
     parser.add_argument("--port", default="COM3", help="Serial port (default: COM3)")
     parser.add_argument(
