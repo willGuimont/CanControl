@@ -43,6 +43,7 @@ namespace CanControl
 
         // Motor configuration parameters
         MCP2515::ERROR set_motor_type(LowLevel::SparkMax::MotorType t);
+        MCP2515::ERROR set_idle_mode(LowLevel::SparkMax::IdleMode m);
         MCP2515::ERROR set_closed_loop_control_sensor(LowLevel::SparkMax::Sensor s);
         MCP2515::ERROR set_inverted(bool inverted);
 

@@ -210,6 +210,12 @@ namespace CanControl
         return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_MOTOR_TYPE_UINT, (uint32_t)t);
     }
 
+    MCP2515::ERROR SparkMax::set_idle_mode(LowLevel::SparkMax::IdleMode m)
+    {
+        using namespace LowLevel::SparkMax;
+        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_IDLE_MODE_UINT, (uint32_t)m);
+    }
+
     /**
      * @brief Configures the primary sensor for closed-loop control.
      *
