@@ -21,6 +21,8 @@ namespace CanControl
         TalonSrx(MCP2515& controller, uint8_t device_id);
         virtual ~TalonSrx() = default;
 
+        uint8_t get_device_id() const;
+
         /**
          * @param percent_output Percentage output [-1, 1].
          * @return MCP2515::ERROR Status of the transmission.

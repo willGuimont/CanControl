@@ -17,6 +17,8 @@ namespace CanControl
         SparkMax(MCP2515& controller, uint8_t device_id);
         virtual ~SparkMax() = default;
 
+        uint8_t get_device_id() const;
+
         /**
          * @param duty Duty cycle value.
          * @param pid_slot PID slot index (0-3).

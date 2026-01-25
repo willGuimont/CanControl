@@ -5,9 +5,11 @@ namespace CanControl
     using namespace LowLevel;
     using namespace LowLevel::TalonSrx;
 
-    VictorSpx::VictorSpx(MCP2515& controller, uint8_t device_id)
-        : controller_(&controller), device_id_(device_id)
+    VictorSpx::VictorSpx(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
+
+    uint8_t VictorSpx::get_device_id() const
     {
+        return device_id_;
     }
 
     MCP2515::ERROR VictorSpx::set_percent_output(float percent_output)

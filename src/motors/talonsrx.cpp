@@ -2,14 +2,17 @@
 
 namespace CanControl
 {
-    TalonSrx::TalonSrx(MCP2515& controller, uint8_t device_id)
-        : controller_(&controller), device_id_(device_id)
+    TalonSrx::TalonSrx(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
+
+    uint8_t TalonSrx::get_device_id() const
     {
+        return device_id_;
     }
 
     MCP2515::ERROR TalonSrx::set_percent_output(float percent_output)
     {
-        LowLevel::TalonSrx::talon_can_frame low = LowLevel::TalonSrx::talon_build_percent_output(device_id_, percent_output);
+        LowLevel::TalonSrx::talon_can_frame low =
+            LowLevel::TalonSrx::talon_build_percent_output(device_id_, percent_output);
 
         can_frame hw{};
         LowLevel::basic_to_can_frame(low, &hw);

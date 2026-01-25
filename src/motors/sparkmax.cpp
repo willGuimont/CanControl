@@ -9,9 +9,11 @@ namespace CanControl
     using LowLevel::SparkMax::Spark_RESET_SAFE_PARAMETERS_t;
     using LowLevel::SparkMax::Spark_VELOCITY_SETPOINT_t;
 
-    SparkMax::SparkMax(MCP2515& controller, uint8_t device_id)
-        : controller_(&controller), device_id_(device_id)
+    SparkMax::SparkMax(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
+
+    uint8_t SparkMax::get_device_id() const
     {
+        return device_id_;
     }
 
     MCP2515::ERROR SparkMax::dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame, bool periodic)
