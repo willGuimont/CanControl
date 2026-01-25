@@ -7,78 +7,155 @@
 
 namespace CanControl
 {
-    // High-level wrapper around the low-level SparkMax CAN API.
-    // The motor also needs to receive a heartbeat signal (see main.cpp for an example)
+    /**
+     * @brief High-level wrapper around the low-level SparkMax CAN API.
+     * The motor also needs to receive a heartbeat signal (see main.cpp for an example)
+     */
     class SparkMax
     {
       public:
-        // Construct a motor wrapper bound to a specific MCP2515 controller
-        // and Spark device ID.
         SparkMax(MCP2515& controller, uint8_t device_id);
+        virtual ~SparkMax() = default;
 
-        // Change the bound controller or device id after construction.
-        void set_controller(MCP2515& controller);
-        void set_device_id(uint8_t device_id);
+        uint8_t get_device_id() const;
 
-        MCP2515* controller() const;
-        uint8_t  device_id() const;
-
-        // Set duty-cycle output in the range [-1, 1].
+        /**
+         * @param duty Duty cycle value.
+         * @param pid_slot PID slot index (0-3).
+         * @param arbitrary_feedforward Arbitrary feedforward value.
+         * @param arbitrary_feedforward_units Units for arbitrary feedforward.
+         * @return MCP2515::ERROR Status of the transmission.
+         */
         MCP2515::ERROR set_duty_cycle(float duty, uint8_t pid_slot = 0, int16_t arbitrary_feedforward = 0,
                                       uint8_t arbitrary_feedforward_units = 1u);
 
-        // Set position setpoint (units are whatever the Spark is configured for).
+        /**
+         * @param position Target position.
+         * @param pid_slot PID slot index (0-3).
+         * @param arbitrary_feedforward Arbitrary feedforward value.
+         * @param arbitrary_feedforward_units Units for arbitrary feedforward.
+         * @return MCP2515::ERROR Status of the transmission.
+         */
         MCP2515::ERROR set_position(float position, uint8_t pid_slot = 0, int16_t arbitrary_feedforward = 0,
                                     uint8_t arbitrary_feedforward_units = 0u);
 
-        // Set velocity setpoint (units are whatever the Spark is configured for).
+        /**
+         * @param velocity Target velocity.
+         * @param pid_slot PID slot index (0-3).
+         * @param arbitrary_feedforward Arbitrary feedforward value.
+         * @param arbitrary_feedforward_units Units for arbitrary feedforward.
+         * @return MCP2515::ERROR Status of the transmission.
+         */
         MCP2515::ERROR set_velocity(float velocity, uint8_t pid_slot = 0, int16_t arbitrary_feedforward = 0,
                                     uint8_t arbitrary_feedforward_units = 0u);
 
-        // Set individual PID coefficients for specified PID slot (slot 0..3)
+        /**
+         * @param slot Slot index (0-3).
+         */
         MCP2515::ERROR set_pid_p(float p, uint8_t slot = 0);
+
+        /**
+         * @param slot Slot index (0-3).
+         */
         MCP2515::ERROR set_pid_i(float i, uint8_t slot = 0);
+
+        /**
+         * @param slot Slot index (0-3).
+         */
         MCP2515::ERROR set_pid_d(float d, uint8_t slot = 0);
+
+        /**
+         * @param slot Slot index (0-3).
+         */
         MCP2515::ERROR set_pid_f(float f, uint8_t slot = 0);
 
         // Motor configuration parameters
+
+        /**
+         * @param t Motor type (Brushed/Brushless).
+         */
         MCP2515::ERROR set_motor_type(LowLevel::SparkMax::MotorType t);
+
+        /**
+         * @param m Idle mode (Coast/Brake).
+         */
         MCP2515::ERROR set_idle_mode(LowLevel::SparkMax::IdleMode m);
+
         MCP2515::ERROR set_closed_loop_control_sensor(LowLevel::SparkMax::Sensor s);
+
+        /**
+         * @param inverted True to invert.
+         */
         MCP2515::ERROR set_inverted(bool inverted);
 
         // PID helper parameters (per-slot)
+
+        /**
+         * @param slot Slot index (0-3).
+         */
         MCP2515::ERROR set_izone(uint8_t slot, float izone);
+
+        /**
+         * @param slot Slot index (0-3).
+         */
         MCP2515::ERROR set_d_filter(uint8_t slot, float dfilter);
+
+        /**
+         * @param slot Slot index (0-3).
+         * @param v Minimum output [-1, 1].
+         */
         MCP2515::ERROR set_output_min(uint8_t slot, float v);
+
+        /**
+         * @param slot Slot index (0-3).
+         * @param v Maximum output [-1, 1].
+         */
         MCP2515::ERROR set_output_max(uint8_t slot, float v);
 
         // PID wrap settings
+
         MCP2515::ERROR set_position_pid_wrap_enable(bool en);
         MCP2515::ERROR set_position_pid_min_input(float v);
         MCP2515::ERROR set_position_pid_max_input(float v);
 
         // Limit switches
+
+        /**
+         * @param polarity True for Normally Open (typically).
+         */
         MCP2515::ERROR set_limit_switch_fwd_polarity(bool polarity);
+
+        /**
+         * @param polarity True for Normally Open (typically).
+         */
         MCP2515::ERROR set_limit_switch_rev_polarity(bool polarity);
+
         MCP2515::ERROR enable_hard_limit_fwd(bool en);
         MCP2515::ERROR enable_hard_limit_rev(bool en);
         MCP2515::ERROR enable_soft_limit_fwd(bool en);
         MCP2515::ERROR enable_soft_limit_rev(bool en);
 
         // Encoder settings
+
         MCP2515::ERROR set_encoder_counts_per_rev(uint32_t counts);
         MCP2515::ERROR set_encoder_inverted(bool inv);
 
-        // Convenience helper to stop the motor (zero duty cycle).
+        /**
+         * @brief Convenience helper to stop the motor (zero duty cycle).
+         * @return MCP2515::ERROR Status of the transmission.
+         */
         MCP2515::ERROR stop();
 
-        // Reset most writable parameters to their default values, preserving
-        // CAN ID, motor type, idle mode, PWM deadband, and duty-cycle offset.
+        /**
+         * @brief Reset most writable parameters to their default values, preserving
+         * CAN ID, motor type, idle mode, PWM deadband, and duty-cycle offset.
+         * @return MCP2515::ERROR Status of the transmission.
+         */
         MCP2515::ERROR reset_safe_parameters();
 
-      private:
-        MCP2515::ERROR dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame) const;
+      protected:
+      protected:
+        virtual MCP2515::ERROR dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame, bool periodic = false);
 
         MCP2515* controller_;
         uint8_t  device_id_;

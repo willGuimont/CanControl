@@ -11,22 +11,32 @@ namespace CanControl
     // See
     // https://github.com/CrossTheRoadElec/Phoenix5-Examples/blob/master/HERO%20C%23/HERO%20Low%20Level%20Percent%20Output%20Example/Program.cs
     // The motor also needs to periodically receive the global frame (send once every 20ms with send_global_enable)
-    class TalonSrxMotor
+    /**
+     * @brief High-level wrapper around the low-level CTRE API.
+     * The motor also needs to periodically receive the global frame (send once every 20ms with send_global_enable)
+     */
+    class TalonSrx
     {
       public:
-        TalonSrxMotor(MCP2515& controller, uint8_t device_id);
+        TalonSrx(MCP2515& controller, uint8_t device_id);
+        virtual ~TalonSrx() = default;
 
-        void     set_controller(MCP2515& controller);
-        void     set_device_id(uint8_t device_id);
-        MCP2515* controller() const;
-        uint8_t  device_id() const;
+        uint8_t get_device_id() const;
 
-        // Set the Talon SRX/Victor SPX PercentOutput demand in the
-        // range [-1, 1]. Values outside this range are clamped.
+        /**
+         * @param percent_output Percentage output [-1, 1].
+         * @return MCP2515::ERROR Status of the transmission.
+         */
         MCP2515::ERROR set_percent_output(float percent_output);
 
-        // Send the CTRE global enable/disable frame.
+        /**
+         * @param enable True to enable, false to disable.
+         * @return MCP2515::ERROR Status of the transmission.
+         */
         static MCP2515::ERROR send_global_enable(MCP2515& controller, bool enable);
+
+      protected:
+        virtual MCP2515::ERROR dispatch_frame(const can_frame& frame, bool periodic = false);
 
       private:
         MCP2515* controller_;

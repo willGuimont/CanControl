@@ -11,8 +11,8 @@
 // These functions work purely at the CAN-frame level: they take a
 // logical device number and requested output, then build an internal
 // basic_can_frame that can be converted to an mcp2515 can_frame via
-// basic_to_can_frame(). The higher-level TalonSrxMotor and
-// VictorSpxMotor wrappers own an MCP2515 instance and call these
+// basic_to_can_frame(). The higher-level TalonSrx and
+// VictorSpxw rappers own an MCP2515 instance and call these
 // helpers for you.
 
 namespace CanControl::LowLevel::TalonSrx
