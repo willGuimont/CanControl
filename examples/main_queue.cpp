@@ -122,10 +122,6 @@ void setup()
 
         // Reset motor parameter
         Serial.println("Resetting all motor parameters");
-        // Note: This queues the message. It might not send immediately if the bus is busy or queue is full,
-        // but since we are in setup and nothing else is happening, it should be fine.
-        // In a real application, you might want to call can_controller.update() in a loop until empty if you need
-        // synchronous behavior here.
         MCP2515::ERROR reset_err = spark.reset_safe_parameters();
         delay(10);
         Serial.print("SparkMaxQueued reset_safe_parameters: ");

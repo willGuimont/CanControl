@@ -2,25 +2,14 @@
 
 namespace CanControl
 {
-    /**
-     * @brief Construct a new Talon Srx Motor object
-     *
-     * @param controller Reference to the MCP2515 controller
-     * @param device_id CAN ID of the motor controller (0-63)
-     */
-    TalonSrx::TalonSrx(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
+    TalonSrx::TalonSrx(MCP2515& controller, uint8_t device_id)
+        : controller_(&controller), device_id_(device_id)
+    {
+    }
 
-    /**
-     * @brief Sets the percent output of the motor.
-     *
-     * @param percent_output The duty cycle to set, from -1.0 to 1.0.
-     *                       Values outside this range will be clamped by the controller (or should be clamped here).
-     * @return MCP2515::ERROR Status of the CAN transmission.
-     */
     MCP2515::ERROR TalonSrx::set_percent_output(float percent_output)
     {
-        LowLevel::TalonSrx::talon_can_frame low =
-            LowLevel::TalonSrx::talon_build_percent_output(device_id_, percent_output);
+        LowLevel::TalonSrx::talon_can_frame low = LowLevel::TalonSrx::talon_build_percent_output(device_id_, percent_output);
 
         can_frame hw{};
         LowLevel::basic_to_can_frame(low, &hw);

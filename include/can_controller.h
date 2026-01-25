@@ -17,24 +17,16 @@ namespace CanControl
       public:
         static constexpr size_t QUEUE_SIZE = 32;
 
-        /**
-         * @brief Construct a new Can Controller object.
-         *
-         * @param controller Reference to the MCP2515 driver.
-         */
         CanController(MCP2515& controller);
 
         /**
-         * @brief Add a frame to the send queue.
-         *
-         * @param frame The CAN frame to queue.
          * @return true If the frame was added successfully.
          * @return false If the queue is full.
          */
         bool queue_frame(const struct can_frame& frame);
 
         /**
-         * @brief Setup the MCP2515 with the correct parameters (bitrate, mode).
+         * @brief Setup the MCP2515.
          *
          * @param speed The CAN bus speed (e.g., CAN_1000KBPS).
          * @param clock The clock frequency (e.g., MCP_16MHZ).
@@ -43,52 +35,37 @@ namespace CanControl
         MCP2515::ERROR setup(CAN_SPEED speed, CAN_CLOCK clock);
 
         /**
-         * @brief Update method to be called periodically.
-         * Handles sending queued frames, heartbeats, and periodic messages.
+         * @brief Handles sending queued frames, heartbeats, and periodic messages.
          *
          * @param dt_ms Delta time in milliseconds since the last call.
          */
         void update(unsigned long dt_ms);
 
-        /**
-         * @brief Enable or disable the robot heartbeat.
-         *
-         * @param enabled True to enable, false to disable.
-         */
         void set_heartbeat(bool enabled);
 
         /**
-         * @brief Set the heartbeat period.
-         *
          * @param period_ms Period in milliseconds.
          */
         void set_heartbeat_period(unsigned long period_ms);
 
         /**
-         * @brief Set the current robot state for the heartbeat.
-         *
          * @param state The state to broadcast (Enabled, Disabled, E-Stop, etc.).
          */
         void set_heartbeat_state(const heartbeat::RobotState& state);
 
         /**
-         * @brief Enable or disable the CTRE Global Enable frame.
-         * Required for Talon SRX and Victor SPX operation.
+         * @brief Required for Talon SRX and Victor SPX operation.
          *
          * @param enabled True to enable sending, false to disable.
          */
         void set_ctre_global_enable(bool enabled);
 
         /**
-         * @brief Set the period for the CTRE Global Enable frame.
-         *
          * @param period_ms Period in milliseconds.
          */
         void set_ctre_global_enable_period(unsigned long period_ms);
 
         /**
-         * @brief Check if there are frames pending in the queue.
-         *
          * @return true If queue has frames.
          * @return false If queue is empty.
          */
@@ -101,11 +78,6 @@ namespace CanControl
          */
         void set_send_interval(unsigned long interval_ms);
 
-        /**
-         * @brief Get the underlying MCP2515 driver instance.
-         *
-         * @return MCP2515& Reference to the driver.
-         */
         MCP2515& get_mcp() const
         {
             return controller_;
@@ -119,8 +91,6 @@ namespace CanControl
         {
           public:
             /**
-             * @brief Attempt to send a periodic frame.
-             *
              * @param mcp Reference to the MCP2515 driver.
              * @return true If a frame was sent.
              * @return false If no frame was sent (e.g., timeout or nothing to send).
@@ -129,9 +99,6 @@ namespace CanControl
         };
 
         /**
-         * @brief Register a periodic sender.
-         *
-         * @param sender Pointer to the sender implementation.
          * @return true If added successfully.
          * @return false If the list is full.
          */

@@ -16,28 +16,16 @@ namespace CanControl
     class VictorSpx
     {
       public:
-        /**
-         * @brief Construct a new Victor Spx object.
-         *
-         * @param controller Reference to the MCP2515 controller.
-         * @param device_id CAN ID of the motor controller (0-63).
-         */
         VictorSpx(MCP2515& controller, uint8_t device_id);
         virtual ~VictorSpx() = default;
 
         /**
-         * @brief Set the Victor SPX PercentOutput demand in the range
-         * [-1, 1]. Values outside this range are clamped.
-         *
          * @param percent_output Percentage output [-1, 1].
          * @return MCP2515::ERROR Status of the transmission.
          */
         MCP2515::ERROR set_percent_output(float percent_output);
 
         /**
-         * @brief Send the CTRE global enable/disable frame.
-         *
-         * @param controller Reference to the MCP2515 controller.
          * @param enable True to enable, false to disable.
          * @return MCP2515::ERROR Status of the transmission.
          */

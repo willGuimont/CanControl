@@ -13,12 +13,6 @@ namespace CanControl
     class VictorSpxQueued : public VictorSpx, public CanController::PeriodicSender
     {
       public:
-        /**
-         * @brief Construct a new Victor Spx Queued object.
-         *
-         * @param controller Reference to the CanController.
-         * @param device_id CAN ID of the motor (0-63).
-         */
         VictorSpxQueued(CanController& controller, uint8_t device_id);
 
         /**

@@ -5,20 +5,11 @@ namespace CanControl
     using namespace LowLevel;
     using namespace LowLevel::TalonSrx;
 
-    /**
-     * @brief Construct a new Victor Spx Motor object
-     *
-     * @param controller Reference to the MCP2515 controller.
-     * @param device_id CAN ID of the motor controller (0-63).
-     */
-    VictorSpx::VictorSpx(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
+    VictorSpx::VictorSpx(MCP2515& controller, uint8_t device_id)
+        : controller_(&controller), device_id_(device_id)
+    {
+    }
 
-    /**
-     * @brief Sets the percent output of the motor.
-     *
-     * @param percent_output The duty cycle to set, from -1.0 to 1.0.
-     * @return MCP2515::ERROR Status of the CAN transmission.
-     */
     MCP2515::ERROR VictorSpx::set_percent_output(float percent_output)
     {
         talon_can_frame low = victor_build_percent_output(device_id_, percent_output);

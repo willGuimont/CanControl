@@ -13,12 +13,6 @@ namespace CanControl
     class TalonSrxQueued : public TalonSrx, public CanController::PeriodicSender
     {
       public:
-        /**
-         * @brief Construct a new Talon Srx Queued object.
-         *
-         * @param controller Reference to the CanController.
-         * @param device_id CAN ID of the motor (0-63).
-         */
         TalonSrxQueued(CanController& controller, uint8_t device_id);
 
         /**

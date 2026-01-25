@@ -48,9 +48,6 @@ static SparkMax          spark(mcp2515, spark_motor_id);
 // static constexpr uint8_t talon_motor_id = 30;
 // static TalonSrx     talon(mcp2515, talon_motor_id);
 
-// ... (in loop or setup)
-// TalonSrx::send_global_enable(mcp2515, true);
-
 // PID constants to show how to set parameters on SparkMax
 static constexpr float spark_p = 0.1;
 static constexpr float spark_i = 0.0;
