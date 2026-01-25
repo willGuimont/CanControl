@@ -13,7 +13,7 @@ It handles the necessary FRC-style "Heartbeat" frames and providing high-level w
 ## Features
 - High-level C++ wrappers:
   - `CanControl::SparkMax`
-  - `CanControl::TalonSrxMotor`
+  - `CanControl::TalonSrx`
   - `CanControl::VictorSpxMotor`
 - [Universal heartbeat](https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html#universal-heartbeat) frames to keep FRC motor controllers enabled.
 - Full features from the SparkMax
@@ -100,22 +100,22 @@ This library provides two main examples to help you get started:
 
 #### 1. Basic Example (`examples/main.cpp`)
 
-Simple example that shows how to use the device wrappers (`SparkMax`, `TalonSrxMotor`) directly with an `MCP2515` instance.
+Simple example that shows how to use the device wrappers (`SparkMax`, `TalonSrx`) directly with an `MCP2515` instance.
 You'll see how the MCP2515 is initialized and how to control a motor.
 Be mindful that if you want to use multiple motors, you will need to manually send heartbeats and manage timing in your main loop.
 Notably, you need to avoid sending too many frames too quickly, as this can cause the bus to become saturated.
 A simple solution is to implement a round-robin system where every update interval, you send the command to one motor at a time.
 See `examples/main_queue.cpp` for an example of this using the `CanController` class that manages a command queue and handles the timing for you.
 
-Run using the the `env:mega` or `env:uno` environments.
+Run using the `env:mega` or `env:uno` environments.
 
 #### 2. Queued Example (`examples/main_queue.cpp`)
 
 A more complex example that shows how to use the `CanController` class to manage the CAN bus.
 `CanController` can setup the MCP2515, manage the CAN bus, and handle the timing for you.
-They use the queued device wrappers (`SparkMaxQueue`, `TalonSrxMotorQueue`) to control the motors.
+They use the queued device wrappers (`SparkMaxQueued`, `TalonSrxQueued`) to control the motors.
 
-Run using the the `env:mega_queue` or `env:uno_queue` environments.
+Run using the `env:mega_queue` or `env:uno_queue` environments.
 
 ### Running the Examples
 The example sketch uses the Serial Monitor (Baud Rate: **115200**) to accept commands.

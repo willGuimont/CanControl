@@ -85,7 +85,7 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 static constexpr unsigned long heartbeat_interval_ms = 19;
 // Sending updates to the motor can be done less frequently. For SparkMax, a command can be sent only once and it will
 // continue at that speed as long as the heartbeat is present
-static constexpr unsigned long update_inteval_ms = 5;
+static constexpr unsigned long update_interval_ms = 5;
 
 // Create a default robot state
 // The important part is that the robot state has the `enabled` and `systemWatchdog` fields set to `true`
@@ -208,7 +208,7 @@ void loop()
         // stop sending the heartbeat - all motors will stop.
         send_heartbeat(mcp2515, robot_state);
         // TalonSRX and VictorSPX need a global enable
-        // TalonSrxMotor::send_global_enable(mcp2515, true);
+        // TalonSrx::send_global_enable(mcp2515, true);
         heartbeat_last_sent = now;
     }
 
@@ -218,7 +218,7 @@ void loop()
     // send it repeatively here
     now                                  = millis();
     static unsigned long speed_last_sent = 0;
-    if (now - speed_last_sent >= update_inteval_ms)
+    if (now - speed_last_sent >= update_interval_ms)
     {
         switch (command_mode)
         {

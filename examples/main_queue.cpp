@@ -79,7 +79,7 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 }
 
 static constexpr unsigned long heartbeat_interval_ms = 19;
-static constexpr unsigned long update_inteval_ms     = 5;
+static constexpr unsigned long update_interval_ms     = 5;
 
 void print_help()
 {
@@ -173,7 +173,7 @@ void loop()
 
     // Send updates to the motor
     static unsigned long speed_last_sent = 0;
-    if (now - speed_last_sent >= update_inteval_ms)
+    if (now - speed_last_sent >= update_interval_ms)
     {
         switch (command_mode)
         {

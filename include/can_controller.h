@@ -60,10 +60,14 @@ namespace CanControl
          */
         void set_ctre_global_enable(bool enabled);
 
-        /**
-         * @param period_ms Period in milliseconds.
-         */
         void set_ctre_global_enable_period(unsigned long period_ms);
+
+        /**
+         * @brief Set the state to be sent in the CTRE global enable frame.
+         *
+         * @param state_enabled True to send "Enable", false to send "Disable".
+         */
+        void set_ctre_global_enable_state(bool state_enabled);
 
         /**
          * @return true If queue has frames.
@@ -90,6 +94,8 @@ namespace CanControl
         class PeriodicSender
         {
           public:
+            virtual ~PeriodicSender() = default;
+
             /**
              * @param mcp Reference to the MCP2515 driver.
              * @return true If a frame was sent.

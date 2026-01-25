@@ -132,6 +132,10 @@ namespace CanControl
 
     bool CanController::add_periodic_sender(PeriodicSender* sender)
     {
+        if (sender == nullptr)
+        {
+            return false;
+        }
         if (periodic_count_ >= MAX_PERIODIC_SENDERS)
         {
             return false;
@@ -175,6 +179,11 @@ namespace CanControl
     void CanController::set_ctre_global_enable_period(unsigned long period_ms)
     {
         ctre_enable_period_ms_ = period_ms;
+    }
+
+    void CanController::set_ctre_global_enable_state(bool state_enabled)
+    {
+        ctre_enable_state_ = state_enabled;
     }
 
     void CanController::set_send_interval(unsigned long interval_ms)
