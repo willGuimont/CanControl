@@ -11,30 +11,7 @@ namespace CanControl
      * @param controller Reference to the MCP2515 controller.
      * @param device_id CAN ID of the motor controller (0-63).
      */
-    VictorSpxMotor::VictorSpxMotor(MCP2515& controller, uint8_t device_id)
-        : controller_(&controller), device_id_(device_id)
-    {
-    }
-
-    void VictorSpxMotor::set_controller(MCP2515& controller)
-    {
-        controller_ = &controller;
-    }
-
-    void VictorSpxMotor::set_device_id(uint8_t device_id)
-    {
-        device_id_ = device_id;
-    }
-
-    MCP2515* VictorSpxMotor::controller() const
-    {
-        return controller_;
-    }
-
-    uint8_t VictorSpxMotor::device_id() const
-    {
-        return device_id_;
-    }
+    VictorSpx::VictorSpx(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
 
     /**
      * @brief Sets the percent output of the motor.
@@ -42,19 +19,23 @@ namespace CanControl
      * @param percent_output The duty cycle to set, from -1.0 to 1.0.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
-    MCP2515::ERROR VictorSpxMotor::set_percent_output(float percent_output)
+    MCP2515::ERROR VictorSpx::set_percent_output(float percent_output)
     {
-        if (controller_ == nullptr)
-        {
-            return MCP2515::ERROR_FAILINIT;
-        }
-
         talon_can_frame low = victor_build_percent_output(device_id_, percent_output);
 
         can_frame hw{};
         basic_to_can_frame(low, &hw);
 
-        return controller_->sendMessage(&hw);
+        return dispatch_frame(hw, true);
+    }
+
+    MCP2515::ERROR VictorSpx::dispatch_frame(const can_frame& frame, bool periodic)
+    {
+        if (controller_ == nullptr)
+        {
+            return MCP2515::ERROR_FAILINIT;
+        }
+        return controller_->sendMessage(&frame);
     }
 
     /**
@@ -64,7 +45,7 @@ namespace CanControl
      * @param enable True to enable the motors, false to disable.
      * @return MCP2515::ERROR Status of the CAN transmission.
      */
-    MCP2515::ERROR VictorSpxMotor::send_global_enable(MCP2515& controller, bool enable)
+    MCP2515::ERROR VictorSpx::send_global_enable(MCP2515& controller, bool enable)
     {
         talon_can_frame low = build_global_enable(enable);
 

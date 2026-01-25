@@ -17,27 +17,7 @@ namespace CanControl
      */
     SparkMax::SparkMax(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
 
-    void SparkMax::set_controller(MCP2515& controller)
-    {
-        controller_ = &controller;
-    }
-
-    void SparkMax::set_device_id(uint8_t device_id)
-    {
-        device_id_ = device_id;
-    }
-
-    MCP2515* SparkMax::controller() const
-    {
-        return controller_;
-    }
-
-    uint8_t SparkMax::device_id() const
-    {
-        return device_id_;
-    }
-
-    MCP2515::ERROR SparkMax::dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame) const
+    MCP2515::ERROR SparkMax::dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame, bool periodic)
     {
         struct can_frame out{};
         LowLevel::basic_to_can_frame(frame, &out);
@@ -68,7 +48,7 @@ namespace CanControl
         frame.PID_SLOT                    = pid_slot;
         frame.ARBITRARY_FEEDFORWARD_UNITS = arbitrary_feedforward_units;
 
-        return dispatch_frame(LowLevel::SparkMax::spark_build_DUTY_CYCLE_SETPOINT(device_id_, &frame));
+        return dispatch_frame(LowLevel::SparkMax::spark_build_DUTY_CYCLE_SETPOINT(device_id_, &frame), true);
     }
 
     /**
@@ -89,7 +69,7 @@ namespace CanControl
         frame.PID_SLOT                    = pid_slot;
         frame.ARBITRARY_FEEDFORWARD_UNITS = arbitrary_feedforward_units;
 
-        return dispatch_frame(LowLevel::SparkMax::spark_build_POSITION_SETPOINT(device_id_, &frame));
+        return dispatch_frame(LowLevel::SparkMax::spark_build_POSITION_SETPOINT(device_id_, &frame), true);
     }
 
     /**
@@ -110,7 +90,7 @@ namespace CanControl
         frame.PID_SLOT                    = pid_slot;
         frame.ARBITRARY_FEEDFORWARD_UNITS = arbitrary_feedforward_units;
 
-        return dispatch_frame(LowLevel::SparkMax::spark_build_VELOCITY_SETPOINT(device_id_, &frame));
+        return dispatch_frame(LowLevel::SparkMax::spark_build_VELOCITY_SETPOINT(device_id_, &frame), true);
     }
 
     /**
