@@ -7,10 +7,10 @@ CanControl currently supports:
 - [CTRE Talon SRX](https://store.ctr-electronics.com/products/talon-srx) (PercentOutput only)
 - [CTRE Victor SPX](https://store.ctr-electronics.com/products/victor-spx) (PercentOutput only)
 
-
 It handles the necessary FRC-style "Heartbeat" frames and providing high-level wrappers, so you can control FRC motor controllers without a roboRIO.
 
 ## Features
+
 - High-level C++ wrappers:
   - `CanControl::SparkMax`
   - `CanControl::TalonSrx`
@@ -24,12 +24,13 @@ It handles the necessary FRC-style "Heartbeat" frames and providing high-level w
 ---
 
 ## Hardware
-1.  **Arduino Board**: tested with **Arduino Uno** and **Arduino Mega 2560**.
-2.  **MCP2515 CAN Module**: Standard SPI-based CAN controller board (often labeled "TJA1050 + MCP2515").
-3.  **CAN Motor Controller**: REV Spark MAX, CTRE Talon SRX, or Victor SPX.
-4.  **120Ω Termination Resistor**: **CRITICAL**. You MUST have a 120Ω resistor connected between CAN-H and CAN-L at the ends of your bus to prevent signal reflection.
 
-###  Wiring Instructions
+1. **Arduino Board**: tested with **Arduino Uno** and **Arduino Mega 2560**.
+2. **MCP2515 CAN Module**: Standard SPI-based CAN controller board (often labeled "TJA1050 + MCP2515").
+3. **CAN Motor Controller**: REV Spark MAX, CTRE Talon SRX, or Victor SPX.
+4. **120Ω Termination Resistor**: **CRITICAL**. You MUST have a 120Ω resistor connected between CAN-H and CAN-L at the ends of your bus to prevent signal reflection.
+
+### Wiring Instructions
 
 #### MCP2515 Connections
 
@@ -47,9 +48,9 @@ The MCP2515 communicates via **SPI**. Connect it to your Arduino as follows:
 
 #### CAN Bus Wiring
 
-1.  **CAN High (H)**: Connect MCP2515 `H` to Motor Controller `Yellow` wire.
-2.  **CAN Low (L)**: Connect MCP2515 `L` to Motor Controller `Green` wire.
-3.  **Termination**: Ensure a **120Ω resistor** connects `H` and `L` at the furthers point of the bus (often the MCP2515 itself has a jumper for this, check your module). In any case, you must have a resistor on both ends of the bus.
+1. **CAN High (H)**: Connect MCP2515 `H` to Motor Controller `Yellow` wire.
+2. **CAN Low (L)**: Connect MCP2515 `L` to Motor Controller `Green` wire.
+3. **Termination**: Ensure a **120Ω resistor** connects `H` and `L` at the furthers point of the bus (often the MCP2515 itself has a jumper for this, check your module). In any case, you must have a resistor on both ends of the bus.
 
 > **Note**: Spark MAX controllers do **not** have built-in termination. You must add the resistor yourself if it's the last device in the chain.
 
@@ -76,6 +77,7 @@ lib_deps =
 Coming soon...
 
 ### Cloning and Building (Development)
+
 ```bash
 git clone https://github.com/willGuimont/CanControl.git
 cd CanControl
@@ -83,19 +85,23 @@ git submodule update --init --recursive
 ```
 
 ### Build and Upload (PlatformIO)
+
 Open the project in VS Code with PlatformIO.
 
 **For Arduino Uno:**
+
 ```bash
 pio run -e uno -t upload
 ```
 
 **For Arduino Mega:**
+
 ```bash
 pio run -e mega -t upload
 ```
 
 ### Examples
+
 This library provides two main examples to help you get started:
 
 #### 1. Basic Example (`examples/main.cpp`)
@@ -111,6 +117,8 @@ Run using the `env:mega` or `env:uno` environments.
 
 #### 2. Queued Example (`examples/main_queue.cpp`)
 
+> **NOTE:** This example is a work in progress and may not be fully functional yet. It demonstrates the intended usage of the `CanController` class, but some features may still be under development.
+
 A more complex example that shows how to use the `CanController` class to manage the CAN bus.
 `CanController` can setup the MCP2515, manage the CAN bus, and handle the timing for you.
 They use the queued device wrappers (`SparkMaxQueued`, `TalonSrxQueued`) to control the motors.
@@ -118,23 +126,27 @@ They use the queued device wrappers (`SparkMaxQueued`, `TalonSrxQueued`) to cont
 Run using the `env:mega_queue` or `env:uno_queue` environments.
 
 ### Running the Examples
+
 The example sketch uses the Serial Monitor (Baud Rate: **115200**) to accept commands.
 
 **To run the Basic example on a Mega:**
+
 ```bash
 pio run -e mega -t upload
 ```
 
 **To run the Queued example on a Mega:**
+
 ```bash
 pio run -e mega_queue -t upload
 ```
 
 **Serial Commands (Both Examples):**
-*   `s0.5`: Set Speed to 50%
-*   `s-0.5`: Set Speed to -50%
-*   `s0`: Stop Motor
-*   `h`: Help menu
+
+- `s0.5`: Set Speed to 50%
+- `s-0.5`: Set Speed to -50%
+- `s0`: Stop Motor
+- `h`: Help menu
 
 ---
 
@@ -168,12 +180,14 @@ The high-level `SparkMax` class in `include/sparkmax.h` wraps these generated st
 
 Located in the `tools/` directory (install requirements with `pip install pyserial`):
 
-*   **`can_monitor.py`**: Live monitor that talks to the Arduino sketch to print/log CAN traffic.
+- **`can_monitor.py`**: Live monitor that talks to the Arduino sketch to print/log CAN traffic.
+
     ```bash
     python tools/can_monitor.py --port COM3 --output log.csv
     ```
 
-*   **`compare_logs.py`**: Compare two CSV logs to find timing differences or missing messages.
+- **`compare_logs.py`**: Compare two CSV logs to find timing differences or missing messages.
+
     ```bash
     python tools/compare_logs.py good_log.csv bad_log.csv
     ```
@@ -203,8 +217,8 @@ The native tests live under `test/test_native`, and embedded tests under
 
 ## Troubleshooting
 
-*   **"Sticky Fault for CAN Bus Error"**: This usually means **missing termination**. Add a 120Ω resistor between Green/Yellow wires.
-*   **Motor LEDs Flashing Orange/Green**: The motor is seeing *some* valid frames but timing out frequently. Check wiring and termination or heartbeat frequency.
-*   **CTRE Motors**: Must be **Factory Defaulted** or not "FRC Locked". If they were used on a roboRIO, hold the B/C button on boot to factory reset.
+- **"Sticky Fault for CAN Bus Error"**: This usually means **missing termination**. Add a 120Ω resistor between Green/Yellow wires.
+- **Motor LEDs Flashing Orange/Green**: The motor is seeing *some* valid frames but timing out frequently. Check wiring and termination or heartbeat frequency.
+- **CTRE Motors**: Must be **Factory Defaulted** or not "FRC Locked". If they were used on a roboRIO, hold the B/C button on boot to factory reset.
 
 ---

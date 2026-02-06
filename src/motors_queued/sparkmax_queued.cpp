@@ -43,7 +43,58 @@ namespace CanControl
             return false;
         }
 
-        return mcp.sendMessage(&periodic_frame_) == MCP2515::ERROR_OK;
+        MCP2515::ERROR res = mcp.sendMessage(&periodic_frame_);
+        if (res != MCP2515::ERROR_OK)
+        {
+            Serial.print("SparkMaxQueued periodic send failed (can_id=0x");
+            Serial.print(periodic_frame_.can_id, HEX);
+            Serial.print(") err=");
+            Serial.print((int)res);
+            Serial.print(" ");
+            switch (res)
+            {
+            case MCP2515::ERROR_FAIL:
+                Serial.print("ERROR_FAIL");
+                break;
+            case MCP2515::ERROR_ALLTXBUSY:
+                Serial.print("ERROR_ALLTXBUSY");
+                break;
+            case MCP2515::ERROR_FAILINIT:
+                Serial.print("ERROR_FAILINIT");
+                break;
+            case MCP2515::ERROR_FAILTX:
+                Serial.print("ERROR_FAILTX");
+                break;
+            case MCP2515::ERROR_NOMSG:
+                Serial.print("ERROR_NOMSG");
+                break;
+            default:
+                Serial.print("ERROR_UNKNOWN");
+                break;
+            }
+            Serial.println();
+
+            // Extra MCP2515 diagnostics to help debug physical bus issues
+            Serial.print("  MCP EFLG=0x");
+            Serial.println(mcp.getErrorFlags(), HEX);
+            Serial.print("  TEC=");
+            Serial.println(mcp.errorCountTX());
+            Serial.print("  REC=");
+            Serial.println(mcp.errorCountRX());
+            Serial.print("  STATUS=0x");
+            Serial.println(mcp.getStatus(), HEX);
+
+            return false;
+        }
+        else
+        {
+            // Optional: indicate periodic frame sent for debugging
+            // Serial.print("SparkMaxQueued periodic sent (can_id=0x");
+            // Serial.print(periodic_frame_.can_id, HEX);
+            // Serial.println(")");
+        }
+
+        return true;
     }
 
 } // namespace CanControl

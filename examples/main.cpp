@@ -17,6 +17,8 @@ static constexpr CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 static constexpr CAN_CLOCK MCP2515_OSC = MCP_8MHZ;
 // With an 8 MHz MCP2515 oscillator the SPI SCK must be kept below.
 // Use 10 MHz only when the MCP2515 module has a 16/20 MHz oscillator.
+#include "low_level/low_level.h"
+#include "low_level/low_sparkmax.h"
 static constexpr uint32_t SPI_CLOCK_SPEED = (MCP2515_OSC == MCP_8MHZ) ? 4000000UL : 10000000UL;
 
 // Prevent accidental misconfiguration at compile-time
@@ -24,6 +26,10 @@ static_assert(!(MCP2515_OSC == MCP_8MHZ && SPI_CLOCK_SPEED > 4000000UL),
               "SPI_CLOCK_SPEED too high for MCP_8MHZ; must be <= 4000000UL");
 
 // The Chip Select (CS) pin varies depending on the board used. See README.md for wiring.
+// Homing state: when true we drive positively until the forward hard limit is seen
+static bool            homing_active     = false;
+static bool            homing_prev_limit = false;
+static constexpr float homing_speed      = 0.20f;
 #ifndef MCP2515_CS_PIN
 #if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(ARDUINO_AVR_MEGA)
 static constexpr uint8_t MCP2515_CS_PIN = 53;
@@ -42,7 +48,7 @@ static constexpr uint8_t MCP2515_CS_PIN = MCP2515_CS_PIN;
 static MCP2515 mcp2515(MCP2515_CS_PIN, SPI_CLOCK_SPEED);
 
 // Creating the motor, specify the device ID set in the REV Hardware Client
-static constexpr uint8_t spark_motor_id = 11;
+static constexpr uint8_t spark_motor_id = 1;
 static SparkMax          spark(mcp2515, spark_motor_id);
 // Same for TalonSRX
 // static constexpr uint8_t talon_motor_id = 30;
@@ -97,6 +103,7 @@ void print_help()
     Serial.println("Available commands: ");
     Serial.println("\t- Start with `s` to set speed (float)");
     Serial.println("\t- Start with `p` to set position (float)");
+    Serial.println("\t- `z` to start homing (drive positive until forward limit), `c` to cancel");
     Serial.println("\t- `h` for help");
     Serial.println("Ready to accept commands...");
     Serial.println();
@@ -224,7 +231,14 @@ void loop()
         {
         case Speed:
             // SparkMax
-            spark.set_duty_cycle(speed);
+            if (homing_active)
+            {
+                spark.set_duty_cycle(homing_speed);
+            }
+            else
+            {
+                spark.set_duty_cycle(speed);
+            }
             // TalonSRX
             // talon.set_percent_output(speed);
             break;
@@ -273,6 +287,19 @@ void loop()
                 {
                     print_help();
                 }
+                else if (inBuf[0] == 'z')
+                {
+                    homing_active = true;
+                    command_mode  = Speed;
+                    speed         = homing_speed;
+                    Serial.println("Starting homing (driving positive)");
+                }
+                else if (inBuf[0] == 'c')
+                {
+                    homing_active = false;
+                    spark.stop();
+                    Serial.println("Homing cancelled");
+                }
 
                 // Clear buffer
                 inBuf = "";
@@ -283,4 +310,32 @@ void loop()
             inBuf += c;
         }
     }
+
+    // Read incoming CAN frames and update motor state objects.
+    struct can_frame rf;
+    while (mcp2515.readMessage(&rf) == MCP2515::ERROR_OK)
+    {
+        // Single-spark example: let the `spark` instance process the frame.
+        spark.handle_received_frame(rf);
+    }
+
+    // If homing is active and we just saw the forward hard-limit edge, zero encoder
+    if (homing_active && spark.hard_forward_limit_reached() && !homing_prev_limit)
+    {
+        spark.stop();
+
+        CanControl::LowLevel::SparkMax::Spark_SET_PRIMARY_ENCODER_POSITION_t pos{};
+        pos.POSITION  = 0.0f;
+        pos.DATA_TYPE = 0u;
+        auto sf       = CanControl::LowLevel::SparkMax::spark_build_SET_PRIMARY_ENCODER_POSITION(spark_motor_id, &pos);
+        struct can_frame out{};
+        CanControl::LowLevel::basic_to_can_frame(sf, &out);
+        MCP2515::ERROR setpos_err = mcp2515.sendMessage(&out);
+        Serial.print("Sent encoder-zero SET_PRIMARY_ENCODER_POSITION: ");
+        Serial.println(mcpErrorToString(setpos_err));
+
+        homing_active = false;
+    }
+
+    homing_prev_limit = spark.hard_forward_limit_reached();
 }

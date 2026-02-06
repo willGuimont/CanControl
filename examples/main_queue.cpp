@@ -46,9 +46,21 @@ static MCP2515 mcp2515(MCP2515_CS_PIN, SPI_CLOCK_SPEED);
 // The CanController handles queuing frames and sending heartbeats
 static CanController can_controller(mcp2515);
 
-// Creating the motor, bound to the CanController
-static constexpr uint8_t spark_motor_id = 11;
-static SparkMaxQueued    spark(can_controller, spark_motor_id);
+// Creating the motors array (IDs 1..4), bound to the CanController
+static SparkMaxQueued motors[4] = {{can_controller, 1}, {can_controller, 2}, {can_controller, 3}, {can_controller, 4}};
+
+// Command mode enum (used by per-motor state)
+enum class MotorCommandMode
+{
+    Speed,
+    Position,
+};
+
+// Per-motor state
+static float            motor_speeds[4]    = {0, 0, 0, 0};
+static float            motor_positions[4] = {0, 0, 0, 0};
+static MotorCommandMode motor_mode[4]      = {MotorCommandMode::Speed, MotorCommandMode::Speed, MotorCommandMode::Speed,
+                                              MotorCommandMode::Speed};
 
 // PID constants
 static constexpr float spark_p = 0.1;
@@ -79,23 +91,18 @@ static const String mcpErrorToString(MCP2515::ERROR e)
 }
 
 static constexpr unsigned long heartbeat_interval_ms = 19;
-static constexpr unsigned long update_interval_ms     = 5;
+static constexpr unsigned long update_interval_ms    = 5;
 
 void print_help()
 {
     Serial.println("Available commands: ");
-    Serial.println("\t- Start with `s` to set speed (float)");
-    Serial.println("\t- Start with `p` to set position (float)");
+    Serial.println("\t- Optional leading motor id: e.g. '1s0.5' sets motor 1 speed to 0.5");
+    Serial.println("\t- Omit id to affect all: 's0.5' sets all motors speed to 0.5");
+    Serial.println("\t- Use 'p' similarly for position, e.g. '2p12.5' or 'p12.5'");
     Serial.println("\t- `h` for help");
     Serial.println("Ready to accept commands...");
     Serial.println();
 }
-
-enum CommandMode
-{
-    Speed,
-    Position,
-};
 
 void setup()
 {
@@ -115,31 +122,75 @@ void setup()
         Serial.println(mcpErrorToString(setupErr));
         Serial.println();
 
+        // Quick MCP2515 loopback self-test to verify SPI/MCP functionality
+        Serial.println("Running MCP2515 loopback self-test...");
+        {
+            MCP2515::ERROR e = mcp2515.setLoopbackMode();
+            Serial.print("setLoopbackMode: ");
+            Serial.println(mcpErrorToString(e));
+
+            struct can_frame tf{};
+            tf.can_id  = 0x123;
+            tf.can_dlc = 1;
+            tf.data[0] = 0x42;
+
+            MCP2515::ERROR sres = mcp2515.sendMessage(&tf);
+            Serial.print("loopback sendMessage: ");
+            Serial.println(mcpErrorToString(sres));
+
+            struct can_frame rf{};
+            MCP2515::ERROR   rres = mcp2515.readMessage(&rf);
+            Serial.print("loopback readMessage: ");
+            Serial.println(mcpErrorToString(rres));
+            if (rres == MCP2515::ERROR_OK)
+            {
+                Serial.print("Loopback received id=0x");
+                Serial.print(rf.can_id, HEX);
+                Serial.print(" data[0]=");
+                Serial.println(rf.data[0], HEX);
+            }
+
+            // Restore normal one-shot mode for operation
+            mcp2515.setNormalOneShotMode();
+        }
+
         // Configure CanController
         // Enable automatic heartbeats
         can_controller.set_heartbeat(true);
         can_controller.set_heartbeat_period(heartbeat_interval_ms);
 
-        // Reset motor parameter
+        // Reset motor parameters for all motors
         Serial.println("Resetting all motor parameters");
-        MCP2515::ERROR reset_err = spark.reset_safe_parameters();
-        delay(10);
-        Serial.print("SparkMaxQueued reset_safe_parameters: ");
-        Serial.println(mcpErrorToString(reset_err));
-
-        // Set motor PID parameter for position control mode
-        Serial.println("Setting PID parameters");
-        int pid_err = spark.set_pid_p(spark_p);
-        pid_err |= spark.set_pid_i(spark_i);
-        pid_err |= spark.set_pid_d(spark_d);
-        pid_err |= spark.set_pid_f(spark_f);
-        if (pid_err != MCP2515::ERROR_OK)
+        for (int i = 0; i < 4; ++i)
         {
-            Serial.println("Error queuing PID parameters");
+            MCP2515::ERROR reset_err = motors[i].reset_safe_parameters();
+            delay(10);
+            Serial.print("Motor ");
+            Serial.print(i + 1);
+            Serial.print(" reset_safe_parameters: ");
+            Serial.println(mcpErrorToString(reset_err));
         }
-        else
+
+        // Set motor PID parameters for position control mode on all motors
+        Serial.println("Setting PID parameters");
+        for (int i = 0; i < 4; ++i)
         {
-            Serial.println("PID parameters queued");
+            MCP2515::ERROR e1 = motors[i].set_pid_p(spark_p);
+            MCP2515::ERROR e2 = motors[i].set_pid_i(spark_i);
+            MCP2515::ERROR e3 = motors[i].set_pid_d(spark_d);
+            MCP2515::ERROR e4 = motors[i].set_pid_f(spark_f);
+
+            if (e1 != MCP2515::ERROR_OK || e2 != MCP2515::ERROR_OK || e3 != MCP2515::ERROR_OK ||
+                e4 != MCP2515::ERROR_OK)
+            {
+                Serial.print("Error queuing PID parameters for motor ");
+                Serial.println(i + 1);
+            }
+            else
+            {
+                Serial.print("PID parameters queued for motor ");
+                Serial.println(i + 1);
+            }
         }
 
         // Flush the queue to ensure all parameters are sent
@@ -158,9 +209,7 @@ void setup()
 
 void loop()
 {
-    static float       speed        = 0;
-    static float       position     = 0;
-    static CommandMode command_mode = Speed;
+    // Per-motor state arrays are declared globally; we use them here.
 
     // Update the CanController
     // This handles sending the heartbeat and processing the frame queue
@@ -171,61 +220,113 @@ void loop()
 
     can_controller.update(dt);
 
-    // Send updates to the motor
-    static unsigned long speed_last_sent = 0;
-    if (now - speed_last_sent >= update_interval_ms)
+    // Send updates to motors (periodic send)
+    static unsigned long last_sent = 0;
+    if (now - last_sent >= update_interval_ms)
     {
-        switch (command_mode)
+        for (int i = 0; i < 4; ++i)
         {
-        case Speed:
-            spark.set_duty_cycle(speed);
-            break;
-        case Position:
-            spark.set_position(position);
-            break;
-        default:
-            break;
+            if (motor_mode[i] == MotorCommandMode::Speed)
+            {
+                motors[i].set_duty_cycle(motor_speeds[i]);
+            }
+            else if (motor_mode[i] == MotorCommandMode::Position)
+            {
+                motors[i].set_position(motor_positions[i]);
+            }
         }
-
-        speed_last_sent = now;
+        last_sent = now;
     }
 
-    // Small serial interface to control the motor
+    // Small serial interface to control motors
     static String inBuf = "";
     while (Serial.available())
     {
         char c = Serial.read();
         if (c == '\n' || c == '\r')
         {
-            // Command + at least one char of argument
-            if (inBuf.length() >= 2)
+            if (inBuf.length() >= 1)
             {
-                if (inBuf[0] == 's')
+                String cmd = inBuf;
+                int    p   = 0;
+                int    len = cmd.length();
+
+                // Parse optional leading motor id (digits). If none, target all motors.
+                int targetId = 0; // 0 == all motors
+                while (p < len && isDigit(cmd[p]))
                 {
-                    // Speed
-                    speed = (inBuf.substring(1)).toFloat();
-                    if (speed > 1.0f)
-                        speed = 1.0f;
-                    if (speed < -1.0f)
-                        speed = -1.0f;
-                    command_mode = Speed;
-                    Serial.print("Set speed: ");
-                    Serial.println(speed);
-                }
-                else if (inBuf[0] == 'p')
-                {
-                    // Position
-                    position     = (inBuf.substring(1)).toFloat();
-                    command_mode = Position;
-                    Serial.print("Set position: ");
-                    Serial.println(position);
-                }
-                else if (inBuf[0] == 'h')
-                {
-                    print_help();
+                    targetId = targetId * 10 + (cmd[p] - '0');
+                    p++;
                 }
 
-                // Clear buffer
+                // skip spaces
+                while (p < len && isSpace(cmd[p]))
+                    p++;
+
+                if (p < len)
+                {
+                    char   action = cmd[p];
+                    String arg    = cmd.substring(p + 1);
+                    arg.trim();
+
+                    if (action == 's')
+                    {
+                        float val = arg.toFloat();
+                        if (val > 1.0f)
+                            val = 1.0f;
+                        if (val < -1.0f)
+                            val = -1.0f;
+
+                        if (targetId >= 1 && targetId <= 4)
+                        {
+                            motor_speeds[targetId - 1] = val;
+                            motor_mode[targetId - 1]   = MotorCommandMode::Speed;
+                            Serial.print("Set motor ");
+                            Serial.print(targetId);
+                            Serial.print(" speed: ");
+                            Serial.println(val);
+                        }
+                        else
+                        {
+                            for (int i = 0; i < 4; ++i)
+                            {
+                                motor_speeds[i] = val;
+                                motor_mode[i]   = MotorCommandMode::Speed;
+                            }
+                            Serial.print("Set ALL motors speed: ");
+                            Serial.println(val);
+                        }
+                    }
+                    else if (action == 'p')
+                    {
+                        float val = arg.toFloat();
+
+                        if (targetId >= 1 && targetId <= 4)
+                        {
+                            motor_positions[targetId - 1] = val;
+                            motor_mode[targetId - 1]      = MotorCommandMode::Position;
+                            Serial.print("Set motor ");
+                            Serial.print(targetId);
+                            Serial.print(" position: ");
+                            Serial.println(val);
+                        }
+                        else
+                        {
+                            for (int i = 0; i < 4; ++i)
+                            {
+                                motor_positions[i] = val;
+                                motor_mode[i]      = MotorCommandMode::Position;
+                            }
+                            Serial.print("Set ALL motors position: ");
+                            Serial.println(val);
+                        }
+                    }
+                    else if (action == 'h')
+                    {
+                        print_help();
+                    }
+                }
+
                 inBuf = "";
             }
         }

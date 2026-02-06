@@ -153,11 +153,56 @@ namespace CanControl
          */
         MCP2515::ERROR reset_safe_parameters();
 
-      protected:
+        /**
+         * @brief Process an incoming raw CAN frame and update internal state if it matches this Spark's device id.
+         * This will decode any periodic Status frames and cache values for user queries.
+         */
+        void handle_received_frame(const struct can_frame& frame);
+
+        // State accessors (return cached values; only valid if corresponding has_*() returns true)
+        bool has_status0() const;
+        bool has_status1() const;
+        bool has_status2() const;
+        bool has_status3() const;
+        bool has_status4() const;
+        bool has_status5() const;
+        bool has_status6() const;
+        bool has_status7() const;
+        bool has_status8() const;
+        bool has_status9() const;
+
+        // Common convenience accessors
+        bool  hard_forward_limit_reached() const;
+        bool  hard_reverse_limit_reached() const;
+        float last_applied_output() const;
+        float last_position() const;
+
       protected:
         virtual MCP2515::ERROR dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame, bool periodic = false);
 
         MCP2515* controller_;
         uint8_t  device_id_;
+
+        // Cached state from incoming periodic frames (Status 0..9)
+        LowLevel::SparkMax::Spark_STATUS_0_t last_status0_;
+        bool                                 has_status0_ = false;
+        LowLevel::SparkMax::Spark_STATUS_1_t last_status1_;
+        bool                                 has_status1_ = false;
+        LowLevel::SparkMax::Spark_STATUS_2_t last_status2_;
+        bool                                 has_status2_ = false;
+        LowLevel::SparkMax::Spark_STATUS_3_t last_status3_;
+        bool                                 has_status3_ = false;
+        LowLevel::SparkMax::Spark_STATUS_4_t last_status4_;
+        bool                                 has_status4_ = false;
+        LowLevel::SparkMax::Spark_STATUS_5_t last_status5_;
+        bool                                 has_status5_ = false;
+        LowLevel::SparkMax::Spark_STATUS_6_t last_status6_;
+        bool                                 has_status6_ = false;
+        LowLevel::SparkMax::Spark_STATUS_7_t last_status7_;
+        bool                                 has_status7_ = false;
+        LowLevel::SparkMax::Spark_STATUS_8_t last_status8_;
+        bool                                 has_status8_ = false;
+        LowLevel::SparkMax::Spark_STATUS_9_t last_status9_;
+        bool                                 has_status9_ = false;
     };
 } // namespace CanControl

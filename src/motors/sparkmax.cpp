@@ -37,7 +37,6 @@ namespace CanControl
         frame.ARBITRARY_FEEDFORWARD       = arbitrary_feedforward;
         frame.PID_SLOT                    = pid_slot;
         frame.ARBITRARY_FEEDFORWARD_UNITS = arbitrary_feedforward_units;
-
         return dispatch_frame(LowLevel::SparkMax::spark_build_DUTY_CYCLE_SETPOINT(device_id_, &frame), true);
     }
 
@@ -222,5 +221,194 @@ namespace CanControl
     {
         using namespace LowLevel::SparkMax;
         return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_ENCODER_INVERTED_BOOL, inv);
+    }
+
+    void SparkMax::handle_received_frame(const struct can_frame& frame)
+    {
+        using namespace CanControl::LowLevel::SparkMax;
+        using CanControl::LowLevel::basic_can_frame;
+
+        basic_can_frame bf{};
+        // Mask off MCP2515 flags and extract 29-bit id
+        bf.id     = (uint32_t)(frame.can_id & CanControl::frc_can_id::MASK_frc_id);
+        bf.dlc    = frame.can_dlc;
+        bf.is_rtr = (frame.can_id & RTR_FLAG) != 0;
+        if (bf.dlc > 0)
+            memcpy(bf.data, frame.data, bf.dlc);
+
+        // Ensure this message is for our device id by checking the device id field
+        uint8_t msg_device = (uint8_t)(bf.id & SPARK_DEVICE_ID_MASK);
+        if (msg_device != device_id_)
+            return;
+
+        // Now match and decode known status frames
+        if (SPARK_MATCH_STATUS_0(bf.id))
+        {
+            Spark_STATUS_0_t st{};
+            if (spark_decode_STATUS_0_frame(bf, &st))
+            {
+                last_status0_ = st;
+                has_status0_  = true;
+            }
+        }
+        if (SPARK_MATCH_STATUS_1(bf.id))
+        {
+            Spark_STATUS_1_t st1{};
+            if (spark_decode_STATUS_1_frame(bf, &st1))
+            {
+                last_status1_ = st1;
+                has_status1_  = true;
+            }
+        }
+
+        if (SPARK_MATCH_STATUS_2(bf.id))
+        {
+            Spark_STATUS_2_t st2{};
+            if (spark_decode_STATUS_2_frame(bf, &st2))
+            {
+                last_status2_ = st2;
+                has_status2_  = true;
+            }
+        }
+
+        if (SPARK_MATCH_STATUS_3(bf.id))
+        {
+            Spark_STATUS_3_t st3{};
+            if (spark_decode_STATUS_3_frame(bf, &st3))
+            {
+                last_status3_ = st3;
+                has_status3_  = true;
+            }
+        }
+
+        if (SPARK_MATCH_STATUS_4(bf.id))
+        {
+            Spark_STATUS_4_t st4{};
+            if (spark_decode_STATUS_4_frame(bf, &st4))
+            {
+                last_status4_ = st4;
+                has_status4_  = true;
+            }
+        }
+
+        if (SPARK_MATCH_STATUS_5(bf.id))
+        {
+            Spark_STATUS_5_t st5{};
+            if (spark_decode_STATUS_5_frame(bf, &st5))
+            {
+                last_status5_ = st5;
+                has_status5_  = true;
+            }
+        }
+
+        if (SPARK_MATCH_STATUS_6(bf.id))
+        {
+            Spark_STATUS_6_t st6{};
+            if (spark_decode_STATUS_6_frame(bf, &st6))
+            {
+                last_status6_ = st6;
+                has_status6_  = true;
+            }
+        }
+
+        if (SPARK_MATCH_STATUS_7(bf.id))
+        {
+            Spark_STATUS_7_t st7{};
+            if (spark_decode_STATUS_7_frame(bf, &st7))
+            {
+                last_status7_ = st7;
+                has_status7_  = true;
+            }
+        }
+
+        if (SPARK_MATCH_STATUS_8(bf.id))
+        {
+            Spark_STATUS_8_t st8{};
+            if (spark_decode_STATUS_8_frame(bf, &st8))
+            {
+                last_status8_ = st8;
+                has_status8_  = true;
+            }
+        }
+
+        if (SPARK_MATCH_STATUS_9(bf.id))
+        {
+            Spark_STATUS_9_t st9{};
+            if (spark_decode_STATUS_9_frame(bf, &st9))
+            {
+                last_status9_ = st9;
+                has_status9_  = true;
+            }
+        }
+    }
+
+    bool SparkMax::has_status0() const
+    {
+        return has_status0_;
+    }
+
+    bool SparkMax::has_status1() const
+    {
+        return has_status1_;
+    }
+
+    bool SparkMax::has_status2() const
+    {
+        return has_status2_;
+    }
+
+    bool SparkMax::has_status3() const
+    {
+        return has_status3_;
+    }
+
+    bool SparkMax::has_status4() const
+    {
+        return has_status4_;
+    }
+
+    bool SparkMax::has_status5() const
+    {
+        return has_status5_;
+    }
+
+    bool SparkMax::has_status6() const
+    {
+        return has_status6_;
+    }
+
+    bool SparkMax::has_status7() const
+    {
+        return has_status7_;
+    }
+
+    bool SparkMax::has_status8() const
+    {
+        return has_status8_;
+    }
+
+    bool SparkMax::has_status9() const
+    {
+        return has_status9_;
+    }
+
+    bool SparkMax::hard_forward_limit_reached() const
+    {
+        return has_status0_ ? last_status0_.HARD_FORWARD_LIMIT_REACHED : false;
+    }
+
+    bool SparkMax::hard_reverse_limit_reached() const
+    {
+        return has_status0_ ? last_status0_.HARD_REVERSE_LIMIT_REACHED : false;
+    }
+
+    float SparkMax::last_applied_output() const
+    {
+        return has_status0_ ? (float)last_status0_.APPLIED_OUTPUT / 32767.0f : 0.0f;
+    }
+
+    float SparkMax::last_position() const
+    {
+        return has_status2_ ? last_status2_.PRIMARY_ENCODER_POSITION : 0.0f;
     }
 } // namespace CanControl
