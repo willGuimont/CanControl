@@ -154,6 +154,14 @@ namespace CanControl
         MCP2515::ERROR reset_safe_parameters();
 
         /**
+         * @brief Set the primary encoder position (in rotations).
+         * @param position Position to set.
+         * @param data_type Data type selector (0 = float).
+         * @return MCP2515::ERROR Status of the transmission.
+         */
+        MCP2515::ERROR set_primary_encoder_position(float position, uint8_t data_type = 0u);
+
+        /**
          * @brief Process an incoming raw CAN frame and update internal state if it matches this Spark's device id.
          * This will decode any periodic Status frames and cache values for user queries.
          */

@@ -76,6 +76,14 @@ namespace CanControl
         return dispatch_frame(LowLevel::SparkMax::spark_build_RESET_SAFE_PARAMETERS(device_id_, &frame));
     }
 
+    MCP2515::ERROR SparkMax::set_primary_encoder_position(float position, uint8_t data_type)
+    {
+        LowLevel::SparkMax::Spark_SET_PRIMARY_ENCODER_POSITION_t frame{};
+        frame.POSITION = position;
+        frame.DATA_TYPE = data_type;
+        return dispatch_frame(LowLevel::SparkMax::spark_build_SET_PRIMARY_ENCODER_POSITION(device_id_, &frame));
+    }
+
     static MCP2515::ERROR write_float_param(MCP2515* controller, uint8_t device_id, uint8_t base_id, uint8_t slot,
                                             float value)
     {

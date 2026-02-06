@@ -17,8 +17,6 @@ static constexpr CAN_SPEED MCP2515_SPEED = CAN_1000KBPS;
 static constexpr CAN_CLOCK MCP2515_OSC = MCP_8MHZ;
 // With an 8 MHz MCP2515 oscillator the SPI SCK must be kept below.
 // Use 10 MHz only when the MCP2515 module has a 16/20 MHz oscillator.
-#include "low_level/low_level.h"
-#include "low_level/low_sparkmax.h"
 static constexpr uint32_t SPI_CLOCK_SPEED = (MCP2515_OSC == MCP_8MHZ) ? 4000000UL : 10000000UL;
 
 // Prevent accidental misconfiguration at compile-time
@@ -324,13 +322,7 @@ void loop()
     {
         spark.stop();
 
-        CanControl::LowLevel::SparkMax::Spark_SET_PRIMARY_ENCODER_POSITION_t pos{};
-        pos.POSITION  = 0.0f;
-        pos.DATA_TYPE = 0u;
-        auto sf       = CanControl::LowLevel::SparkMax::spark_build_SET_PRIMARY_ENCODER_POSITION(spark_motor_id, &pos);
-        struct can_frame out{};
-        CanControl::LowLevel::basic_to_can_frame(sf, &out);
-        MCP2515::ERROR setpos_err = mcp2515.sendMessage(&out);
+        MCP2515::ERROR setpos_err = spark.set_primary_encoder_position(0.0f);
         Serial.print("Sent encoder-zero SET_PRIMARY_ENCODER_POSITION: ");
         Serial.println(mcpErrorToString(setpos_err));
 
