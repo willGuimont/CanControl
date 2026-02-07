@@ -159,7 +159,7 @@ namespace CanControl
          * @param data_type Data type selector (0 = float).
          * @return MCP2515::ERROR Status of the transmission.
          */
-        MCP2515::ERROR set_primary_encoder_position(float position, uint8_t data_type = 0u);
+        MCP2515::ERROR set_primary_encoder_position(float position, uint8_t data_type = 3u);
 
         /**
          * @brief Process an incoming raw CAN frame and update internal state if it matches this Spark's device id.
@@ -184,6 +184,7 @@ namespace CanControl
         bool  hard_reverse_limit_reached() const;
         float last_applied_output() const;
         float last_position() const;
+        float get_encoder_position() const;
 
       protected:
         virtual MCP2515::ERROR dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame, bool periodic = false);

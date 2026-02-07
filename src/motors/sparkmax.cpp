@@ -419,4 +419,9 @@ namespace CanControl
     {
         return has_status2_ ? last_status2_.PRIMARY_ENCODER_POSITION : 0.0f;
     }
+
+    float SparkMax::get_encoder_position() const
+    {
+        return last_position();
+    }
 } // namespace CanControl

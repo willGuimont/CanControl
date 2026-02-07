@@ -321,6 +321,8 @@ void loop()
     if (homing_active && spark.hard_forward_limit_reached() && !homing_prev_limit)
     {
         spark.stop();
+        speed = 0;
+        command_mode = Speed;
 
         MCP2515::ERROR setpos_err = spark.set_primary_encoder_position(0.0f);
         Serial.print("Sent encoder-zero SET_PRIMARY_ENCODER_POSITION: ");

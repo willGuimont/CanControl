@@ -159,7 +159,7 @@ def render_header(
         )
         lines.append(f"// Match arbitration ID for frame {summary}")
         lines.append(
-            f"#define SPARK_MATCH_{name}(id) ((((uint32_t)(id)) & ~SPARK_DEVICE_ID_MASK) == (uint32_t)SPARK_ARB_{name})"
+            f"#define SPARK_MATCH_{name}(id) ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_{name})"
         )
     lines.append("")
 
