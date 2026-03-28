@@ -159,22 +159,13 @@ void setup()
         can_controller.set_heartbeat(true);
         can_controller.set_heartbeat_period(heartbeat_interval_ms);
 
-        // Reset motor parameters for all motors
-        Serial.println("Resetting all motor parameters");
+        // Reset and configure all motors. All calls go through the CanController
+        // queue, so reset is guaranteed to arrive before PID on every motor.
+        Serial.println("Queuing reset and PID parameters");
         for (int i = 0; i < 4; ++i)
         {
-            MCP2515::ERROR reset_err = motors[i].reset_safe_parameters();
-            delay(10);
-            Serial.print("Motor ");
-            Serial.print(i + 1);
-            Serial.print(" reset_safe_parameters: ");
-            Serial.println(mcpErrorToString(reset_err));
-        }
+            motors[i].reset_safe_parameters();
 
-        // Set motor PID parameters for position control mode on all motors
-        Serial.println("Setting PID parameters");
-        for (int i = 0; i < 4; ++i)
-        {
             MCP2515::ERROR e1 = motors[i].set_pid_p(spark_p);
             MCP2515::ERROR e2 = motors[i].set_pid_i(spark_i);
             MCP2515::ERROR e3 = motors[i].set_pid_d(spark_d);
@@ -186,21 +177,10 @@ void setup()
                 Serial.print("Error queuing PID parameters for motor ");
                 Serial.println(i + 1);
             }
-            else
-            {
-                Serial.print("PID parameters queued for motor ");
-                Serial.println(i + 1);
-            }
         }
 
-        // Flush the queue to ensure all parameters are sent
-        Serial.println("Flushing configuration to motor...");
-        while (can_controller.has_pending_frames())
-        {
-            // Sending the queued frames
-            can_controller.update(10);
-            delay(10);
-        }
+        Serial.println("Flushing configuration...");
+        can_controller.flush();
         Serial.println("Configuration flushed.");
     }
 

@@ -192,6 +192,12 @@ namespace CanControl
         MCP2515* controller_;
         uint8_t  device_id_;
 
+      private:
+        // Builds a PARAMETER_WRITE frame and routes it through dispatch_frame().
+        MCP2515::ERROR dispatch_param(uint8_t param_id, uint32_t raw_value);
+        // Convenience for slotted float parameters (base_id + slot*8).
+        MCP2515::ERROR dispatch_float_param(uint8_t base_id, uint8_t slot, float value);
+
         // Cached state from incoming periodic frames (Status 0..9)
         LowLevel::SparkMax::Spark_STATUS_0_t last_status0_;
         bool                                 has_status0_ = false;

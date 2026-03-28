@@ -78,6 +78,7 @@ int main(int argc, char** argv)
 
     RUN_TEST(test_frc_can_id_fields_from_raw);
     RUN_TEST(test_frc_can_id_flags);
+    RUN_TEST(test_can_id_example);
 
     return UNITY_END();
 }

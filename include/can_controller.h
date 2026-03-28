@@ -15,7 +15,7 @@ namespace CanControl
     class CanController
     {
       public:
-        static constexpr size_t QUEUE_SIZE = 32;
+        static constexpr size_t QUEUE_SIZE = 64;
 
         CanController(MCP2515& controller);
 
@@ -74,6 +74,14 @@ namespace CanControl
          * @return false If queue is empty.
          */
         bool has_pending_frames() const;
+
+        /**
+         * @brief Blocks until all queued frames have been sent.
+         * Calls update() and delay() in a loop. Use during setup only.
+         *
+         * @param interval_ms Polling interval in milliseconds (default 10).
+         */
+        void flush(unsigned long interval_ms = 10);
 
         /**
          * @brief Set the minimum interval between sending frames (rate limiting).

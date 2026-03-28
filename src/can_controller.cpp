@@ -197,4 +197,13 @@ namespace CanControl
         return !(!full_ && head_ == tail_);
     }
 
+    void CanController::flush(unsigned long interval_ms)
+    {
+        while (has_pending_frames())
+        {
+            update(interval_ms);
+            delay(interval_ms);
+        }
+    }
+
 } // namespace CanControl

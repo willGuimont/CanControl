@@ -79,13 +79,17 @@ namespace CanControl
     MCP2515::ERROR SparkMax::set_primary_encoder_position(float position, uint8_t data_type)
     {
         LowLevel::SparkMax::Spark_SET_PRIMARY_ENCODER_POSITION_t frame{};
-        frame.POSITION = position;
+        frame.POSITION  = position;
         frame.DATA_TYPE = data_type;
         return dispatch_frame(LowLevel::SparkMax::spark_build_SET_PRIMARY_ENCODER_POSITION(device_id_, &frame));
     }
 
-    static MCP2515::ERROR write_float_param(MCP2515* controller, uint8_t device_id, uint8_t base_id, uint8_t slot,
-                                            float value)
+    MCP2515::ERROR SparkMax::dispatch_param(uint8_t param_id, uint32_t raw_value)
+    {
+        return dispatch_frame(LowLevel::SparkMax::build_parameter_frame(device_id_, param_id, raw_value));
+    }
+
+    MCP2515::ERROR SparkMax::dispatch_float_param(uint8_t base_id, uint8_t slot, float value)
     {
         if (slot > 3)
             return MCP2515::ERROR_FAIL;
@@ -94,141 +98,132 @@ namespace CanControl
             float    f;
             uint32_t u;
         } conv = {.f = value};
-        return (MCP2515::ERROR)LowLevel::SparkMax::write_parameter_raw(*controller, device_id, base_id + slot * 8,
-                                                                       conv.u);
+        return dispatch_param(base_id + slot * 8, conv.u);
     }
 
     MCP2515::ERROR SparkMax::set_pid_p(float p, uint8_t slot)
     {
-        return write_float_param(controller_, device_id_, 13, slot, p);
+        return dispatch_float_param(13, slot, p);
     }
 
     MCP2515::ERROR SparkMax::set_pid_i(float i, uint8_t slot)
     {
-        return write_float_param(controller_, device_id_, 14, slot, i);
+        return dispatch_float_param(14, slot, i);
     }
 
     MCP2515::ERROR SparkMax::set_pid_d(float d, uint8_t slot)
     {
-        return write_float_param(controller_, device_id_, 15, slot, d);
+        return dispatch_float_param(15, slot, d);
     }
 
     MCP2515::ERROR SparkMax::set_pid_f(float f, uint8_t slot)
     {
-        return write_float_param(controller_, device_id_, 16, slot, f);
+        return dispatch_float_param(16, slot, f);
     }
 
     MCP2515::ERROR SparkMax::set_motor_type(LowLevel::SparkMax::MotorType t)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_MOTOR_TYPE_UINT, (uint32_t)t);
+        return dispatch_param(SPARK_PARAM_MOTOR_TYPE_UINT, (uint32_t)t);
     }
 
     MCP2515::ERROR SparkMax::set_idle_mode(LowLevel::SparkMax::IdleMode m)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_IDLE_MODE_UINT, (uint32_t)m);
+        return dispatch_param(SPARK_PARAM_IDLE_MODE_UINT, (uint32_t)m);
     }
 
     MCP2515::ERROR SparkMax::set_closed_loop_control_sensor(LowLevel::SparkMax::Sensor s)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_CLOSED_LOOP_CONTROL_SENSOR_UINT,
-                                             (uint32_t)s);
+        return dispatch_param(SPARK_PARAM_CLOSED_LOOP_CONTROL_SENSOR_UINT, (uint32_t)s);
     }
 
     MCP2515::ERROR SparkMax::set_inverted(bool inverted)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_INVERTED_BOOL, inverted);
+        return dispatch_param(SPARK_PARAM_INVERTED_BOOL, inverted ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::set_izone(uint8_t slot, float izone)
     {
-        return write_float_param(controller_, device_id_, 17, slot, izone);
+        return dispatch_float_param(17, slot, izone);
     }
 
     MCP2515::ERROR SparkMax::set_d_filter(uint8_t slot, float dfilter)
     {
-        return write_float_param(controller_, device_id_, 18, slot, dfilter);
+        return dispatch_float_param(18, slot, dfilter);
     }
 
     MCP2515::ERROR SparkMax::set_output_min(uint8_t slot, float v)
     {
-        return write_float_param(controller_, device_id_, 19, slot, v);
+        return dispatch_float_param(19, slot, v);
     }
 
     MCP2515::ERROR SparkMax::set_output_max(uint8_t slot, float v)
     {
-        return write_float_param(controller_, device_id_, 20, slot, v);
+        return dispatch_float_param(20, slot, v);
     }
 
     MCP2515::ERROR SparkMax::set_position_pid_wrap_enable(bool en)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_POSITION_PID_WRAP_ENABLE_BOOL, en);
+        return dispatch_param(SPARK_PARAM_POSITION_PID_WRAP_ENABLE_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::set_position_pid_min_input(float v)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_POSITION_PID_MIN_INPUT_FLOAT, v);
+        union
+        {
+            float    f;
+            uint32_t u;
+        } conv = {.f = v};
+        return dispatch_param(SPARK_PARAM_POSITION_PID_MIN_INPUT_FLOAT, conv.u);
     }
 
     MCP2515::ERROR SparkMax::set_position_pid_max_input(float v)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_POSITION_PID_MAX_INPUT_FLOAT, v);
+        union
+        {
+            float    f;
+            uint32_t u;
+        } conv = {.f = v};
+        return dispatch_param(SPARK_PARAM_POSITION_PID_MAX_INPUT_FLOAT, conv.u);
     }
 
     MCP2515::ERROR SparkMax::set_limit_switch_fwd_polarity(bool polarity)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_LIMIT_SWITCH_FWD_POLARITY_BOOL,
-                                             polarity);
+        return dispatch_param(SPARK_PARAM_LIMIT_SWITCH_FWD_POLARITY_BOOL, polarity ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::set_limit_switch_rev_polarity(bool polarity)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_LIMIT_SWITCH_REV_POLARITY_BOOL,
-                                             polarity);
+        return dispatch_param(SPARK_PARAM_LIMIT_SWITCH_REV_POLARITY_BOOL, polarity ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::enable_hard_limit_fwd(bool en)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_HARD_LIMIT_FWD_EN_BOOL, en);
+        return dispatch_param(SPARK_PARAM_HARD_LIMIT_FWD_EN_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::enable_hard_limit_rev(bool en)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_HARD_LIMIT_REV_EN_BOOL, en);
+        return dispatch_param(SPARK_PARAM_HARD_LIMIT_REV_EN_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::enable_soft_limit_fwd(bool en)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_SOFT_LIMIT_FWD_EN_BOOL, en);
+        return dispatch_param(SPARK_PARAM_SOFT_LIMIT_FWD_EN_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::enable_soft_limit_rev(bool en)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_SOFT_LIMIT_REV_EN_BOOL, en);
+        return dispatch_param(SPARK_PARAM_SOFT_LIMIT_REV_EN_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::set_encoder_counts_per_rev(uint32_t counts)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_ENCODER_COUNTS_PER_REV_UINT, counts);
+        return dispatch_param(SPARK_PARAM_ENCODER_COUNTS_PER_REV_UINT, counts);
     }
 
     MCP2515::ERROR SparkMax::set_encoder_inverted(bool inv)
     {
-        using namespace LowLevel::SparkMax;
-        return (MCP2515::ERROR)set_parameter(*controller_, device_id_, SPARK_PARAM_ENCODER_INVERTED_BOOL, inv);
+        return dispatch_param(SPARK_PARAM_ENCODER_INVERTED_BOOL, inv ? 1u : 0u);
     }
 
     void SparkMax::handle_received_frame(const struct can_frame& frame)
