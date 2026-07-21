@@ -1,5 +1,7 @@
 # CanControl
 
+[![CI](https://github.com/willGuimont/CanControl/actions/workflows/ci.yml/badge.svg)](https://github.com/willGuimont/CanControl/actions/workflows/ci.yml)
+
 **CanControl** is a library for controlling CAN-based motor controllers (REV Spark MAX, CTRE Talon SRX, and CTRE Victor SPX) from **Arduino** boards using an **MCP2515 CAN controller**.
 CanControl currently supports:
 
