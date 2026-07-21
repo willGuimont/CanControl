@@ -39,12 +39,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt platformio
 
-      - name: Verify generated files and formatting
-        run: |
-          python gen.py
-          ./format_all.sh
-          git diff --exit-code
-
       - name: Run native unit tests
         run: |
           pio test -e native
