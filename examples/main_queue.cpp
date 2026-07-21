@@ -26,18 +26,17 @@ static_assert(!(MCP2515_OSC == MCP_8MHZ && SPI_CLOCK_SPEED > 4000000UL),
               "SPI_CLOCK_SPEED too high for MCP_8MHZ; must be <= 4000000UL");
 
 // The Chip Select (CS) pin varies depending on the board used. See README.md for wiring.
-#ifndef MCP2515_CS_PIN
+#ifdef CANCONTROL_MCP2515_CS_PIN
+static constexpr uint8_t MCP2515_CS_PIN = CANCONTROL_MCP2515_CS_PIN;
+#else
 #if defined(ARDUINO_AVR_MEGA2560) || defined(__AVR_ATmega2560__) || defined(ARDUINO_AVR_MEGA)
 static constexpr uint8_t MCP2515_CS_PIN = 53;
 #elif defined(ARDUINO_AVR_UNO) || defined(__AVR_ATmega328P__) || defined(ARDUINO_AVR_NANO)
 static constexpr uint8_t MCP2515_CS_PIN = 10;
 #else
-#warning "Unknown board: defaulting MCP2515_CS_PIN to 10. Define MCP2515_CS_PIN via build_flags to override."
+#warning "Unknown board: defaulting MCP2515_CS_PIN to 10. Define CANCONTROL_MCP2515_CS_PIN to override."
 static constexpr uint8_t MCP2515_CS_PIN = 10;
 #endif
-#else
-// MCP2515_CS_PIN provided by build system
-static constexpr uint8_t MCP2515_CS_PIN = MCP2515_CS_PIN;
 #endif
 
 // Controller to the MCP2515 chip
@@ -180,8 +179,14 @@ void setup()
         }
 
         Serial.println("Flushing configuration...");
-        can_controller.flush();
-        Serial.println("Configuration flushed.");
+        if (can_controller.flush())
+        {
+            Serial.println("Configuration flushed.");
+        }
+        else
+        {
+            Serial.println("Configuration flush timed out; check CAN wiring and termination.");
+        }
     }
 
     print_help();

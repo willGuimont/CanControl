@@ -7,6 +7,8 @@ namespace CanControl
 
     VictorSpx::VictorSpx(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
 
+    VictorSpx::VictorSpx(uint8_t device_id) : controller_(nullptr), device_id_(device_id) {}
+
     uint8_t VictorSpx::get_device_id() const
     {
         return device_id_;

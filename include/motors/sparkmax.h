@@ -187,6 +187,7 @@ namespace CanControl
         float get_encoder_position() const;
 
       protected:
+        explicit SparkMax(uint8_t device_id);
         virtual MCP2515::ERROR dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame, bool periodic = false);
 
         MCP2515* controller_;

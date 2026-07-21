@@ -128,7 +128,7 @@ def render_header(
     lines.append("")
     lines.append("namespace CanControl::LowLevel::SparkMax {")
     lines.append("")
-    lines.append("#define SPARK_DEVICE_ID_MASK 0x3Fu")
+    lines.append("static constexpr uint32_t SPARK_DEVICE_ID_MASK = 0x3Fu;")
     lines.append("")
     # Use the shared low-level basic_can_frame so other motor types can reuse
     # the same representation and conversion helpers.
@@ -146,10 +146,10 @@ def render_header(
             f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name)
         )
         lines.append(f"// {summary}")
-        lines.append(f"#define SPARK_ARB_{name} {arb}u")
+        lines.append(f"static constexpr uint32_t SPARK_ARB_{name} = {arb}u;")
     lines.append("")
 
-    # Convenience macros to test if an ID matches a frame type
+    # Convenience functions to test if an ID matches a frame type
     for key, frame in frames_all.items():
         name = c_ident(key.upper())
         frame_name = frame.get("name", key)
@@ -158,9 +158,11 @@ def render_header(
             f"{frame_name}: {frame_desc}" if frame_desc else str(frame_name)
         )
         lines.append(f"// Match arbitration ID for frame {summary}")
+        lines.append(f"static constexpr bool SPARK_MATCH_{name}(uint32_t id) {{")
         lines.append(
-            f"#define SPARK_MATCH_{name}(id) ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_{name})"
+            f"    return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_{name};"
         )
+        lines.append("}")
     lines.append("")
 
     # Emit per-frame structs and builders
@@ -574,6 +576,12 @@ def render_params(md_path: Path) -> Tuple[str, str]:
     )
     h.append("")
 
+    h.append("// Build a parameter frame without sending it")
+    h.append(
+        "spark_can_frame build_parameter_frame(uint8_t device_id, uint8_t parameter_id, uint32_t value);"
+    )
+    h.append("")
+
     # Generic set_parameter overloads
     h.append("// Generic set_parameter overloads")
     h.append(
@@ -609,8 +617,8 @@ def render_params(md_path: Path) -> Tuple[str, str]:
         elif ptype == "INT32" or ptype == "INT":
             type_suffix = "INT"
 
-        define_name = f"SPARK_PARAM_{c_ident(pname).upper()}_{type_suffix}"
-        h.append(f"#define {define_name} {pid}")
+        constant_name = f"SPARK_PARAM_{c_ident(pname).upper()}_{type_suffix}"
+        h.append(f"static constexpr uint8_t {constant_name} = {pid}u;")
 
     h.append("")
     h.append("} // namespace CanControl::LowLevel::SparkMax")
@@ -627,14 +635,21 @@ def render_params(md_path: Path) -> Tuple[str, str]:
     s.append("")
 
     s.append(
-        "int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value) {"
+        "spark_can_frame build_parameter_frame(uint8_t device_id, uint8_t parameter_id, uint32_t value) {"
     )
     s.append("    Spark_PARAMETER_WRITE_t pw{};")
     s.append("    pw.PARAMETER_ID = parameter_id;")
     s.append("    pw.VALUE = value;")
+    s.append("    return spark_build_PARAMETER_WRITE(device_id, &pw);")
+    s.append("}")
+    s.append("")
+
+    s.append(
+        "int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value) {"
+    )
     s.append("    struct can_frame out{};")
     s.append(
-        "    ::CanControl::LowLevel::basic_to_can_frame(spark_build_PARAMETER_WRITE(device_id, &pw), &out);"
+        "    ::CanControl::LowLevel::basic_to_can_frame(build_parameter_frame(device_id, parameter_id, value), &out);"
     )
     s.append("    return (int)controller.sendMessage(&out);")
     s.append("}")

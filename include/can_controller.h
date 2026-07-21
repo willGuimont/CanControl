@@ -6,6 +6,10 @@
 #include <mcp2515.h>
 #include <stdint.h>
 
+#ifndef CANCONTROL_QUEUE_SIZE
+#define CANCONTROL_QUEUE_SIZE 64
+#endif
+
 namespace CanControl
 {
     /**
@@ -15,9 +19,32 @@ namespace CanControl
     class CanController
     {
       public:
-        static constexpr size_t QUEUE_SIZE = 64;
+        static constexpr size_t QUEUE_SIZE = CANCONTROL_QUEUE_SIZE;
+        static_assert(QUEUE_SIZE > 0, "CANCONTROL_QUEUE_SIZE must be greater than zero");
+
+        class Transport
+        {
+          public:
+            virtual ~Transport()                                                 = default;
+            virtual MCP2515::ERROR reset()                                       = 0;
+            virtual MCP2515::ERROR set_bitrate(CAN_SPEED speed, CAN_CLOCK clock) = 0;
+            virtual MCP2515::ERROR set_normal_one_shot_mode()                    = 0;
+            virtual MCP2515::ERROR send(const struct can_frame& frame)           = 0;
+        };
+
+        class Clock
+        {
+          public:
+            virtual ~Clock()                                          = default;
+            virtual unsigned long now_ms() const                      = 0;
+            virtual void          delay_ms(unsigned long duration_ms) = 0;
+        };
 
         CanController(MCP2515& controller);
+        CanController(Transport& transport, Clock& clock);
+
+        CanController(const CanController&)            = delete;
+        CanController& operator=(const CanController&) = delete;
 
         /**
          * @return true If the frame was added successfully.
@@ -76,12 +103,14 @@ namespace CanControl
         bool has_pending_frames() const;
 
         /**
-         * @brief Blocks until all queued frames have been sent.
+         * @brief Blocks until all queued frames have been sent or the timeout expires.
          * Calls update() and delay() in a loop. Use during setup only.
          *
          * @param interval_ms Polling interval in milliseconds (default 10).
+         * @param timeout_ms Maximum time to wait in milliseconds (default 5000).
+         * @return true if every queued frame was sent, false on timeout.
          */
-        void flush(unsigned long interval_ms = 10);
+        bool flush(unsigned long interval_ms = 10, unsigned long timeout_ms = 5000);
 
         /**
          * @brief Set the minimum interval between sending frames (rate limiting).
@@ -89,11 +118,6 @@ namespace CanControl
          * @param interval_ms Interval in milliseconds.
          */
         void set_send_interval(unsigned long interval_ms);
-
-        MCP2515& get_mcp() const
-        {
-            return controller_;
-        }
 
         /**
          * @brief Interface for devices that need to send a frame periodically
@@ -105,11 +129,11 @@ namespace CanControl
             virtual ~PeriodicSender() = default;
 
             /**
-             * @param mcp Reference to the MCP2515 driver.
-             * @return true If a frame was sent.
-             * @return false If no frame was sent (e.g., timeout or nothing to send).
+             * @param frame Destination for the frame to send.
+             * @param now_ms Current monotonic time.
+             * @return true If a frame is ready to send.
              */
-            virtual bool send_periodic(MCP2515& mcp) = 0;
+            virtual bool get_periodic_frame(struct can_frame& frame, unsigned long now_ms) = 0;
         };
 
         /**
@@ -117,9 +141,20 @@ namespace CanControl
          * @return false If the list is full.
          */
         bool add_periodic_sender(PeriodicSender* sender);
+        bool remove_periodic_sender(PeriodicSender* sender);
+
+        unsigned long now_ms() const;
 
       private:
-        MCP2515& controller_;
+        MCP2515*   controller_ = nullptr;
+        Transport* transport_  = nullptr;
+        Clock*     clock_      = nullptr;
+
+        MCP2515::ERROR reset_transport();
+        MCP2515::ERROR set_bitrate(CAN_SPEED speed, CAN_CLOCK clock);
+        MCP2515::ERROR set_normal_one_shot_mode();
+        MCP2515::ERROR send_frame(const struct can_frame& frame);
+        void           delay_ms(unsigned long duration_ms);
 
         // Circular buffer for queue
         struct can_frame queue_[QUEUE_SIZE];

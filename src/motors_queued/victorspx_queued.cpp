@@ -3,19 +3,27 @@
 namespace CanControl
 {
     VictorSpxQueued::VictorSpxQueued(CanController& controller, uint8_t device_id)
-        : VictorSpx(controller.get_mcp(), device_id), can_controller_(&controller)
+        : VictorSpx(device_id), can_controller_(&controller)
     {
-        can_controller_->add_periodic_sender(this);
+        registered_ = can_controller_->add_periodic_sender(this);
+    }
+
+    VictorSpxQueued::~VictorSpxQueued()
+    {
+        if (registered_)
+            can_controller_->remove_periodic_sender(this);
     }
 
     MCP2515::ERROR VictorSpxQueued::dispatch_frame(const can_frame& frame, bool periodic)
     {
         if (periodic)
         {
+            if (!registered_)
+                return MCP2515::ERROR_FAILINIT;
             // Update periodic frame
             periodic_frame_     = frame;
             has_periodic_frame_ = true;
-            last_update_ms_     = millis();
+            last_update_ms_     = can_controller_->now_ms();
             return MCP2515::ERROR_OK;
         }
 
@@ -29,18 +37,19 @@ namespace CanControl
         }
     }
 
-    bool VictorSpxQueued::send_periodic(MCP2515& mcp)
+    bool VictorSpxQueued::get_periodic_frame(can_frame& frame, unsigned long now_ms)
     {
         if (!has_periodic_frame_)
             return false;
 
         // Check timeout
-        if (millis() - last_update_ms_ > SAFETY_TIMEOUT_MS)
+        if (now_ms - last_update_ms_ > SAFETY_TIMEOUT_MS)
         {
             // Timeout: Stop sending
             return false;
         }
 
-        return mcp.sendMessage(&periodic_frame_) == MCP2515::ERROR_OK;
+        frame = periodic_frame_;
+        return true;
     }
 } // namespace CanControl

@@ -98,179 +98,179 @@ namespace CanControl::LowLevel::SparkMax
     // Generic parameter write helper
     int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value);
 
+    // Build a parameter frame without sending it
+    spark_can_frame build_parameter_frame(uint8_t device_id, uint8_t parameter_id, uint32_t value);
+
     // Generic set_parameter overloads
     int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, float value);
     int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, uint32_t value);
     int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, int32_t value);
     int set_parameter(MCP2515& controller, uint8_t device_id, uint8_t param_id, bool value);
 
-    // Build a PARAMETER_WRITE frame without sending it, for use with dispatch_frame().
-    spark_can_frame build_parameter_frame(uint8_t device_id, uint8_t parameter_id, uint32_t value);
-
-#define SPARK_PARAM_CAN_ID_UINT 0
-#define SPARK_PARAM_INPUT_MODE_UINT 1
-#define SPARK_PARAM_MOTOR_TYPE_UINT 2
-#define SPARK_PARAM_COMMUTATION_ADVANCE_FLOAT 3
-#define SPARK_PARAM_CONTROL_TYPE_UINT 5
-#define SPARK_PARAM_IDLE_MODE_UINT 6
-#define SPARK_PARAM_INPUT_DEADBAND_FLOAT 7
-#define SPARK_PARAM_CLOSED_LOOP_CONTROL_SENSOR_UINT 9
-#define SPARK_PARAM_POLE_PAIRS_UINT 10
-#define SPARK_PARAM_CURRENT_CHOP_FLOAT 11
-#define SPARK_PARAM_CURRENT_CHOP_CYCLES_UINT 12
-#define SPARK_PARAM_P_0_FLOAT 13
-#define SPARK_PARAM_I_0_FLOAT 14
-#define SPARK_PARAM_D_0_FLOAT 15
-#define SPARK_PARAM_F_0_FLOAT 16
-#define SPARK_PARAM_IZONE_0_FLOAT 17
-#define SPARK_PARAM_D_FILTER_0_FLOAT 18
-#define SPARK_PARAM_OUTPUT_MIN_0_FLOAT 19
-#define SPARK_PARAM_OUTPUT_MAX_0_FLOAT 20
-#define SPARK_PARAM_P_1_FLOAT 21
-#define SPARK_PARAM_I_1_FLOAT 22
-#define SPARK_PARAM_D_1_FLOAT 23
-#define SPARK_PARAM_F_1_FLOAT 24
-#define SPARK_PARAM_IZONE_1_FLOAT 25
-#define SPARK_PARAM_D_FILTER_1_FLOAT 26
-#define SPARK_PARAM_OUTPUT_MIN_1_FLOAT 27
-#define SPARK_PARAM_OUTPUT_MAX_1_FLOAT 28
-#define SPARK_PARAM_P_2_FLOAT 29
-#define SPARK_PARAM_I_2_FLOAT 30
-#define SPARK_PARAM_D_2_FLOAT 31
-#define SPARK_PARAM_F_2_FLOAT 32
-#define SPARK_PARAM_IZONE_2_FLOAT 33
-#define SPARK_PARAM_D_FILTER_2_FLOAT 34
-#define SPARK_PARAM_OUTPUT_MIN_2_FLOAT 35
-#define SPARK_PARAM_OUTPUT_MAX_2_FLOAT 36
-#define SPARK_PARAM_P_3_FLOAT 37
-#define SPARK_PARAM_I_3_FLOAT 38
-#define SPARK_PARAM_D_3_FLOAT 39
-#define SPARK_PARAM_F_3_FLOAT 40
-#define SPARK_PARAM_IZONE_3_FLOAT 41
-#define SPARK_PARAM_D_FILTER_3_FLOAT 42
-#define SPARK_PARAM_OUTPUT_MIN_3_FLOAT 43
-#define SPARK_PARAM_OUTPUT_MAX_3_FLOAT 44
-#define SPARK_PARAM_INVERTED_BOOL 45
-#define SPARK_PARAM_LIMIT_SWITCH_FWD_POLARITY_BOOL 50
-#define SPARK_PARAM_LIMIT_SWITCH_REV_POLARITY_BOOL 51
-#define SPARK_PARAM_HARD_LIMIT_FWD_EN_BOOL 52
-#define SPARK_PARAM_HARD_LIMIT_REV_EN_BOOL 53
-#define SPARK_PARAM_SOFT_LIMIT_FWD_EN_BOOL 54
-#define SPARK_PARAM_SOFT_LIMIT_REV_EN_BOOL 55
-#define SPARK_PARAM_OPEN_LOOP_RAMP_RATE_FLOAT 56
-#define SPARK_PARAM_FOLLOWER_ID_UINT 57
-#define SPARK_PARAM_FOLLOWER_CONFIG_UINT 58
-#define SPARK_PARAM_SMART_CURRENT_STALL_LIMIT_UINT 59
-#define SPARK_PARAM_SMART_CURRENT_FREE_LIMIT_UINT 60
-#define SPARK_PARAM_SMART_CURRENT_CONFIG_UINT 61
-#define SPARK_PARAM_SMART_CURRENT_RESERVED_UINT 62
-#define SPARK_PARAM_MOTOR_KV_UINT 63
-#define SPARK_PARAM_ENCODER_COUNTS_PER_REV_UINT 69
-#define SPARK_PARAM_ENCODER_AVERAGE_DEPTH_UINT 70
-#define SPARK_PARAM_ENCODER_SAMPLE_DELTA_UINT 71
-#define SPARK_PARAM_ENCODER_INVERTED_BOOL 72
-#define SPARK_PARAM_VOLTAGE_COMPENSATION_MODE_UINT 74
-#define SPARK_PARAM_COMPENSATED_NOMINAL_VOLTAGE_FLOAT 75
-#define SPARK_PARAM_SMARTMOTION_MAX_VELOCITY_0_FLOAT 76
-#define SPARK_PARAM_SMARTMOTION_MAX_ACCEL_0_FLOAT 77
-#define SPARK_PARAM_SMARTMOTION_MIN_VEL_OUTPUT_0_FLOAT 78
-#define SPARK_PARAM_SMARTMOTION_ALLOWED_CLOSED_LOOP_ERROR_0_FLOAT 79
-#define SPARK_PARAM_SMARTMOTION_ACCEL_STRATEGY_0_UINT 80
-#define SPARK_PARAM_SMARTMOTION_MAX_VELOCITY_1_FLOAT 81
-#define SPARK_PARAM_SMARTMOTION_MAX_ACCEL_1_FLOAT 82
-#define SPARK_PARAM_SMARTMOTION_MIN_VEL_OUTPUT_1_FLOAT 83
-#define SPARK_PARAM_SMARTMOTION_ALLOWED_CLOSED_LOOP_ERROR_1_FLOAT 84
-#define SPARK_PARAM_SMARTMOTION_ACCEL_STRATEGY_1_UINT 85
-#define SPARK_PARAM_SMARTMOTION_MAX_VELOCITY_2_FLOAT 86
-#define SPARK_PARAM_SMARTMOTION_MAX_ACCEL_2_FLOAT 87
-#define SPARK_PARAM_SMARTMOTION_MIN_VEL_OUTPUT_2_FLOAT 88
-#define SPARK_PARAM_SMARTMOTION_ALLOWED_CLOSED_LOOP_ERROR_2_FLOAT 89
-#define SPARK_PARAM_SMARTMOTION_ACCEL_STRATEGY_2_UINT 90
-#define SPARK_PARAM_SMARTMOTION_MAX_VELOCITY_3_FLOAT 91
-#define SPARK_PARAM_SMARTMOTION_MAX_ACCEL_3_FLOAT 92
-#define SPARK_PARAM_SMARTMOTION_MIN_VEL_OUTPUT_3_FLOAT 93
-#define SPARK_PARAM_SMARTMOTION_ALLOWED_CLOSED_LOOP_ERROR_3_FLOAT 94
-#define SPARK_PARAM_SMARTMOTION_ACCEL_STRATEGY_3_UINT 95
-#define SPARK_PARAM_I_MAX_ACCUM_0_FLOAT 96
-#define SPARK_PARAM_I_MAX_ACCUM_1_FLOAT 100
-#define SPARK_PARAM_I_MAX_ACCUM_2_FLOAT 104
-#define SPARK_PARAM_I_MAX_ACCUM_3_FLOAT 108
-#define SPARK_PARAM_POSITION_CONVERSION_FACTOR_FLOAT 112
-#define SPARK_PARAM_VELOCITY_CONVERSION_FACTOR_FLOAT 113
-#define SPARK_PARAM_CLOSED_LOOP_RAMP_RATE_FLOAT 114
-#define SPARK_PARAM_SOFT_LIMIT_FORWARD_FLOAT 115
-#define SPARK_PARAM_SOFT_LIMIT_REVERSE_FLOAT 116
-#define SPARK_PARAM_ANALOG_POSITION_CONVERSION_FLOAT 119
-#define SPARK_PARAM_ANALOG_VELOCITY_CONVERSION_FLOAT 120
-#define SPARK_PARAM_ANALOG_AVERAGE_DEPTH_UINT 121
-#define SPARK_PARAM_ANALOG_SENSOR_MODE_UINT 122
-#define SPARK_PARAM_ANALOG_INVERTED_BOOL 123
-#define SPARK_PARAM_ANALOG_SAMPLE_DELTA_UINT 124
-#define SPARK_PARAM_COMPATIBILITY_PORT_CONFIG_UINT 127
-#define SPARK_PARAM_ALT_ENCODER_COUNTS_PER_REV_UINT 128
-#define SPARK_PARAM_ALT_ENCODER_AVERAGE_DEPTH_UINT 129
-#define SPARK_PARAM_ALT_ENCODER_SAMPLE_DELTA_UINT 130
-#define SPARK_PARAM_ALT_ENCODER_INVERTED_BOOL 131
-#define SPARK_PARAM_ALT_ENCODER_POSITION_CONVERSION_FLOAT 132
-#define SPARK_PARAM_ALT_ENCODER_VELOCITY_CONVERSION_FLOAT 133
-#define SPARK_PARAM_UVW_SENSOR_SAMPLE_RATE_FLOAT 136
-#define SPARK_PARAM_UVW_SENSOR_AVERAGE_DEPTH_UINT 137
-#define SPARK_PARAM_NUM_PARAMETERS_UINT 138
-#define SPARK_PARAM_DUTY_CYCLE_POSITION_FACTOR_FLOAT 139
-#define SPARK_PARAM_DUTY_CYCLE_VELOCITY_FACTOR_FLOAT 140
-#define SPARK_PARAM_DUTY_CYCLE_INVERTED_BOOL 141
-#define SPARK_PARAM_DUTY_CYCLE_SENSOR_MODE_UINT 142
-#define SPARK_PARAM_DUTY_CYCLE_AVERAGE_DEPTH_UINT 143
-#define SPARK_PARAM_DUTY_CYCLE_OFFSET_LEGACY_FLOAT 145
-#define SPARK_PARAM_POSITION_PID_WRAP_ENABLE_BOOL 149
-#define SPARK_PARAM_POSITION_PID_MIN_INPUT_FLOAT 150
-#define SPARK_PARAM_POSITION_PID_MAX_INPUT_FLOAT 151
-#define SPARK_PARAM_DUTY_CYCLE_ZERO_CENTERED_BOOL 152
-#define SPARK_PARAM_DUTY_CYCLE_SENSOR_PRESCALER_UINT 153
-#define SPARK_PARAM_DUTY_CYCLE_OFFSET_FLOAT 154
-#define SPARK_PARAM_PRODUCT_ID_UINT 155
-#define SPARK_PARAM_DEVICE_MAJOR_VERSION_UINT 156
-#define SPARK_PARAM_DEVICE_MINOR_VERSION_UINT 157
-#define SPARK_PARAM_STATUS_0_PERIOD_UINT 158
-#define SPARK_PARAM_STATUS_1_PERIOD_UINT 159
-#define SPARK_PARAM_STATUS_2_PERIOD_UINT 160
-#define SPARK_PARAM_STATUS_3_PERIOD_UINT 161
-#define SPARK_PARAM_STATUS_4_PERIOD_UINT 162
-#define SPARK_PARAM_STATUS_5_PERIOD_UINT 163
-#define SPARK_PARAM_STATUS_6_PERIOD_UINT 164
-#define SPARK_PARAM_STATUS_7_PERIOD_UINT 165
-#define SPARK_PARAM_MAXMOTION_MAX_VELOCITY_0_FLOAT 166
-#define SPARK_PARAM_MAXMOTION_MAX_ACCEL_0_FLOAT 167
-#define SPARK_PARAM_MAXMOTION_MAX_JERK_0_FLOAT 168
-#define SPARK_PARAM_MAXMOTION_ALLOWED_CLOSED_LOOP_ERROR_0_FLOAT 169
-#define SPARK_PARAM_MAXMOTION_POSITION_MODE_0_UINT 170
-#define SPARK_PARAM_MAXMOTION_MAX_VELOCITY_1_FLOAT 171
-#define SPARK_PARAM_MAXMOTION_MAX_ACCEL_1_FLOAT 172
-#define SPARK_PARAM_MAXMOTION_MAX_JERK_1_FLOAT 173
-#define SPARK_PARAM_MAXMOTION_ALLOWED_CLOSED_LOOP_ERROR_1_FLOAT 174
-#define SPARK_PARAM_MAXMOTION_POSITION_MODE_1_UINT 175
-#define SPARK_PARAM_MAXMOTION_MAX_VELOCITY_2_FLOAT 176
-#define SPARK_PARAM_MAXMOTION_MAX_ACCEL_2_FLOAT 177
-#define SPARK_PARAM_MAXMOTION_MAX_JERK_2_FLOAT 178
-#define SPARK_PARAM_MAXMOTION_ALLOWED_CLOSED_LOOP_ERROR_2_FLOAT 179
-#define SPARK_PARAM_MAXMOTION_POSITION_MODE_2_UINT 180
-#define SPARK_PARAM_MAXMOTION_MAX_VELOCITY_3_FLOAT 181
-#define SPARK_PARAM_MAXMOTION_MAX_ACCEL_3_FLOAT 182
-#define SPARK_PARAM_MAXMOTION_MAX_JERK_3_FLOAT 183
-#define SPARK_PARAM_MAXMOTION_ALLOWED_CLOSED_LOOP_ERROR_3_FLOAT 184
-#define SPARK_PARAM_MAXMOTION_POSITION_MODE_3_UINT 185
-#define SPARK_PARAM_FORCE_ENABLE_STATUS_0_BOOL 186
-#define SPARK_PARAM_FORCE_ENABLE_STATUS_1_BOOL 187
-#define SPARK_PARAM_FORCE_ENABLE_STATUS_2_BOOL 188
-#define SPARK_PARAM_FORCE_ENABLE_STATUS_3_BOOL 189
-#define SPARK_PARAM_FORCE_ENABLE_STATUS_4_BOOL 190
-#define SPARK_PARAM_FORCE_ENABLE_STATUS_5_BOOL 191
-#define SPARK_PARAM_FORCE_ENABLE_STATUS_6_BOOL 192
-#define SPARK_PARAM_FORCE_ENABLE_STATUS_7_BOOL 193
-#define SPARK_PARAM_FOLLOWER_MODE_LEADER_ID_UINT 194
-#define SPARK_PARAM_FOLLOWER_MODE_IS_INVERTED_BOOL 195
-#define SPARK_PARAM_DUTY_CYCLE_ENCODER_START_PULSE_US_FLOAT 196
-#define SPARK_PARAM_DUTY_CYCLE_ENCODER_END_PULSE_US_FLOAT 197
-#define SPARK_PARAM_PARAM_TABLE_VERSION_UINT 198
+    static constexpr uint8_t SPARK_PARAM_CAN_ID_UINT                                   = 0u;
+    static constexpr uint8_t SPARK_PARAM_INPUT_MODE_UINT                               = 1u;
+    static constexpr uint8_t SPARK_PARAM_MOTOR_TYPE_UINT                               = 2u;
+    static constexpr uint8_t SPARK_PARAM_COMMUTATION_ADVANCE_FLOAT                     = 3u;
+    static constexpr uint8_t SPARK_PARAM_CONTROL_TYPE_UINT                             = 5u;
+    static constexpr uint8_t SPARK_PARAM_IDLE_MODE_UINT                                = 6u;
+    static constexpr uint8_t SPARK_PARAM_INPUT_DEADBAND_FLOAT                          = 7u;
+    static constexpr uint8_t SPARK_PARAM_CLOSED_LOOP_CONTROL_SENSOR_UINT               = 9u;
+    static constexpr uint8_t SPARK_PARAM_POLE_PAIRS_UINT                               = 10u;
+    static constexpr uint8_t SPARK_PARAM_CURRENT_CHOP_FLOAT                            = 11u;
+    static constexpr uint8_t SPARK_PARAM_CURRENT_CHOP_CYCLES_UINT                      = 12u;
+    static constexpr uint8_t SPARK_PARAM_P_0_FLOAT                                     = 13u;
+    static constexpr uint8_t SPARK_PARAM_I_0_FLOAT                                     = 14u;
+    static constexpr uint8_t SPARK_PARAM_D_0_FLOAT                                     = 15u;
+    static constexpr uint8_t SPARK_PARAM_F_0_FLOAT                                     = 16u;
+    static constexpr uint8_t SPARK_PARAM_IZONE_0_FLOAT                                 = 17u;
+    static constexpr uint8_t SPARK_PARAM_D_FILTER_0_FLOAT                              = 18u;
+    static constexpr uint8_t SPARK_PARAM_OUTPUT_MIN_0_FLOAT                            = 19u;
+    static constexpr uint8_t SPARK_PARAM_OUTPUT_MAX_0_FLOAT                            = 20u;
+    static constexpr uint8_t SPARK_PARAM_P_1_FLOAT                                     = 21u;
+    static constexpr uint8_t SPARK_PARAM_I_1_FLOAT                                     = 22u;
+    static constexpr uint8_t SPARK_PARAM_D_1_FLOAT                                     = 23u;
+    static constexpr uint8_t SPARK_PARAM_F_1_FLOAT                                     = 24u;
+    static constexpr uint8_t SPARK_PARAM_IZONE_1_FLOAT                                 = 25u;
+    static constexpr uint8_t SPARK_PARAM_D_FILTER_1_FLOAT                              = 26u;
+    static constexpr uint8_t SPARK_PARAM_OUTPUT_MIN_1_FLOAT                            = 27u;
+    static constexpr uint8_t SPARK_PARAM_OUTPUT_MAX_1_FLOAT                            = 28u;
+    static constexpr uint8_t SPARK_PARAM_P_2_FLOAT                                     = 29u;
+    static constexpr uint8_t SPARK_PARAM_I_2_FLOAT                                     = 30u;
+    static constexpr uint8_t SPARK_PARAM_D_2_FLOAT                                     = 31u;
+    static constexpr uint8_t SPARK_PARAM_F_2_FLOAT                                     = 32u;
+    static constexpr uint8_t SPARK_PARAM_IZONE_2_FLOAT                                 = 33u;
+    static constexpr uint8_t SPARK_PARAM_D_FILTER_2_FLOAT                              = 34u;
+    static constexpr uint8_t SPARK_PARAM_OUTPUT_MIN_2_FLOAT                            = 35u;
+    static constexpr uint8_t SPARK_PARAM_OUTPUT_MAX_2_FLOAT                            = 36u;
+    static constexpr uint8_t SPARK_PARAM_P_3_FLOAT                                     = 37u;
+    static constexpr uint8_t SPARK_PARAM_I_3_FLOAT                                     = 38u;
+    static constexpr uint8_t SPARK_PARAM_D_3_FLOAT                                     = 39u;
+    static constexpr uint8_t SPARK_PARAM_F_3_FLOAT                                     = 40u;
+    static constexpr uint8_t SPARK_PARAM_IZONE_3_FLOAT                                 = 41u;
+    static constexpr uint8_t SPARK_PARAM_D_FILTER_3_FLOAT                              = 42u;
+    static constexpr uint8_t SPARK_PARAM_OUTPUT_MIN_3_FLOAT                            = 43u;
+    static constexpr uint8_t SPARK_PARAM_OUTPUT_MAX_3_FLOAT                            = 44u;
+    static constexpr uint8_t SPARK_PARAM_INVERTED_BOOL                                 = 45u;
+    static constexpr uint8_t SPARK_PARAM_LIMIT_SWITCH_FWD_POLARITY_BOOL                = 50u;
+    static constexpr uint8_t SPARK_PARAM_LIMIT_SWITCH_REV_POLARITY_BOOL                = 51u;
+    static constexpr uint8_t SPARK_PARAM_HARD_LIMIT_FWD_EN_BOOL                        = 52u;
+    static constexpr uint8_t SPARK_PARAM_HARD_LIMIT_REV_EN_BOOL                        = 53u;
+    static constexpr uint8_t SPARK_PARAM_SOFT_LIMIT_FWD_EN_BOOL                        = 54u;
+    static constexpr uint8_t SPARK_PARAM_SOFT_LIMIT_REV_EN_BOOL                        = 55u;
+    static constexpr uint8_t SPARK_PARAM_OPEN_LOOP_RAMP_RATE_FLOAT                     = 56u;
+    static constexpr uint8_t SPARK_PARAM_FOLLOWER_ID_UINT                              = 57u;
+    static constexpr uint8_t SPARK_PARAM_FOLLOWER_CONFIG_UINT                          = 58u;
+    static constexpr uint8_t SPARK_PARAM_SMART_CURRENT_STALL_LIMIT_UINT                = 59u;
+    static constexpr uint8_t SPARK_PARAM_SMART_CURRENT_FREE_LIMIT_UINT                 = 60u;
+    static constexpr uint8_t SPARK_PARAM_SMART_CURRENT_CONFIG_UINT                     = 61u;
+    static constexpr uint8_t SPARK_PARAM_SMART_CURRENT_RESERVED_UINT                   = 62u;
+    static constexpr uint8_t SPARK_PARAM_MOTOR_KV_UINT                                 = 63u;
+    static constexpr uint8_t SPARK_PARAM_ENCODER_COUNTS_PER_REV_UINT                   = 69u;
+    static constexpr uint8_t SPARK_PARAM_ENCODER_AVERAGE_DEPTH_UINT                    = 70u;
+    static constexpr uint8_t SPARK_PARAM_ENCODER_SAMPLE_DELTA_UINT                     = 71u;
+    static constexpr uint8_t SPARK_PARAM_ENCODER_INVERTED_BOOL                         = 72u;
+    static constexpr uint8_t SPARK_PARAM_VOLTAGE_COMPENSATION_MODE_UINT                = 74u;
+    static constexpr uint8_t SPARK_PARAM_COMPENSATED_NOMINAL_VOLTAGE_FLOAT             = 75u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MAX_VELOCITY_0_FLOAT              = 76u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MAX_ACCEL_0_FLOAT                 = 77u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MIN_VEL_OUTPUT_0_FLOAT            = 78u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_ALLOWED_CLOSED_LOOP_ERROR_0_FLOAT = 79u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_ACCEL_STRATEGY_0_UINT             = 80u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MAX_VELOCITY_1_FLOAT              = 81u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MAX_ACCEL_1_FLOAT                 = 82u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MIN_VEL_OUTPUT_1_FLOAT            = 83u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_ALLOWED_CLOSED_LOOP_ERROR_1_FLOAT = 84u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_ACCEL_STRATEGY_1_UINT             = 85u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MAX_VELOCITY_2_FLOAT              = 86u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MAX_ACCEL_2_FLOAT                 = 87u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MIN_VEL_OUTPUT_2_FLOAT            = 88u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_ALLOWED_CLOSED_LOOP_ERROR_2_FLOAT = 89u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_ACCEL_STRATEGY_2_UINT             = 90u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MAX_VELOCITY_3_FLOAT              = 91u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MAX_ACCEL_3_FLOAT                 = 92u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_MIN_VEL_OUTPUT_3_FLOAT            = 93u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_ALLOWED_CLOSED_LOOP_ERROR_3_FLOAT = 94u;
+    static constexpr uint8_t SPARK_PARAM_SMARTMOTION_ACCEL_STRATEGY_3_UINT             = 95u;
+    static constexpr uint8_t SPARK_PARAM_I_MAX_ACCUM_0_FLOAT                           = 96u;
+    static constexpr uint8_t SPARK_PARAM_I_MAX_ACCUM_1_FLOAT                           = 100u;
+    static constexpr uint8_t SPARK_PARAM_I_MAX_ACCUM_2_FLOAT                           = 104u;
+    static constexpr uint8_t SPARK_PARAM_I_MAX_ACCUM_3_FLOAT                           = 108u;
+    static constexpr uint8_t SPARK_PARAM_POSITION_CONVERSION_FACTOR_FLOAT              = 112u;
+    static constexpr uint8_t SPARK_PARAM_VELOCITY_CONVERSION_FACTOR_FLOAT              = 113u;
+    static constexpr uint8_t SPARK_PARAM_CLOSED_LOOP_RAMP_RATE_FLOAT                   = 114u;
+    static constexpr uint8_t SPARK_PARAM_SOFT_LIMIT_FORWARD_FLOAT                      = 115u;
+    static constexpr uint8_t SPARK_PARAM_SOFT_LIMIT_REVERSE_FLOAT                      = 116u;
+    static constexpr uint8_t SPARK_PARAM_ANALOG_POSITION_CONVERSION_FLOAT              = 119u;
+    static constexpr uint8_t SPARK_PARAM_ANALOG_VELOCITY_CONVERSION_FLOAT              = 120u;
+    static constexpr uint8_t SPARK_PARAM_ANALOG_AVERAGE_DEPTH_UINT                     = 121u;
+    static constexpr uint8_t SPARK_PARAM_ANALOG_SENSOR_MODE_UINT                       = 122u;
+    static constexpr uint8_t SPARK_PARAM_ANALOG_INVERTED_BOOL                          = 123u;
+    static constexpr uint8_t SPARK_PARAM_ANALOG_SAMPLE_DELTA_UINT                      = 124u;
+    static constexpr uint8_t SPARK_PARAM_COMPATIBILITY_PORT_CONFIG_UINT                = 127u;
+    static constexpr uint8_t SPARK_PARAM_ALT_ENCODER_COUNTS_PER_REV_UINT               = 128u;
+    static constexpr uint8_t SPARK_PARAM_ALT_ENCODER_AVERAGE_DEPTH_UINT                = 129u;
+    static constexpr uint8_t SPARK_PARAM_ALT_ENCODER_SAMPLE_DELTA_UINT                 = 130u;
+    static constexpr uint8_t SPARK_PARAM_ALT_ENCODER_INVERTED_BOOL                     = 131u;
+    static constexpr uint8_t SPARK_PARAM_ALT_ENCODER_POSITION_CONVERSION_FLOAT         = 132u;
+    static constexpr uint8_t SPARK_PARAM_ALT_ENCODER_VELOCITY_CONVERSION_FLOAT         = 133u;
+    static constexpr uint8_t SPARK_PARAM_UVW_SENSOR_SAMPLE_RATE_FLOAT                  = 136u;
+    static constexpr uint8_t SPARK_PARAM_UVW_SENSOR_AVERAGE_DEPTH_UINT                 = 137u;
+    static constexpr uint8_t SPARK_PARAM_NUM_PARAMETERS_UINT                           = 138u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_POSITION_FACTOR_FLOAT              = 139u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_VELOCITY_FACTOR_FLOAT              = 140u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_INVERTED_BOOL                      = 141u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_SENSOR_MODE_UINT                   = 142u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_AVERAGE_DEPTH_UINT                 = 143u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_OFFSET_LEGACY_FLOAT                = 145u;
+    static constexpr uint8_t SPARK_PARAM_POSITION_PID_WRAP_ENABLE_BOOL                 = 149u;
+    static constexpr uint8_t SPARK_PARAM_POSITION_PID_MIN_INPUT_FLOAT                  = 150u;
+    static constexpr uint8_t SPARK_PARAM_POSITION_PID_MAX_INPUT_FLOAT                  = 151u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_ZERO_CENTERED_BOOL                 = 152u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_SENSOR_PRESCALER_UINT              = 153u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_OFFSET_FLOAT                       = 154u;
+    static constexpr uint8_t SPARK_PARAM_PRODUCT_ID_UINT                               = 155u;
+    static constexpr uint8_t SPARK_PARAM_DEVICE_MAJOR_VERSION_UINT                     = 156u;
+    static constexpr uint8_t SPARK_PARAM_DEVICE_MINOR_VERSION_UINT                     = 157u;
+    static constexpr uint8_t SPARK_PARAM_STATUS_0_PERIOD_UINT                          = 158u;
+    static constexpr uint8_t SPARK_PARAM_STATUS_1_PERIOD_UINT                          = 159u;
+    static constexpr uint8_t SPARK_PARAM_STATUS_2_PERIOD_UINT                          = 160u;
+    static constexpr uint8_t SPARK_PARAM_STATUS_3_PERIOD_UINT                          = 161u;
+    static constexpr uint8_t SPARK_PARAM_STATUS_4_PERIOD_UINT                          = 162u;
+    static constexpr uint8_t SPARK_PARAM_STATUS_5_PERIOD_UINT                          = 163u;
+    static constexpr uint8_t SPARK_PARAM_STATUS_6_PERIOD_UINT                          = 164u;
+    static constexpr uint8_t SPARK_PARAM_STATUS_7_PERIOD_UINT                          = 165u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_VELOCITY_0_FLOAT                = 166u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_ACCEL_0_FLOAT                   = 167u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_JERK_0_FLOAT                    = 168u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_ALLOWED_CLOSED_LOOP_ERROR_0_FLOAT   = 169u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_POSITION_MODE_0_UINT                = 170u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_VELOCITY_1_FLOAT                = 171u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_ACCEL_1_FLOAT                   = 172u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_JERK_1_FLOAT                    = 173u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_ALLOWED_CLOSED_LOOP_ERROR_1_FLOAT   = 174u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_POSITION_MODE_1_UINT                = 175u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_VELOCITY_2_FLOAT                = 176u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_ACCEL_2_FLOAT                   = 177u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_JERK_2_FLOAT                    = 178u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_ALLOWED_CLOSED_LOOP_ERROR_2_FLOAT   = 179u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_POSITION_MODE_2_UINT                = 180u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_VELOCITY_3_FLOAT                = 181u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_ACCEL_3_FLOAT                   = 182u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_MAX_JERK_3_FLOAT                    = 183u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_ALLOWED_CLOSED_LOOP_ERROR_3_FLOAT   = 184u;
+    static constexpr uint8_t SPARK_PARAM_MAXMOTION_POSITION_MODE_3_UINT                = 185u;
+    static constexpr uint8_t SPARK_PARAM_FORCE_ENABLE_STATUS_0_BOOL                    = 186u;
+    static constexpr uint8_t SPARK_PARAM_FORCE_ENABLE_STATUS_1_BOOL                    = 187u;
+    static constexpr uint8_t SPARK_PARAM_FORCE_ENABLE_STATUS_2_BOOL                    = 188u;
+    static constexpr uint8_t SPARK_PARAM_FORCE_ENABLE_STATUS_3_BOOL                    = 189u;
+    static constexpr uint8_t SPARK_PARAM_FORCE_ENABLE_STATUS_4_BOOL                    = 190u;
+    static constexpr uint8_t SPARK_PARAM_FORCE_ENABLE_STATUS_5_BOOL                    = 191u;
+    static constexpr uint8_t SPARK_PARAM_FORCE_ENABLE_STATUS_6_BOOL                    = 192u;
+    static constexpr uint8_t SPARK_PARAM_FORCE_ENABLE_STATUS_7_BOOL                    = 193u;
+    static constexpr uint8_t SPARK_PARAM_FOLLOWER_MODE_LEADER_ID_UINT                  = 194u;
+    static constexpr uint8_t SPARK_PARAM_FOLLOWER_MODE_IS_INVERTED_BOOL                = 195u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_ENCODER_START_PULSE_US_FLOAT       = 196u;
+    static constexpr uint8_t SPARK_PARAM_DUTY_CYCLE_ENCODER_END_PULSE_US_FLOAT         = 197u;
+    static constexpr uint8_t SPARK_PARAM_PARAM_TABLE_VERSION_UINT                      = 198u;
 
 } // namespace CanControl::LowLevel::SparkMax

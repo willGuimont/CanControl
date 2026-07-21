@@ -17,11 +17,8 @@ namespace CanControl::LowLevel::SparkMax
 
     int write_parameter_raw(MCP2515& controller, uint8_t device_id, uint8_t parameter_id, uint32_t value)
     {
-        Spark_PARAMETER_WRITE_t pw{};
-        pw.PARAMETER_ID = parameter_id;
-        pw.VALUE        = value;
         struct can_frame out{};
-        ::CanControl::LowLevel::basic_to_can_frame(spark_build_PARAMETER_WRITE(device_id, &pw), &out);
+        ::CanControl::LowLevel::basic_to_can_frame(build_parameter_frame(device_id, parameter_id, value), &out);
         return (int)controller.sendMessage(&out);
     }
 

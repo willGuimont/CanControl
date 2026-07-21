@@ -11,6 +11,8 @@ namespace CanControl
 
     SparkMax::SparkMax(MCP2515& controller, uint8_t device_id) : controller_(&controller), device_id_(device_id) {}
 
+    SparkMax::SparkMax(uint8_t device_id) : controller_(nullptr), device_id_(device_id) {}
+
     uint8_t SparkMax::get_device_id() const
     {
         return device_id_;
@@ -18,6 +20,8 @@ namespace CanControl
 
     MCP2515::ERROR SparkMax::dispatch_frame(const LowLevel::SparkMax::spark_can_frame& frame, bool periodic)
     {
+        if (controller_ == nullptr)
+            return MCP2515::ERROR_FAILINIT;
         struct can_frame out{};
         LowLevel::basic_to_can_frame(frame, &out);
         return controller_->sendMessage(&out);
@@ -123,22 +127,22 @@ namespace CanControl
 
     MCP2515::ERROR SparkMax::set_motor_type(LowLevel::SparkMax::MotorType t)
     {
-        return dispatch_param(SPARK_PARAM_MOTOR_TYPE_UINT, (uint32_t)t);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_MOTOR_TYPE_UINT, (uint32_t)t);
     }
 
     MCP2515::ERROR SparkMax::set_idle_mode(LowLevel::SparkMax::IdleMode m)
     {
-        return dispatch_param(SPARK_PARAM_IDLE_MODE_UINT, (uint32_t)m);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_IDLE_MODE_UINT, (uint32_t)m);
     }
 
     MCP2515::ERROR SparkMax::set_closed_loop_control_sensor(LowLevel::SparkMax::Sensor s)
     {
-        return dispatch_param(SPARK_PARAM_CLOSED_LOOP_CONTROL_SENSOR_UINT, (uint32_t)s);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_CLOSED_LOOP_CONTROL_SENSOR_UINT, (uint32_t)s);
     }
 
     MCP2515::ERROR SparkMax::set_inverted(bool inverted)
     {
-        return dispatch_param(SPARK_PARAM_INVERTED_BOOL, inverted ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_INVERTED_BOOL, inverted ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::set_izone(uint8_t slot, float izone)
@@ -163,7 +167,7 @@ namespace CanControl
 
     MCP2515::ERROR SparkMax::set_position_pid_wrap_enable(bool en)
     {
-        return dispatch_param(SPARK_PARAM_POSITION_PID_WRAP_ENABLE_BOOL, en ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_POSITION_PID_WRAP_ENABLE_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::set_position_pid_min_input(float v)
@@ -173,7 +177,7 @@ namespace CanControl
             float    f;
             uint32_t u;
         } conv = {.f = v};
-        return dispatch_param(SPARK_PARAM_POSITION_PID_MIN_INPUT_FLOAT, conv.u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_POSITION_PID_MIN_INPUT_FLOAT, conv.u);
     }
 
     MCP2515::ERROR SparkMax::set_position_pid_max_input(float v)
@@ -183,47 +187,47 @@ namespace CanControl
             float    f;
             uint32_t u;
         } conv = {.f = v};
-        return dispatch_param(SPARK_PARAM_POSITION_PID_MAX_INPUT_FLOAT, conv.u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_POSITION_PID_MAX_INPUT_FLOAT, conv.u);
     }
 
     MCP2515::ERROR SparkMax::set_limit_switch_fwd_polarity(bool polarity)
     {
-        return dispatch_param(SPARK_PARAM_LIMIT_SWITCH_FWD_POLARITY_BOOL, polarity ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_LIMIT_SWITCH_FWD_POLARITY_BOOL, polarity ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::set_limit_switch_rev_polarity(bool polarity)
     {
-        return dispatch_param(SPARK_PARAM_LIMIT_SWITCH_REV_POLARITY_BOOL, polarity ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_LIMIT_SWITCH_REV_POLARITY_BOOL, polarity ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::enable_hard_limit_fwd(bool en)
     {
-        return dispatch_param(SPARK_PARAM_HARD_LIMIT_FWD_EN_BOOL, en ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_HARD_LIMIT_FWD_EN_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::enable_hard_limit_rev(bool en)
     {
-        return dispatch_param(SPARK_PARAM_HARD_LIMIT_REV_EN_BOOL, en ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_HARD_LIMIT_REV_EN_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::enable_soft_limit_fwd(bool en)
     {
-        return dispatch_param(SPARK_PARAM_SOFT_LIMIT_FWD_EN_BOOL, en ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_SOFT_LIMIT_FWD_EN_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::enable_soft_limit_rev(bool en)
     {
-        return dispatch_param(SPARK_PARAM_SOFT_LIMIT_REV_EN_BOOL, en ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_SOFT_LIMIT_REV_EN_BOOL, en ? 1u : 0u);
     }
 
     MCP2515::ERROR SparkMax::set_encoder_counts_per_rev(uint32_t counts)
     {
-        return dispatch_param(SPARK_PARAM_ENCODER_COUNTS_PER_REV_UINT, counts);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_ENCODER_COUNTS_PER_REV_UINT, counts);
     }
 
     MCP2515::ERROR SparkMax::set_encoder_inverted(bool inv)
     {
-        return dispatch_param(SPARK_PARAM_ENCODER_INVERTED_BOOL, inv ? 1u : 0u);
+        return dispatch_param(LowLevel::SparkMax::SPARK_PARAM_ENCODER_INVERTED_BOOL, inv ? 1u : 0u);
     }
 
     void SparkMax::handle_received_frame(const struct can_frame& frame)
@@ -234,7 +238,7 @@ namespace CanControl
         basic_can_frame bf{};
         // Mask off MCP2515 flags and extract 29-bit id
         bf.id     = (uint32_t)(frame.can_id & CanControl::frc_can_id::MASK_frc_id);
-        bf.dlc    = frame.can_dlc;
+        bf.dlc    = frame.can_dlc > CLASSIC_CAN_MAX_DLC ? CLASSIC_CAN_MAX_DLC : frame.can_dlc;
         bf.is_rtr = (frame.can_id & RTR_FLAG) != 0;
         if (bf.dlc > 0)
             memcpy(bf.data, frame.data, bf.dlc);

@@ -2,11 +2,71 @@
 
 #include "CanControl.h"
 
+#ifndef ARDUINO
+#include <chrono>
+#include <thread>
+#endif
+
 namespace CanControl
 {
 
-    CanController::CanController(MCP2515& controller) : controller_(controller), heartbeat_state_(default_heartbeat())
+    CanController::CanController(MCP2515& controller) : controller_(&controller), heartbeat_state_(default_heartbeat())
     {
+    }
+
+    CanController::CanController(Transport& transport, Clock& clock)
+        : transport_(&transport), clock_(&clock), heartbeat_state_(default_heartbeat())
+    {
+    }
+
+    MCP2515::ERROR CanController::reset_transport()
+    {
+        return transport_ ? transport_->reset() : controller_->reset();
+    }
+
+    MCP2515::ERROR CanController::set_bitrate(CAN_SPEED speed, CAN_CLOCK clock)
+    {
+        return transport_ ? transport_->set_bitrate(speed, clock) : controller_->setBitrate(speed, clock);
+    }
+
+    MCP2515::ERROR CanController::set_normal_one_shot_mode()
+    {
+        return transport_ ? transport_->set_normal_one_shot_mode() : controller_->setNormalOneShotMode();
+    }
+
+    MCP2515::ERROR CanController::send_frame(const struct can_frame& frame)
+    {
+        if (transport_)
+            return transport_->send(frame);
+
+        struct can_frame copy = frame;
+        return controller_->sendMessage(&copy);
+    }
+
+    unsigned long CanController::now_ms() const
+    {
+        if (clock_)
+            return clock_->now_ms();
+#ifdef ARDUINO
+        return millis();
+#else
+        using namespace std::chrono;
+        return static_cast<unsigned long>(duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count());
+#endif
+    }
+
+    void CanController::delay_ms(unsigned long duration_ms)
+    {
+        if (clock_)
+        {
+            clock_->delay_ms(duration_ms);
+            return;
+        }
+#ifdef ARDUINO
+        delay(duration_ms);
+#else
+        std::this_thread::sleep_for(std::chrono::milliseconds(duration_ms));
+#endif
     }
 
     bool CanController::queue_frame(const struct can_frame& frame)
@@ -29,26 +89,26 @@ namespace CanControl
     {
         MCP2515::ERROR error = MCP2515::ERROR_OK;
 
-        MCP2515::ERROR e1 = controller_.reset();
+        MCP2515::ERROR e1 = reset_transport();
         if (e1 != MCP2515::ERROR_OK)
         {
             error = e1;
         }
-        delay(10);
+        delay_ms(10);
 
-        MCP2515::ERROR e2 = controller_.setBitrate(speed, clock);
+        MCP2515::ERROR e2 = set_bitrate(speed, clock);
         if (e2 != MCP2515::ERROR_OK)
         {
             error = e2;
         }
-        delay(10);
+        delay_ms(10);
 
-        MCP2515::ERROR e3 = controller_.setNormalOneShotMode();
+        MCP2515::ERROR e3 = set_normal_one_shot_mode();
         if (e3 != MCP2515::ERROR_OK)
         {
             error = e3;
         }
-        delay(10);
+        delay_ms(10);
 
         return error;
     }
@@ -93,7 +153,7 @@ namespace CanControl
         if (!(!full_ && head_ == tail_)) // While not empty
         {
             struct can_frame& frame = queue_[tail_];
-            MCP2515::ERROR    err   = controller_.sendMessage(&frame);
+            MCP2515::ERROR    err   = send_frame(frame);
 
             if (err == MCP2515::ERROR_OK)
             {
@@ -108,6 +168,7 @@ namespace CanControl
             {
                 // Hardware buffers full or error
                 // Retry next time.
+                return;
             }
         }
 
@@ -121,9 +182,11 @@ namespace CanControl
                 PeriodicSender* sender = periodic_senders_[periodic_index_];
                 periodic_index_        = (periodic_index_ + 1) % periodic_count_;
 
-                if (sender->send_periodic(controller_))
+                struct can_frame frame{};
+                if (sender->get_periodic_frame(frame, now_ms()))
                 {
-                    time_since_last_send_ms_ = 0;
+                    if (send_frame(frame) == MCP2515::ERROR_OK)
+                        time_since_last_send_ms_ = 0;
                     return;
                 }
             }
@@ -140,20 +203,45 @@ namespace CanControl
         {
             return false;
         }
+        for (size_t i = 0; i < periodic_count_; ++i)
+        {
+            if (periodic_senders_[i] == sender)
+                return false;
+        }
         periodic_senders_[periodic_count_++] = sender;
         return true;
+    }
+
+    bool CanController::remove_periodic_sender(PeriodicSender* sender)
+    {
+        for (size_t i = 0; i < periodic_count_; ++i)
+        {
+            if (periodic_senders_[i] != sender)
+                continue;
+
+            for (size_t j = i + 1; j < periodic_count_; ++j)
+                periodic_senders_[j - 1] = periodic_senders_[j];
+            --periodic_count_;
+            periodic_senders_[periodic_count_] = nullptr;
+            periodic_index_                    = periodic_count_ == 0 ? 0 : periodic_index_ % periodic_count_;
+            return true;
+        }
+        return false;
     }
 
     bool CanController::send_heartbeat()
     {
         can_frame      frame = heartbeat_to_canframe(heartbeat_state_);
-        MCP2515::ERROR err   = controller_.sendMessage(&frame);
+        MCP2515::ERROR err   = send_frame(frame);
         return (err == MCP2515::ERROR_OK);
     }
 
     bool CanController::send_ctre_global_enable()
     {
-        return TalonSrx::send_global_enable(controller_, ctre_enable_state_);
+        LowLevel::TalonSrx::talon_can_frame low = LowLevel::TalonSrx::build_global_enable(ctre_enable_state_);
+        struct can_frame                    frame{};
+        LowLevel::basic_to_can_frame(low, &frame);
+        return send_frame(frame) == MCP2515::ERROR_OK;
     }
 
     void CanController::set_heartbeat(bool enabled)
@@ -197,13 +285,21 @@ namespace CanControl
         return !(!full_ && head_ == tail_);
     }
 
-    void CanController::flush(unsigned long interval_ms)
+    bool CanController::flush(unsigned long interval_ms, unsigned long timeout_ms)
     {
+        if (interval_ms == 0)
+            interval_ms = 1;
+
+        unsigned long elapsed_ms = 0;
         while (has_pending_frames())
         {
+            if (elapsed_ms >= timeout_ms)
+                return false;
             update(interval_ms);
-            delay(interval_ms);
+            delay_ms(interval_ms);
+            elapsed_ms += interval_ms;
         }
+        return true;
     }
 
 } // namespace CanControl

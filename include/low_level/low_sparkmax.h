@@ -9,2211 +9,2870 @@
 namespace CanControl::LowLevel::SparkMax
 {
 
-#define SPARK_DEVICE_ID_MASK 0x3Fu
+    static constexpr uint32_t SPARK_DEVICE_ID_MASK = 0x3Fu;
 
     using spark_can_frame = ::CanControl::LowLevel::basic_can_frame;
 
-// Base arbitration IDs (OR with device_id & SPARK_DEVICE_ID_MASK)
-// Legacy Status 0: This frame exists purely to inform old software that is not aware of firmware version 25+ that the
-// SPARK is present
-#define SPARK_ARB_LEGACY_STATUS_0 33888256u
-// Bootloader 0: Periodic frame when device is in the bootloader
-#define SPARK_ARB_BOOTLOADER_0 33927168u
-// Status 0: Includes general data that is likely to need frequent refreshing
-#define SPARK_ARB_STATUS_0 33929216u
-// Status 1: Includes general data that can likely tolerate infrequent refreshing
-#define SPARK_ARB_STATUS_1 33929280u
-// Status 2: Includes data from the primary encoder (either a brushless motor's internal encoder, or the primary encoder
-// associated with a brushed motor)
-#define SPARK_ARB_STATUS_2 33929344u
-// Status 3: Includes data from an analog sensor
-#define SPARK_ARB_STATUS_3 33929408u
-// Status 4: Includes data from the External Encoder (on SPARK MAX, this is the Alternate Encoder)
-#define SPARK_ARB_STATUS_4 33929472u
-// Status 5: Includes velocity and position data from a duty-cycle absolute encoder
-#define SPARK_ARB_STATUS_5 33929536u
-// Status 6: Includes other data from a duty-cycle absolute encoder
-#define SPARK_ARB_STATUS_6 33929600u
-// Status 7: Includes diagnostic data for closed-loop control
-#define SPARK_ARB_STATUS_7 33929664u
-// Status 8: Includes additional diagnostic data for closed-loop control
-#define SPARK_ARB_STATUS_8 33929728u
-// Status 9: Includes diagnostic data for MAXMotion closed-loop control
-#define SPARK_ARB_STATUS_9 33929792u
-// Unique ID Broadcast: Contains the unique ID of the device, to allow detecting duplicate CAN IDs. To avoid collisions,
-// the SPARK Flex firmware will send this at an irregular period between 1000ms and 2000ms. SPARK MAX may use a constant
-// period of 1000ms.
-#define SPARK_ARB_UNIQUE_ID_BROADCAST 33930240u
-// Velocity Setpoint: Sets the Control Type to Velocity and sets the target velocity
-#define SPARK_ARB_VELOCITY_SETPOINT 33882112u
-// Duty Cycle Setpoint: Sets the Control Type to Duty Cycle and sets the target duty cycle (from -1 to 1)
-#define SPARK_ARB_DUTY_CYCLE_SETPOINT 33882240u
-// Position Setpoint: Sets the Control Type to Position and sets the target position
-#define SPARK_ARB_POSITION_SETPOINT 33882368u
-// Voltage Setpoint: Sets the Control Type to Voltage and sets the target voltage
-#define SPARK_ARB_VOLTAGE_SETPOINT 33882432u
-// Current Setpoint: Sets the Control Type to Current and sets the target current
-#define SPARK_ARB_CURRENT_SETPOINT 33882496u
-// MAXMotion Position Setpoint: Sets the Control Type to MAXMotion Position Control and sets the target position
-#define SPARK_ARB_MAXMOTION_POSITION_SETPOINT 33882624u
-// MAXMotion Velocity Setpoint: Sets the Control Type to MAXMotion Velocity Control and sets the target velocity
-#define SPARK_ARB_MAXMOTION_VELOCITY_SETPOINT 33882688u
-// Set Statuses Enabled: Enable or disable status frames. In response, a Set Statuses Enabled Response frame will be
-// sent.
-#define SPARK_ARB_SET_STATUSES_ENABLED 33883136u
-// Set Statuses Enabled Response: Response for a Set Statuses Enabled command
-#define SPARK_ARB_SET_STATUSES_ENABLED_RESPONSE 33883200u
-// Persist Parameters Response
-#define SPARK_ARB_PERSIST_PARAMETERS_RESPONSE 33883392u
-// Reset Safe Parameters: Resets most writable parameters to their default values, except CAN ID, Motor Type, Idle Mode,
-// PWM Input Deadband, and Duty Cycle Offset. In response, a Reset Safe Parameters Response frame is sent.
-#define SPARK_ARB_RESET_SAFE_PARAMETERS 33883456u
-// Reset Safe Parameters Response: Response for a Reset Safe Parameters command
-#define SPARK_ARB_RESET_SAFE_PARAMETERS_RESPONSE 33883520u
-// Complete Factory Reset: Resets all writable parameters to default values, even CAN ID, Motor Type, Idle Mode, PWM
-// Input Deadband, and Duty Cycle Offset. In response, a Complete Factory Reset Response frame is sent.
-#define SPARK_ARB_COMPLETE_FACTORY_RESET 33883584u
-// Complete Factory Reset Response: Response for a Complete Factory Reset command
-#define SPARK_ARB_COMPLETE_FACTORY_RESET_RESPONSE 33883648u
-// Clear Faults
-#define SPARK_ARB_CLEAR_FAULTS 33889152u
-// Identify Unique SPARK: Makes the specified, single SPARK (even if there are multiple SPARKs that have the same CAN
-// ID) temporarily perform a special blink pattern that will make it stand out
-#define SPARK_ARB_IDENTIFY_UNIQUE_SPARK 33889664u
-// Identify: Makes the SPARK temporarily perform a special blink pattern that will make it stand out. Use Identify
-// Unique Device if there may be multiple SPARKs with the same CAN ID.
-#define SPARK_ARB_IDENTIFY 33889728u
-// Nack: As of SPARK MAX firmware 1.6.3, this is only used as a potential response to setting the CAN ID
-#define SPARK_ARB_NACK 33890304u
-// Ack: As of SPARK MAX firmware 1.6.3, this is only used as a potential response to setting the CAN ID
-#define SPARK_ARB_ACK 33890368u
-// LED Sync: Causes all SPARKs on the bus to synchronize their LED patterns
-#define SPARK_ARB_LED_SYNC 33891520u
-// Set CAN ID: Allows changing the CAN ID when multiple devices on the bus currently have the same CAN ID. Under normal
-// circumstances, the CAN ID parameter can be used.
-#define SPARK_ARB_SET_CAN_ID 33891648u
-// Get Firmware Version
-#define SPARK_ARB_GET_FIRMWARE_VERSION 33891840u
-// SWDL Data: Broadcast from the host to all SPARKs in SWDL mode, containing a slice of firmware data
-#define SPARK_ARB_SWDL_DATA 33892096u
-// SWDL Checksum: Broadcast from the host to all SPARKs in SWDL mode, containing the checksum of the full firmware image
-// that was just sent
-#define SPARK_ARB_SWDL_CHECKSUM 33892160u
-// SWDL Retransmit: Sent by SPARK devices in response to receiving an SWDL Checksum frame that does not match the
-// firmware data they received
-#define SPARK_ARB_SWDL_RETRANSMIT 33892224u
-// Set Primary Encoder Position
-#define SPARK_ARB_SET_PRIMARY_ENCODER_POSITION 33892352u
-// Set I Accumulation
-#define SPARK_ARB_SET_I_ACCUMULATION 33892480u
-// Set Analog Position
-#define SPARK_ARB_SET_ANALOG_POSITION 33892544u
-// Set Ext or Alt Encoder Position
-#define SPARK_ARB_SET_EXT_OR_ALT_ENCODER_POSITION 33892608u
-// Set Duty Cycle Position
-#define SPARK_ARB_SET_DUTY_CYCLE_POSITION 33892672u
-// Secondary Heartbeat: Heartbeat that allows enabling only specific SPARKs, but only gets respected when the SPARK is
-// not locked to the Universal Heartbeat or Primary Heartbeat
-#define SPARK_ARB_SECONDARY_HEARTBEAT 33893504u
-// USB Only Identify: The response will only be sent if this command is received directly via USB. This has no relation
-// to the normal Identify command, which displays an LED pattern.
-#define SPARK_ARB_USB_ONLY_IDENTIFY 33893568u
-// USB Only Enter DFU Bootloader: Causes the device to reboot into the DFU bootloader if this command is received
-// directly via USB
-#define SPARK_ARB_USB_ONLY_ENTER_DFU_BOOTLOADER 33893632u
-// Get Temperatures
-#define SPARK_ARB_GET_TEMPERATURES 33894400u
-// Get Motor Interface
-#define SPARK_ARB_GET_MOTOR_INTERFACE 33894720u
-// Get Parameter 0 to 15 Types: Get types of parameters 0 to 15
-#define SPARK_ARB_GET_PARAMETER_0_TO_15_TYPES 33895424u
-// Get Parameter 16 to 31 Types: Get types of parameters 16 to 31
-#define SPARK_ARB_GET_PARAMETER_16_TO_31_TYPES 33895488u
-// Get Parameter 32 to 47 Types: Get types of parameters 32 to 47
-#define SPARK_ARB_GET_PARAMETER_32_TO_47_TYPES 33895552u
-// Get Parameter 48 to 63 Types: Get types of parameters 48 to 63
-#define SPARK_ARB_GET_PARAMETER_48_TO_63_TYPES 33895616u
-// Get Parameter 64 to 79 Types: Get types of parameters 64 to 79
-#define SPARK_ARB_GET_PARAMETER_64_TO_79_TYPES 33895680u
-// Get Parameter 80 to 95 Types: Get types of parameters 80 to 95
-#define SPARK_ARB_GET_PARAMETER_80_TO_95_TYPES 33895744u
-// Get Parameter 96 to 111 Types: Get types of parameters 96 to 111
-#define SPARK_ARB_GET_PARAMETER_96_TO_111_TYPES 33895808u
-// Get Parameter 112 to 127 Types: Get types of parameters 112 to 127
-#define SPARK_ARB_GET_PARAMETER_112_TO_127_TYPES 33895872u
-// Get Parameter 128 to 143 Types: Get types of parameters 128 to 143
-#define SPARK_ARB_GET_PARAMETER_128_TO_143_TYPES 33895936u
-// Get Parameter 144 to 159 Types: Get types of parameters 144 to 159
-#define SPARK_ARB_GET_PARAMETER_144_TO_159_TYPES 33896000u
-// Get Parameter 160 to 175 Types: Get types of parameters 160 to 175
-#define SPARK_ARB_GET_PARAMETER_160_TO_175_TYPES 33896064u
-// Get Parameter 176 to 191 Types: Get types of parameters 176 to 191
-#define SPARK_ARB_GET_PARAMETER_176_TO_191_TYPES 33896128u
-// Get Parameter 192 to 207 Types: Get types of parameters 192 to 207
-#define SPARK_ARB_GET_PARAMETER_192_TO_207_TYPES 33896192u
-// Get Parameter 208 to 223 Types: Get types of parameters 208 to 223
-#define SPARK_ARB_GET_PARAMETER_208_TO_223_TYPES 33896256u
-// Get Parameter 224 to 239 Types: Get types of parameters 224 to 239
-#define SPARK_ARB_GET_PARAMETER_224_TO_239_TYPES 33896320u
-// Get Parameter 240 to 255 Types: Get types of parameters 240 to 255
-#define SPARK_ARB_GET_PARAMETER_240_TO_255_TYPES 33896384u
-// Parameter Write: Write a single parameter value. In response, a Parameter Write Response frame will be sent.
-#define SPARK_ARB_PARAMETER_WRITE 33896448u
-// Parameter Write Response: Response for a parameter write (including a write done as part of a dual-write)
-#define SPARK_ARB_PARAMETER_WRITE_RESPONSE 33896512u
-// Read Parameter 0 and 1: Read parameter 0 and 1 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_0_AND_1 33897472u
-// Read Parameter 2 and 3: Read parameter 2 and 3 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_2_AND_3 33897536u
-// Read Parameter 4 and 5: Read parameter 4 and 5 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_4_AND_5 33897600u
-// Read Parameter 6 and 7: Read parameter 6 and 7 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_6_AND_7 33897664u
-// Read Parameter 8 and 9: Read parameter 8 and 9 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_8_AND_9 33897728u
-// Read Parameter 10 and 11: Read parameter 10 and 11 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_10_AND_11 33897792u
-// Read Parameter 12 and 13: Read parameter 12 and 13 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_12_AND_13 33897856u
-// Read Parameter 14 and 15: Read parameter 14 and 15 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_14_AND_15 33897920u
-// Read Parameter 16 and 17: Read parameter 16 and 17 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_16_AND_17 33897984u
-// Read Parameter 18 and 19: Read parameter 18 and 19 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_18_AND_19 33898048u
-// Read Parameter 20 and 21: Read parameter 20 and 21 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_20_AND_21 33898112u
-// Read Parameter 22 and 23: Read parameter 22 and 23 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_22_AND_23 33898176u
-// Read Parameter 24 and 25: Read parameter 24 and 25 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_24_AND_25 33898240u
-// Read Parameter 26 and 27: Read parameter 26 and 27 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_26_AND_27 33898304u
-// Read Parameter 28 and 29: Read parameter 28 and 29 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_28_AND_29 33898368u
-// Read Parameter 30 and 31: Read parameter 30 and 31 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_30_AND_31 33898432u
-// Read Parameter 32 and 33: Read parameter 32 and 33 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_32_AND_33 33898496u
-// Read Parameter 34 and 35: Read parameter 34 and 35 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_34_AND_35 33898560u
-// Read Parameter 36 and 37: Read parameter 36 and 37 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_36_AND_37 33898624u
-// Read Parameter 38 and 39: Read parameter 38 and 39 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_38_AND_39 33898688u
-// Read Parameter 40 and 41: Read parameter 40 and 41 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_40_AND_41 33898752u
-// Read Parameter 42 and 43: Read parameter 42 and 43 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_42_AND_43 33898816u
-// Read Parameter 44 and 45: Read parameter 44 and 45 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_44_AND_45 33898880u
-// Read Parameter 46 and 47: Read parameter 46 and 47 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_46_AND_47 33898944u
-// Read Parameter 48 and 49: Read parameter 48 and 49 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_48_AND_49 33899008u
-// Read Parameter 50 and 51: Read parameter 50 and 51 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_50_AND_51 33899072u
-// Read Parameter 52 and 53: Read parameter 52 and 53 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_52_AND_53 33899136u
-// Read Parameter 54 and 55: Read parameter 54 and 55 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_54_AND_55 33899200u
-// Read Parameter 56 and 57: Read parameter 56 and 57 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_56_AND_57 33899264u
-// Read Parameter 58 and 59: Read parameter 58 and 59 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_58_AND_59 33899328u
-// Read Parameter 60 and 61: Read parameter 60 and 61 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_60_AND_61 33899392u
-// Read Parameter 62 and 63: Read parameter 62 and 63 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_62_AND_63 33899456u
-// Read Parameter 64 and 65: Read parameter 64 and 65 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_64_AND_65 33899520u
-// Read Parameter 66 and 67: Read parameter 66 and 67 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_66_AND_67 33899584u
-// Read Parameter 68 and 69: Read parameter 68 and 69 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_68_AND_69 33899648u
-// Read Parameter 70 and 71: Read parameter 70 and 71 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_70_AND_71 33899712u
-// Read Parameter 72 and 73: Read parameter 72 and 73 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_72_AND_73 33899776u
-// Read Parameter 74 and 75: Read parameter 74 and 75 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_74_AND_75 33899840u
-// Read Parameter 76 and 77: Read parameter 76 and 77 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_76_AND_77 33899904u
-// Read Parameter 78 and 79: Read parameter 78 and 79 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_78_AND_79 33899968u
-// Read Parameter 80 and 81: Read parameter 80 and 81 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_80_AND_81 33900032u
-// Read Parameter 82 and 83: Read parameter 82 and 83 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_82_AND_83 33900096u
-// Read Parameter 84 and 85: Read parameter 84 and 85 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_84_AND_85 33900160u
-// Read Parameter 86 and 87: Read parameter 86 and 87 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_86_AND_87 33900224u
-// Read Parameter 88 and 89: Read parameter 88 and 89 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_88_AND_89 33900288u
-// Read Parameter 90 and 91: Read parameter 90 and 91 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_90_AND_91 33900352u
-// Read Parameter 92 and 93: Read parameter 92 and 93 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_92_AND_93 33900416u
-// Read Parameter 94 and 95: Read parameter 94 and 95 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_94_AND_95 33900480u
-// Read Parameter 96 and 97: Read parameter 96 and 97 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_96_AND_97 33900544u
-// Read Parameter 98 and 99: Read parameter 98 and 99 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_98_AND_99 33900608u
-// Read Parameter 100 and 101: Read parameter 100 and 101 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_100_AND_101 33900672u
-// Read Parameter 102 and 103: Read parameter 102 and 103 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_102_AND_103 33900736u
-// Read Parameter 104 and 105: Read parameter 104 and 105 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_104_AND_105 33900800u
-// Read Parameter 106 and 107: Read parameter 106 and 107 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_106_AND_107 33900864u
-// Read Parameter 108 and 109: Read parameter 108 and 109 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_108_AND_109 33900928u
-// Read Parameter 110 and 111: Read parameter 110 and 111 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_110_AND_111 33900992u
-// Read Parameter 112 and 113: Read parameter 112 and 113 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_112_AND_113 33901056u
-// Read Parameter 114 and 115: Read parameter 114 and 115 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_114_AND_115 33901120u
-// Read Parameter 116 and 117: Read parameter 116 and 117 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_116_AND_117 33901184u
-// Read Parameter 118 and 119: Read parameter 118 and 119 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_118_AND_119 33901248u
-// Read Parameter 120 and 121: Read parameter 120 and 121 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_120_AND_121 33901312u
-// Read Parameter 122 and 123: Read parameter 122 and 123 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_122_AND_123 33901376u
-// Read Parameter 124 and 125: Read parameter 124 and 125 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_124_AND_125 33901440u
-// Read Parameter 126 and 127: Read parameter 126 and 127 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_126_AND_127 33901504u
-// Read Parameter 128 and 129: Read parameter 128 and 129 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_128_AND_129 33901568u
-// Read Parameter 130 and 131: Read parameter 130 and 131 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_130_AND_131 33901632u
-// Read Parameter 132 and 133: Read parameter 132 and 133 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_132_AND_133 33901696u
-// Read Parameter 134 and 135: Read parameter 134 and 135 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_134_AND_135 33901760u
-// Read Parameter 136 and 137: Read parameter 136 and 137 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_136_AND_137 33901824u
-// Read Parameter 138 and 139: Read parameter 138 and 139 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_138_AND_139 33901888u
-// Read Parameter 140 and 141: Read parameter 140 and 141 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_140_AND_141 33901952u
-// Read Parameter 142 and 143: Read parameter 142 and 143 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_142_AND_143 33902016u
-// Read Parameter 144 and 145: Read parameter 144 and 145 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_144_AND_145 33902080u
-// Read Parameter 146 and 147: Read parameter 146 and 147 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_146_AND_147 33902144u
-// Read Parameter 148 and 149: Read parameter 148 and 149 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_148_AND_149 33902208u
-// Read Parameter 150 and 151: Read parameter 150 and 151 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_150_AND_151 33902272u
-// Read Parameter 152 and 153: Read parameter 152 and 153 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_152_AND_153 33902336u
-// Read Parameter 154 and 155: Read parameter 154 and 155 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_154_AND_155 33902400u
-// Read Parameter 156 and 157: Read parameter 156 and 157 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_156_AND_157 33902464u
-// Read Parameter 158 and 159: Read parameter 158 and 159 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_158_AND_159 33902528u
-// Read Parameter 160 and 161: Read parameter 160 and 161 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_160_AND_161 33902592u
-// Read Parameter 162 and 163: Read parameter 162 and 163 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_162_AND_163 33902656u
-// Read Parameter 164 and 165: Read parameter 164 and 165 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_164_AND_165 33902720u
-// Read Parameter 166 and 167: Read parameter 166 and 167 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_166_AND_167 33902784u
-// Read Parameter 168 and 169: Read parameter 168 and 169 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_168_AND_169 33902848u
-// Read Parameter 170 and 171: Read parameter 170 and 171 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_170_AND_171 33902912u
-// Read Parameter 172 and 173: Read parameter 172 and 173 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_172_AND_173 33902976u
-// Read Parameter 174 and 175: Read parameter 174 and 175 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_174_AND_175 33903040u
-// Read Parameter 176 and 177: Read parameter 176 and 177 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_176_AND_177 33903104u
-// Read Parameter 178 and 179: Read parameter 178 and 179 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_178_AND_179 33903168u
-// Read Parameter 180 and 181: Read parameter 180 and 181 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_180_AND_181 33903232u
-// Read Parameter 182 and 183: Read parameter 182 and 183 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_182_AND_183 33903296u
-// Read Parameter 184 and 185: Read parameter 184 and 185 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_184_AND_185 33903360u
-// Read Parameter 186 and 187: Read parameter 186 and 187 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_186_AND_187 33903424u
-// Read Parameter 188 and 189: Read parameter 188 and 189 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_188_AND_189 33903488u
-// Read Parameter 190 and 191: Read parameter 190 and 191 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_190_AND_191 33903552u
-// Read Parameter 192 and 193: Read parameter 192 and 193 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_192_AND_193 33903616u
-// Read Parameter 194 and 195: Read parameter 194 and 195 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_194_AND_195 33903680u
-// Read Parameter 196 and 197: Read parameter 196 and 197 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_196_AND_197 33903744u
-// Read Parameter 198 and 199: Read parameter 198 and 199 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_198_AND_199 33903808u
-// Read Parameter 200 and 201: Read parameter 200 and 201 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_200_AND_201 33903872u
-// Read Parameter 202 and 203: Read parameter 202 and 203 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_202_AND_203 33903936u
-// Read Parameter 204 and 205: Read parameter 204 and 205 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_204_AND_205 33904000u
-// Read Parameter 206 and 207: Read parameter 206 and 207 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_206_AND_207 33904064u
-// Read Parameter 208 and 209: Read parameter 208 and 209 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_208_AND_209 33904128u
-// Read Parameter 210 and 211: Read parameter 210 and 211 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_210_AND_211 33904192u
-// Read Parameter 212 and 213: Read parameter 212 and 213 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_212_AND_213 33904256u
-// Read Parameter 214 and 215: Read parameter 214 and 215 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_214_AND_215 33904320u
-// Read Parameter 216 and 217: Read parameter 216 and 217 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_216_AND_217 33904384u
-// Read Parameter 218 and 219: Read parameter 218 and 219 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_218_AND_219 33904448u
-// Read Parameter 220 and 221: Read parameter 220 and 221 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_220_AND_221 33904512u
-// Read Parameter 222 and 223: Read parameter 222 and 223 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_222_AND_223 33904576u
-// Read Parameter 224 and 225: Read parameter 224 and 225 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_224_AND_225 33904640u
-// Read Parameter 226 and 227: Read parameter 226 and 227 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_226_AND_227 33904704u
-// Read Parameter 228 and 229: Read parameter 228 and 229 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_228_AND_229 33904768u
-// Read Parameter 230 and 231: Read parameter 230 and 231 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_230_AND_231 33904832u
-// Read Parameter 232 and 233: Read parameter 232 and 233 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_232_AND_233 33904896u
-// Read Parameter 234 and 235: Read parameter 234 and 235 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_234_AND_235 33904960u
-// Read Parameter 236 and 237: Read parameter 236 and 237 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_236_AND_237 33905024u
-// Read Parameter 238 and 239: Read parameter 238 and 239 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_238_AND_239 33905088u
-// Read Parameter 240 and 241: Read parameter 240 and 241 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_240_AND_241 33905152u
-// Read Parameter 242 and 243: Read parameter 242 and 243 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_242_AND_243 33905216u
-// Read Parameter 244 and 245: Read parameter 244 and 245 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_244_AND_245 33905280u
-// Read Parameter 246 and 247: Read parameter 246 and 247 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_246_AND_247 33905344u
-// Read Parameter 248 and 249: Read parameter 248 and 249 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_248_AND_249 33905408u
-// Read Parameter 250 and 251: Read parameter 250 and 251 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_250_AND_251 33905472u
-// Read Parameter 252 and 253: Read parameter 252 and 253 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_252_AND_253 33905536u
-// Read Parameter 254 and 255: Read parameter 254 and 255 at the same time. SPARK MAX does not currently support this in
-// v25.0.0-prerelease.4
-#define SPARK_ARB_READ_PARAMETER_254_AND_255 33905600u
-// Write Parameter 0 and 1: Write Parameter 0 and 1 at the same time. Two Write Parameter Response frames will be sent
-// in response.
-#define SPARK_ARB_WRITE_PARAMETER_0_AND_1 33905664u
-// Write Parameter 2 and 3: Write Parameter 2 and 3 at the same time. Two Write Parameter Response frames will be sent
-// in response.
-#define SPARK_ARB_WRITE_PARAMETER_2_AND_3 33905728u
-// Write Parameter 4 and 5: Write Parameter 4 and 5 at the same time. Two Write Parameter Response frames will be sent
-// in response.
-#define SPARK_ARB_WRITE_PARAMETER_4_AND_5 33905792u
-// Write Parameter 6 and 7: Write Parameter 6 and 7 at the same time. Two Write Parameter Response frames will be sent
-// in response.
-#define SPARK_ARB_WRITE_PARAMETER_6_AND_7 33905856u
-// Write Parameter 8 and 9: Write Parameter 8 and 9 at the same time. Two Write Parameter Response frames will be sent
-// in response.
-#define SPARK_ARB_WRITE_PARAMETER_8_AND_9 33905920u
-// Write Parameter 10 and 11: Write Parameter 10 and 11 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_10_AND_11 33905984u
-// Write Parameter 12 and 13: Write Parameter 12 and 13 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_12_AND_13 33906048u
-// Write Parameter 14 and 15: Write Parameter 14 and 15 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_14_AND_15 33906112u
-// Write Parameter 16 and 17: Write Parameter 16 and 17 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_16_AND_17 33906176u
-// Write Parameter 18 and 19: Write Parameter 18 and 19 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_18_AND_19 33906240u
-// Write Parameter 20 and 21: Write Parameter 20 and 21 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_20_AND_21 33906304u
-// Write Parameter 22 and 23: Write Parameter 22 and 23 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_22_AND_23 33906368u
-// Write Parameter 24 and 25: Write Parameter 24 and 25 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_24_AND_25 33906432u
-// Write Parameter 26 and 27: Write Parameter 26 and 27 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_26_AND_27 33906496u
-// Write Parameter 28 and 29: Write Parameter 28 and 29 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_28_AND_29 33906560u
-// Write Parameter 30 and 31: Write Parameter 30 and 31 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_30_AND_31 33906624u
-// Write Parameter 32 and 33: Write Parameter 32 and 33 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_32_AND_33 33906688u
-// Write Parameter 34 and 35: Write Parameter 34 and 35 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_34_AND_35 33906752u
-// Write Parameter 36 and 37: Write Parameter 36 and 37 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_36_AND_37 33906816u
-// Write Parameter 38 and 39: Write Parameter 38 and 39 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_38_AND_39 33906880u
-// Write Parameter 40 and 41: Write Parameter 40 and 41 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_40_AND_41 33906944u
-// Write Parameter 42 and 43: Write Parameter 42 and 43 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_42_AND_43 33907008u
-// Write Parameter 44 and 45: Write Parameter 44 and 45 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_44_AND_45 33907072u
-// Write Parameter 46 and 47: Write Parameter 46 and 47 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_46_AND_47 33907136u
-// Write Parameter 48 and 49: Write Parameter 48 and 49 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_48_AND_49 33907200u
-// Write Parameter 50 and 51: Write Parameter 50 and 51 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_50_AND_51 33907264u
-// Write Parameter 52 and 53: Write Parameter 52 and 53 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_52_AND_53 33907328u
-// Write Parameter 54 and 55: Write Parameter 54 and 55 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_54_AND_55 33907392u
-// Write Parameter 56 and 57: Write Parameter 56 and 57 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_56_AND_57 33907456u
-// Write Parameter 58 and 59: Write Parameter 58 and 59 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_58_AND_59 33907520u
-// Write Parameter 60 and 61: Write Parameter 60 and 61 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_60_AND_61 33907584u
-// Write Parameter 62 and 63: Write Parameter 62 and 63 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_62_AND_63 33907648u
-// Write Parameter 64 and 65: Write Parameter 64 and 65 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_64_AND_65 33907712u
-// Write Parameter 66 and 67: Write Parameter 66 and 67 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_66_AND_67 33907776u
-// Write Parameter 68 and 69: Write Parameter 68 and 69 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_68_AND_69 33907840u
-// Write Parameter 70 and 71: Write Parameter 70 and 71 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_70_AND_71 33907904u
-// Write Parameter 72 and 73: Write Parameter 72 and 73 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_72_AND_73 33907968u
-// Write Parameter 74 and 75: Write Parameter 74 and 75 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_74_AND_75 33908032u
-// Write Parameter 76 and 77: Write Parameter 76 and 77 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_76_AND_77 33908096u
-// Write Parameter 78 and 79: Write Parameter 78 and 79 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_78_AND_79 33908160u
-// Write Parameter 80 and 81: Write Parameter 80 and 81 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_80_AND_81 33908224u
-// Write Parameter 82 and 83: Write Parameter 82 and 83 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_82_AND_83 33908288u
-// Write Parameter 84 and 85: Write Parameter 84 and 85 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_84_AND_85 33908352u
-// Write Parameter 86 and 87: Write Parameter 86 and 87 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_86_AND_87 33908416u
-// Write Parameter 88 and 89: Write Parameter 88 and 89 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_88_AND_89 33908480u
-// Write Parameter 90 and 91: Write Parameter 90 and 91 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_90_AND_91 33908544u
-// Write Parameter 92 and 93: Write Parameter 92 and 93 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_92_AND_93 33908608u
-// Write Parameter 94 and 95: Write Parameter 94 and 95 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_94_AND_95 33908672u
-// Write Parameter 96 and 97: Write Parameter 96 and 97 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_96_AND_97 33908736u
-// Write Parameter 98 and 99: Write Parameter 98 and 99 at the same time. Two Write Parameter Response frames will be
-// sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_98_AND_99 33908800u
-// Write Parameter 100 and 101: Write Parameter 100 and 101 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_100_AND_101 33908864u
-// Write Parameter 102 and 103: Write Parameter 102 and 103 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_102_AND_103 33908928u
-// Write Parameter 104 and 105: Write Parameter 104 and 105 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_104_AND_105 33908992u
-// Write Parameter 106 and 107: Write Parameter 106 and 107 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_106_AND_107 33909056u
-// Write Parameter 108 and 109: Write Parameter 108 and 109 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_108_AND_109 33909120u
-// Write Parameter 110 and 111: Write Parameter 110 and 111 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_110_AND_111 33909184u
-// Write Parameter 112 and 113: Write Parameter 112 and 113 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_112_AND_113 33909248u
-// Write Parameter 114 and 115: Write Parameter 114 and 115 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_114_AND_115 33909312u
-// Write Parameter 116 and 117: Write Parameter 116 and 117 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_116_AND_117 33909376u
-// Write Parameter 118 and 119: Write Parameter 118 and 119 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_118_AND_119 33909440u
-// Write Parameter 120 and 121: Write Parameter 120 and 121 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_120_AND_121 33909504u
-// Write Parameter 122 and 123: Write Parameter 122 and 123 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_122_AND_123 33909568u
-// Write Parameter 124 and 125: Write Parameter 124 and 125 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_124_AND_125 33909632u
-// Write Parameter 126 and 127: Write Parameter 126 and 127 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_126_AND_127 33909696u
-// Write Parameter 128 and 129: Write Parameter 128 and 129 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_128_AND_129 33909760u
-// Write Parameter 130 and 131: Write Parameter 130 and 131 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_130_AND_131 33909824u
-// Write Parameter 132 and 133: Write Parameter 132 and 133 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_132_AND_133 33909888u
-// Write Parameter 134 and 135: Write Parameter 134 and 135 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_134_AND_135 33909952u
-// Write Parameter 136 and 137: Write Parameter 136 and 137 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_136_AND_137 33910016u
-// Write Parameter 138 and 139: Write Parameter 138 and 139 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_138_AND_139 33910080u
-// Write Parameter 140 and 141: Write Parameter 140 and 141 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_140_AND_141 33910144u
-// Write Parameter 142 and 143: Write Parameter 142 and 143 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_142_AND_143 33910208u
-// Write Parameter 144 and 145: Write Parameter 144 and 145 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_144_AND_145 33910272u
-// Write Parameter 146 and 147: Write Parameter 146 and 147 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_146_AND_147 33910336u
-// Write Parameter 148 and 149: Write Parameter 148 and 149 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_148_AND_149 33910400u
-// Write Parameter 150 and 151: Write Parameter 150 and 151 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_150_AND_151 33910464u
-// Write Parameter 152 and 153: Write Parameter 152 and 153 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_152_AND_153 33910528u
-// Write Parameter 154 and 155: Write Parameter 154 and 155 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_154_AND_155 33910592u
-// Write Parameter 156 and 157: Write Parameter 156 and 157 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_156_AND_157 33910656u
-// Write Parameter 158 and 159: Write Parameter 158 and 159 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_158_AND_159 33910720u
-// Write Parameter 160 and 161: Write Parameter 160 and 161 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_160_AND_161 33910784u
-// Write Parameter 162 and 163: Write Parameter 162 and 163 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_162_AND_163 33910848u
-// Write Parameter 164 and 165: Write Parameter 164 and 165 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_164_AND_165 33910912u
-// Write Parameter 166 and 167: Write Parameter 166 and 167 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_166_AND_167 33910976u
-// Write Parameter 168 and 169: Write Parameter 168 and 169 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_168_AND_169 33911040u
-// Write Parameter 170 and 171: Write Parameter 170 and 171 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_170_AND_171 33911104u
-// Write Parameter 172 and 173: Write Parameter 172 and 173 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_172_AND_173 33911168u
-// Write Parameter 174 and 175: Write Parameter 174 and 175 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_174_AND_175 33911232u
-// Write Parameter 176 and 177: Write Parameter 176 and 177 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_176_AND_177 33911296u
-// Write Parameter 178 and 179: Write Parameter 178 and 179 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_178_AND_179 33911360u
-// Write Parameter 180 and 181: Write Parameter 180 and 181 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_180_AND_181 33911424u
-// Write Parameter 182 and 183: Write Parameter 182 and 183 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_182_AND_183 33911488u
-// Write Parameter 184 and 185: Write Parameter 184 and 185 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_184_AND_185 33911552u
-// Write Parameter 186 and 187: Write Parameter 186 and 187 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_186_AND_187 33911616u
-// Write Parameter 188 and 189: Write Parameter 188 and 189 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_188_AND_189 33911680u
-// Write Parameter 190 and 191: Write Parameter 190 and 191 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_190_AND_191 33911744u
-// Write Parameter 192 and 193: Write Parameter 192 and 193 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_192_AND_193 33911808u
-// Write Parameter 194 and 195: Write Parameter 194 and 195 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_194_AND_195 33911872u
-// Write Parameter 196 and 197: Write Parameter 196 and 197 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_196_AND_197 33911936u
-// Write Parameter 198 and 199: Write Parameter 198 and 199 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_198_AND_199 33912000u
-// Write Parameter 200 and 201: Write Parameter 200 and 201 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_200_AND_201 33912064u
-// Write Parameter 202 and 203: Write Parameter 202 and 203 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_202_AND_203 33912128u
-// Write Parameter 204 and 205: Write Parameter 204 and 205 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_204_AND_205 33912192u
-// Write Parameter 206 and 207: Write Parameter 206 and 207 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_206_AND_207 33912256u
-// Write Parameter 208 and 209: Write Parameter 208 and 209 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_208_AND_209 33912320u
-// Write Parameter 210 and 211: Write Parameter 210 and 211 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_210_AND_211 33912384u
-// Write Parameter 212 and 213: Write Parameter 212 and 213 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_212_AND_213 33912448u
-// Write Parameter 214 and 215: Write Parameter 214 and 215 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_214_AND_215 33912512u
-// Write Parameter 216 and 217: Write Parameter 216 and 217 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_216_AND_217 33912576u
-// Write Parameter 218 and 219: Write Parameter 218 and 219 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_218_AND_219 33912640u
-// Write Parameter 220 and 221: Write Parameter 220 and 221 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_220_AND_221 33912704u
-// Write Parameter 222 and 223: Write Parameter 222 and 223 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_222_AND_223 33912768u
-// Write Parameter 224 and 225: Write Parameter 224 and 225 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_224_AND_225 33912832u
-// Write Parameter 226 and 227: Write Parameter 226 and 227 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_226_AND_227 33912896u
-// Write Parameter 228 and 229: Write Parameter 228 and 229 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_228_AND_229 33912960u
-// Write Parameter 230 and 231: Write Parameter 230 and 231 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_230_AND_231 33913024u
-// Write Parameter 232 and 233: Write Parameter 232 and 233 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_232_AND_233 33913088u
-// Write Parameter 234 and 235: Write Parameter 234 and 235 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_234_AND_235 33913152u
-// Write Parameter 236 and 237: Write Parameter 236 and 237 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_236_AND_237 33913216u
-// Write Parameter 238 and 239: Write Parameter 238 and 239 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_238_AND_239 33913280u
-// Write Parameter 240 and 241: Write Parameter 240 and 241 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_240_AND_241 33913344u
-// Write Parameter 242 and 243: Write Parameter 242 and 243 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_242_AND_243 33913408u
-// Write Parameter 244 and 245: Write Parameter 244 and 245 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_244_AND_245 33913472u
-// Write Parameter 246 and 247: Write Parameter 246 and 247 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_246_AND_247 33913536u
-// Write Parameter 248 and 249: Write Parameter 248 and 249 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_248_AND_249 33913600u
-// Write Parameter 250 and 251: Write Parameter 250 and 251 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_250_AND_251 33913664u
-// Write Parameter 252 and 253: Write Parameter 252 and 253 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_252_AND_253 33913728u
-// Write Parameter 254 and 255: Write Parameter 254 and 255 at the same time. Two Write Parameter Response frames will
-// be sent in response.
-#define SPARK_ARB_WRITE_PARAMETER_254_AND_255 33913792u
-// Start Follower Mode: Starts follower mode. The relevant parameters must already be configured. In response, a Start
-// Follower Mode Response frame will be sent. Follower mode will be auto-started on boot if the Follower Mode Leader ID
-// parameter is set to a non-zero value.
-#define SPARK_ARB_START_FOLLOWER_MODE 33913856u
-// Start Follower Mode Response: Response for a Start Follower Mode command
-#define SPARK_ARB_START_FOLLOWER_MODE_RESPONSE 33913920u
-// Stop Follower Mode: Exits follower mode and causes the device to resume listening for setpoints addressed directly to
-// it. In response, a Stop Follower Mode Response frame will be sent.
-#define SPARK_ARB_STOP_FOLLOWER_MODE 33913984u
-// Stop Follower Mode Response: Response for a Stop Follower Mode Command
-#define SPARK_ARB_STOP_FOLLOWER_MODE_RESPONSE 33914048u
-// Enter SWDL CAN Bootloader
-#define SPARK_ARB_ENTER_SWDL_CAN_BOOTLOADER 33914816u
-// Persist Parameters: Causes all parameters to be written to non-volatile storage. After the operation (which may take
-// up to a second) completes, a Persist Parameters Response frame will be sent.
-#define SPARK_ARB_PERSIST_PARAMETERS 33947584u
+    // Base arbitration IDs (OR with device_id & SPARK_DEVICE_ID_MASK)
+    // Legacy Status 0: This frame exists purely to inform old software that is not aware of firmware version 25+ that
+    // the SPARK is present
+    static constexpr uint32_t SPARK_ARB_LEGACY_STATUS_0 = 33888256u;
+    // Bootloader 0: Periodic frame when device is in the bootloader
+    static constexpr uint32_t SPARK_ARB_BOOTLOADER_0 = 33927168u;
+    // Status 0: Includes general data that is likely to need frequent refreshing
+    static constexpr uint32_t SPARK_ARB_STATUS_0 = 33929216u;
+    // Status 1: Includes general data that can likely tolerate infrequent refreshing
+    static constexpr uint32_t SPARK_ARB_STATUS_1 = 33929280u;
+    // Status 2: Includes data from the primary encoder (either a brushless motor's internal encoder, or the primary
+    // encoder associated with a brushed motor)
+    static constexpr uint32_t SPARK_ARB_STATUS_2 = 33929344u;
+    // Status 3: Includes data from an analog sensor
+    static constexpr uint32_t SPARK_ARB_STATUS_3 = 33929408u;
+    // Status 4: Includes data from the External Encoder (on SPARK MAX, this is the Alternate Encoder)
+    static constexpr uint32_t SPARK_ARB_STATUS_4 = 33929472u;
+    // Status 5: Includes velocity and position data from a duty-cycle absolute encoder
+    static constexpr uint32_t SPARK_ARB_STATUS_5 = 33929536u;
+    // Status 6: Includes other data from a duty-cycle absolute encoder
+    static constexpr uint32_t SPARK_ARB_STATUS_6 = 33929600u;
+    // Status 7: Includes diagnostic data for closed-loop control
+    static constexpr uint32_t SPARK_ARB_STATUS_7 = 33929664u;
+    // Status 8: Includes additional diagnostic data for closed-loop control
+    static constexpr uint32_t SPARK_ARB_STATUS_8 = 33929728u;
+    // Status 9: Includes diagnostic data for MAXMotion closed-loop control
+    static constexpr uint32_t SPARK_ARB_STATUS_9 = 33929792u;
+    // Unique ID Broadcast: Contains the unique ID of the device, to allow detecting duplicate CAN IDs. To avoid
+    // collisions, the SPARK Flex firmware will send this at an irregular period between 1000ms and 2000ms. SPARK MAX
+    // may use a constant period of 1000ms.
+    static constexpr uint32_t SPARK_ARB_UNIQUE_ID_BROADCAST = 33930240u;
+    // Velocity Setpoint: Sets the Control Type to Velocity and sets the target velocity
+    static constexpr uint32_t SPARK_ARB_VELOCITY_SETPOINT = 33882112u;
+    // Duty Cycle Setpoint: Sets the Control Type to Duty Cycle and sets the target duty cycle (from -1 to 1)
+    static constexpr uint32_t SPARK_ARB_DUTY_CYCLE_SETPOINT = 33882240u;
+    // Position Setpoint: Sets the Control Type to Position and sets the target position
+    static constexpr uint32_t SPARK_ARB_POSITION_SETPOINT = 33882368u;
+    // Voltage Setpoint: Sets the Control Type to Voltage and sets the target voltage
+    static constexpr uint32_t SPARK_ARB_VOLTAGE_SETPOINT = 33882432u;
+    // Current Setpoint: Sets the Control Type to Current and sets the target current
+    static constexpr uint32_t SPARK_ARB_CURRENT_SETPOINT = 33882496u;
+    // MAXMotion Position Setpoint: Sets the Control Type to MAXMotion Position Control and sets the target position
+    static constexpr uint32_t SPARK_ARB_MAXMOTION_POSITION_SETPOINT = 33882624u;
+    // MAXMotion Velocity Setpoint: Sets the Control Type to MAXMotion Velocity Control and sets the target velocity
+    static constexpr uint32_t SPARK_ARB_MAXMOTION_VELOCITY_SETPOINT = 33882688u;
+    // Set Statuses Enabled: Enable or disable status frames. In response, a Set Statuses Enabled Response frame will be
+    // sent.
+    static constexpr uint32_t SPARK_ARB_SET_STATUSES_ENABLED = 33883136u;
+    // Set Statuses Enabled Response: Response for a Set Statuses Enabled command
+    static constexpr uint32_t SPARK_ARB_SET_STATUSES_ENABLED_RESPONSE = 33883200u;
+    // Persist Parameters Response
+    static constexpr uint32_t SPARK_ARB_PERSIST_PARAMETERS_RESPONSE = 33883392u;
+    // Reset Safe Parameters: Resets most writable parameters to their default values, except CAN ID, Motor Type, Idle
+    // Mode, PWM Input Deadband, and Duty Cycle Offset. In response, a Reset Safe Parameters Response frame is sent.
+    static constexpr uint32_t SPARK_ARB_RESET_SAFE_PARAMETERS = 33883456u;
+    // Reset Safe Parameters Response: Response for a Reset Safe Parameters command
+    static constexpr uint32_t SPARK_ARB_RESET_SAFE_PARAMETERS_RESPONSE = 33883520u;
+    // Complete Factory Reset: Resets all writable parameters to default values, even CAN ID, Motor Type, Idle Mode, PWM
+    // Input Deadband, and Duty Cycle Offset. In response, a Complete Factory Reset Response frame is sent.
+    static constexpr uint32_t SPARK_ARB_COMPLETE_FACTORY_RESET = 33883584u;
+    // Complete Factory Reset Response: Response for a Complete Factory Reset command
+    static constexpr uint32_t SPARK_ARB_COMPLETE_FACTORY_RESET_RESPONSE = 33883648u;
+    // Clear Faults
+    static constexpr uint32_t SPARK_ARB_CLEAR_FAULTS = 33889152u;
+    // Identify Unique SPARK: Makes the specified, single SPARK (even if there are multiple SPARKs that have the same
+    // CAN ID) temporarily perform a special blink pattern that will make it stand out
+    static constexpr uint32_t SPARK_ARB_IDENTIFY_UNIQUE_SPARK = 33889664u;
+    // Identify: Makes the SPARK temporarily perform a special blink pattern that will make it stand out. Use Identify
+    // Unique Device if there may be multiple SPARKs with the same CAN ID.
+    static constexpr uint32_t SPARK_ARB_IDENTIFY = 33889728u;
+    // Nack: As of SPARK MAX firmware 1.6.3, this is only used as a potential response to setting the CAN ID
+    static constexpr uint32_t SPARK_ARB_NACK = 33890304u;
+    // Ack: As of SPARK MAX firmware 1.6.3, this is only used as a potential response to setting the CAN ID
+    static constexpr uint32_t SPARK_ARB_ACK = 33890368u;
+    // LED Sync: Causes all SPARKs on the bus to synchronize their LED patterns
+    static constexpr uint32_t SPARK_ARB_LED_SYNC = 33891520u;
+    // Set CAN ID: Allows changing the CAN ID when multiple devices on the bus currently have the same CAN ID. Under
+    // normal circumstances, the CAN ID parameter can be used.
+    static constexpr uint32_t SPARK_ARB_SET_CAN_ID = 33891648u;
+    // Get Firmware Version
+    static constexpr uint32_t SPARK_ARB_GET_FIRMWARE_VERSION = 33891840u;
+    // SWDL Data: Broadcast from the host to all SPARKs in SWDL mode, containing a slice of firmware data
+    static constexpr uint32_t SPARK_ARB_SWDL_DATA = 33892096u;
+    // SWDL Checksum: Broadcast from the host to all SPARKs in SWDL mode, containing the checksum of the full firmware
+    // image that was just sent
+    static constexpr uint32_t SPARK_ARB_SWDL_CHECKSUM = 33892160u;
+    // SWDL Retransmit: Sent by SPARK devices in response to receiving an SWDL Checksum frame that does not match the
+    // firmware data they received
+    static constexpr uint32_t SPARK_ARB_SWDL_RETRANSMIT = 33892224u;
+    // Set Primary Encoder Position
+    static constexpr uint32_t SPARK_ARB_SET_PRIMARY_ENCODER_POSITION = 33892352u;
+    // Set I Accumulation
+    static constexpr uint32_t SPARK_ARB_SET_I_ACCUMULATION = 33892480u;
+    // Set Analog Position
+    static constexpr uint32_t SPARK_ARB_SET_ANALOG_POSITION = 33892544u;
+    // Set Ext or Alt Encoder Position
+    static constexpr uint32_t SPARK_ARB_SET_EXT_OR_ALT_ENCODER_POSITION = 33892608u;
+    // Set Duty Cycle Position
+    static constexpr uint32_t SPARK_ARB_SET_DUTY_CYCLE_POSITION = 33892672u;
+    // Secondary Heartbeat: Heartbeat that allows enabling only specific SPARKs, but only gets respected when the SPARK
+    // is not locked to the Universal Heartbeat or Primary Heartbeat
+    static constexpr uint32_t SPARK_ARB_SECONDARY_HEARTBEAT = 33893504u;
+    // USB Only Identify: The response will only be sent if this command is received directly via USB. This has no
+    // relation to the normal Identify command, which displays an LED pattern.
+    static constexpr uint32_t SPARK_ARB_USB_ONLY_IDENTIFY = 33893568u;
+    // USB Only Enter DFU Bootloader: Causes the device to reboot into the DFU bootloader if this command is received
+    // directly via USB
+    static constexpr uint32_t SPARK_ARB_USB_ONLY_ENTER_DFU_BOOTLOADER = 33893632u;
+    // Get Temperatures
+    static constexpr uint32_t SPARK_ARB_GET_TEMPERATURES = 33894400u;
+    // Get Motor Interface
+    static constexpr uint32_t SPARK_ARB_GET_MOTOR_INTERFACE = 33894720u;
+    // Get Parameter 0 to 15 Types: Get types of parameters 0 to 15
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_0_TO_15_TYPES = 33895424u;
+    // Get Parameter 16 to 31 Types: Get types of parameters 16 to 31
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_16_TO_31_TYPES = 33895488u;
+    // Get Parameter 32 to 47 Types: Get types of parameters 32 to 47
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_32_TO_47_TYPES = 33895552u;
+    // Get Parameter 48 to 63 Types: Get types of parameters 48 to 63
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_48_TO_63_TYPES = 33895616u;
+    // Get Parameter 64 to 79 Types: Get types of parameters 64 to 79
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_64_TO_79_TYPES = 33895680u;
+    // Get Parameter 80 to 95 Types: Get types of parameters 80 to 95
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_80_TO_95_TYPES = 33895744u;
+    // Get Parameter 96 to 111 Types: Get types of parameters 96 to 111
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_96_TO_111_TYPES = 33895808u;
+    // Get Parameter 112 to 127 Types: Get types of parameters 112 to 127
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_112_TO_127_TYPES = 33895872u;
+    // Get Parameter 128 to 143 Types: Get types of parameters 128 to 143
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_128_TO_143_TYPES = 33895936u;
+    // Get Parameter 144 to 159 Types: Get types of parameters 144 to 159
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_144_TO_159_TYPES = 33896000u;
+    // Get Parameter 160 to 175 Types: Get types of parameters 160 to 175
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_160_TO_175_TYPES = 33896064u;
+    // Get Parameter 176 to 191 Types: Get types of parameters 176 to 191
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_176_TO_191_TYPES = 33896128u;
+    // Get Parameter 192 to 207 Types: Get types of parameters 192 to 207
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_192_TO_207_TYPES = 33896192u;
+    // Get Parameter 208 to 223 Types: Get types of parameters 208 to 223
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_208_TO_223_TYPES = 33896256u;
+    // Get Parameter 224 to 239 Types: Get types of parameters 224 to 239
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_224_TO_239_TYPES = 33896320u;
+    // Get Parameter 240 to 255 Types: Get types of parameters 240 to 255
+    static constexpr uint32_t SPARK_ARB_GET_PARAMETER_240_TO_255_TYPES = 33896384u;
+    // Parameter Write: Write a single parameter value. In response, a Parameter Write Response frame will be sent.
+    static constexpr uint32_t SPARK_ARB_PARAMETER_WRITE = 33896448u;
+    // Parameter Write Response: Response for a parameter write (including a write done as part of a dual-write)
+    static constexpr uint32_t SPARK_ARB_PARAMETER_WRITE_RESPONSE = 33896512u;
+    // Read Parameter 0 and 1: Read parameter 0 and 1 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_0_AND_1 = 33897472u;
+    // Read Parameter 2 and 3: Read parameter 2 and 3 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_2_AND_3 = 33897536u;
+    // Read Parameter 4 and 5: Read parameter 4 and 5 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_4_AND_5 = 33897600u;
+    // Read Parameter 6 and 7: Read parameter 6 and 7 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_6_AND_7 = 33897664u;
+    // Read Parameter 8 and 9: Read parameter 8 and 9 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_8_AND_9 = 33897728u;
+    // Read Parameter 10 and 11: Read parameter 10 and 11 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_10_AND_11 = 33897792u;
+    // Read Parameter 12 and 13: Read parameter 12 and 13 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_12_AND_13 = 33897856u;
+    // Read Parameter 14 and 15: Read parameter 14 and 15 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_14_AND_15 = 33897920u;
+    // Read Parameter 16 and 17: Read parameter 16 and 17 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_16_AND_17 = 33897984u;
+    // Read Parameter 18 and 19: Read parameter 18 and 19 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_18_AND_19 = 33898048u;
+    // Read Parameter 20 and 21: Read parameter 20 and 21 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_20_AND_21 = 33898112u;
+    // Read Parameter 22 and 23: Read parameter 22 and 23 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_22_AND_23 = 33898176u;
+    // Read Parameter 24 and 25: Read parameter 24 and 25 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_24_AND_25 = 33898240u;
+    // Read Parameter 26 and 27: Read parameter 26 and 27 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_26_AND_27 = 33898304u;
+    // Read Parameter 28 and 29: Read parameter 28 and 29 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_28_AND_29 = 33898368u;
+    // Read Parameter 30 and 31: Read parameter 30 and 31 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_30_AND_31 = 33898432u;
+    // Read Parameter 32 and 33: Read parameter 32 and 33 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_32_AND_33 = 33898496u;
+    // Read Parameter 34 and 35: Read parameter 34 and 35 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_34_AND_35 = 33898560u;
+    // Read Parameter 36 and 37: Read parameter 36 and 37 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_36_AND_37 = 33898624u;
+    // Read Parameter 38 and 39: Read parameter 38 and 39 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_38_AND_39 = 33898688u;
+    // Read Parameter 40 and 41: Read parameter 40 and 41 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_40_AND_41 = 33898752u;
+    // Read Parameter 42 and 43: Read parameter 42 and 43 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_42_AND_43 = 33898816u;
+    // Read Parameter 44 and 45: Read parameter 44 and 45 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_44_AND_45 = 33898880u;
+    // Read Parameter 46 and 47: Read parameter 46 and 47 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_46_AND_47 = 33898944u;
+    // Read Parameter 48 and 49: Read parameter 48 and 49 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_48_AND_49 = 33899008u;
+    // Read Parameter 50 and 51: Read parameter 50 and 51 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_50_AND_51 = 33899072u;
+    // Read Parameter 52 and 53: Read parameter 52 and 53 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_52_AND_53 = 33899136u;
+    // Read Parameter 54 and 55: Read parameter 54 and 55 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_54_AND_55 = 33899200u;
+    // Read Parameter 56 and 57: Read parameter 56 and 57 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_56_AND_57 = 33899264u;
+    // Read Parameter 58 and 59: Read parameter 58 and 59 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_58_AND_59 = 33899328u;
+    // Read Parameter 60 and 61: Read parameter 60 and 61 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_60_AND_61 = 33899392u;
+    // Read Parameter 62 and 63: Read parameter 62 and 63 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_62_AND_63 = 33899456u;
+    // Read Parameter 64 and 65: Read parameter 64 and 65 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_64_AND_65 = 33899520u;
+    // Read Parameter 66 and 67: Read parameter 66 and 67 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_66_AND_67 = 33899584u;
+    // Read Parameter 68 and 69: Read parameter 68 and 69 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_68_AND_69 = 33899648u;
+    // Read Parameter 70 and 71: Read parameter 70 and 71 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_70_AND_71 = 33899712u;
+    // Read Parameter 72 and 73: Read parameter 72 and 73 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_72_AND_73 = 33899776u;
+    // Read Parameter 74 and 75: Read parameter 74 and 75 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_74_AND_75 = 33899840u;
+    // Read Parameter 76 and 77: Read parameter 76 and 77 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_76_AND_77 = 33899904u;
+    // Read Parameter 78 and 79: Read parameter 78 and 79 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_78_AND_79 = 33899968u;
+    // Read Parameter 80 and 81: Read parameter 80 and 81 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_80_AND_81 = 33900032u;
+    // Read Parameter 82 and 83: Read parameter 82 and 83 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_82_AND_83 = 33900096u;
+    // Read Parameter 84 and 85: Read parameter 84 and 85 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_84_AND_85 = 33900160u;
+    // Read Parameter 86 and 87: Read parameter 86 and 87 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_86_AND_87 = 33900224u;
+    // Read Parameter 88 and 89: Read parameter 88 and 89 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_88_AND_89 = 33900288u;
+    // Read Parameter 90 and 91: Read parameter 90 and 91 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_90_AND_91 = 33900352u;
+    // Read Parameter 92 and 93: Read parameter 92 and 93 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_92_AND_93 = 33900416u;
+    // Read Parameter 94 and 95: Read parameter 94 and 95 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_94_AND_95 = 33900480u;
+    // Read Parameter 96 and 97: Read parameter 96 and 97 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_96_AND_97 = 33900544u;
+    // Read Parameter 98 and 99: Read parameter 98 and 99 at the same time. SPARK MAX does not currently support this in
+    // v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_98_AND_99 = 33900608u;
+    // Read Parameter 100 and 101: Read parameter 100 and 101 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_100_AND_101 = 33900672u;
+    // Read Parameter 102 and 103: Read parameter 102 and 103 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_102_AND_103 = 33900736u;
+    // Read Parameter 104 and 105: Read parameter 104 and 105 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_104_AND_105 = 33900800u;
+    // Read Parameter 106 and 107: Read parameter 106 and 107 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_106_AND_107 = 33900864u;
+    // Read Parameter 108 and 109: Read parameter 108 and 109 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_108_AND_109 = 33900928u;
+    // Read Parameter 110 and 111: Read parameter 110 and 111 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_110_AND_111 = 33900992u;
+    // Read Parameter 112 and 113: Read parameter 112 and 113 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_112_AND_113 = 33901056u;
+    // Read Parameter 114 and 115: Read parameter 114 and 115 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_114_AND_115 = 33901120u;
+    // Read Parameter 116 and 117: Read parameter 116 and 117 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_116_AND_117 = 33901184u;
+    // Read Parameter 118 and 119: Read parameter 118 and 119 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_118_AND_119 = 33901248u;
+    // Read Parameter 120 and 121: Read parameter 120 and 121 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_120_AND_121 = 33901312u;
+    // Read Parameter 122 and 123: Read parameter 122 and 123 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_122_AND_123 = 33901376u;
+    // Read Parameter 124 and 125: Read parameter 124 and 125 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_124_AND_125 = 33901440u;
+    // Read Parameter 126 and 127: Read parameter 126 and 127 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_126_AND_127 = 33901504u;
+    // Read Parameter 128 and 129: Read parameter 128 and 129 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_128_AND_129 = 33901568u;
+    // Read Parameter 130 and 131: Read parameter 130 and 131 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_130_AND_131 = 33901632u;
+    // Read Parameter 132 and 133: Read parameter 132 and 133 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_132_AND_133 = 33901696u;
+    // Read Parameter 134 and 135: Read parameter 134 and 135 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_134_AND_135 = 33901760u;
+    // Read Parameter 136 and 137: Read parameter 136 and 137 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_136_AND_137 = 33901824u;
+    // Read Parameter 138 and 139: Read parameter 138 and 139 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_138_AND_139 = 33901888u;
+    // Read Parameter 140 and 141: Read parameter 140 and 141 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_140_AND_141 = 33901952u;
+    // Read Parameter 142 and 143: Read parameter 142 and 143 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_142_AND_143 = 33902016u;
+    // Read Parameter 144 and 145: Read parameter 144 and 145 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_144_AND_145 = 33902080u;
+    // Read Parameter 146 and 147: Read parameter 146 and 147 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_146_AND_147 = 33902144u;
+    // Read Parameter 148 and 149: Read parameter 148 and 149 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_148_AND_149 = 33902208u;
+    // Read Parameter 150 and 151: Read parameter 150 and 151 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_150_AND_151 = 33902272u;
+    // Read Parameter 152 and 153: Read parameter 152 and 153 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_152_AND_153 = 33902336u;
+    // Read Parameter 154 and 155: Read parameter 154 and 155 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_154_AND_155 = 33902400u;
+    // Read Parameter 156 and 157: Read parameter 156 and 157 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_156_AND_157 = 33902464u;
+    // Read Parameter 158 and 159: Read parameter 158 and 159 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_158_AND_159 = 33902528u;
+    // Read Parameter 160 and 161: Read parameter 160 and 161 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_160_AND_161 = 33902592u;
+    // Read Parameter 162 and 163: Read parameter 162 and 163 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_162_AND_163 = 33902656u;
+    // Read Parameter 164 and 165: Read parameter 164 and 165 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_164_AND_165 = 33902720u;
+    // Read Parameter 166 and 167: Read parameter 166 and 167 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_166_AND_167 = 33902784u;
+    // Read Parameter 168 and 169: Read parameter 168 and 169 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_168_AND_169 = 33902848u;
+    // Read Parameter 170 and 171: Read parameter 170 and 171 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_170_AND_171 = 33902912u;
+    // Read Parameter 172 and 173: Read parameter 172 and 173 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_172_AND_173 = 33902976u;
+    // Read Parameter 174 and 175: Read parameter 174 and 175 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_174_AND_175 = 33903040u;
+    // Read Parameter 176 and 177: Read parameter 176 and 177 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_176_AND_177 = 33903104u;
+    // Read Parameter 178 and 179: Read parameter 178 and 179 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_178_AND_179 = 33903168u;
+    // Read Parameter 180 and 181: Read parameter 180 and 181 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_180_AND_181 = 33903232u;
+    // Read Parameter 182 and 183: Read parameter 182 and 183 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_182_AND_183 = 33903296u;
+    // Read Parameter 184 and 185: Read parameter 184 and 185 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_184_AND_185 = 33903360u;
+    // Read Parameter 186 and 187: Read parameter 186 and 187 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_186_AND_187 = 33903424u;
+    // Read Parameter 188 and 189: Read parameter 188 and 189 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_188_AND_189 = 33903488u;
+    // Read Parameter 190 and 191: Read parameter 190 and 191 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_190_AND_191 = 33903552u;
+    // Read Parameter 192 and 193: Read parameter 192 and 193 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_192_AND_193 = 33903616u;
+    // Read Parameter 194 and 195: Read parameter 194 and 195 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_194_AND_195 = 33903680u;
+    // Read Parameter 196 and 197: Read parameter 196 and 197 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_196_AND_197 = 33903744u;
+    // Read Parameter 198 and 199: Read parameter 198 and 199 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_198_AND_199 = 33903808u;
+    // Read Parameter 200 and 201: Read parameter 200 and 201 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_200_AND_201 = 33903872u;
+    // Read Parameter 202 and 203: Read parameter 202 and 203 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_202_AND_203 = 33903936u;
+    // Read Parameter 204 and 205: Read parameter 204 and 205 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_204_AND_205 = 33904000u;
+    // Read Parameter 206 and 207: Read parameter 206 and 207 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_206_AND_207 = 33904064u;
+    // Read Parameter 208 and 209: Read parameter 208 and 209 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_208_AND_209 = 33904128u;
+    // Read Parameter 210 and 211: Read parameter 210 and 211 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_210_AND_211 = 33904192u;
+    // Read Parameter 212 and 213: Read parameter 212 and 213 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_212_AND_213 = 33904256u;
+    // Read Parameter 214 and 215: Read parameter 214 and 215 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_214_AND_215 = 33904320u;
+    // Read Parameter 216 and 217: Read parameter 216 and 217 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_216_AND_217 = 33904384u;
+    // Read Parameter 218 and 219: Read parameter 218 and 219 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_218_AND_219 = 33904448u;
+    // Read Parameter 220 and 221: Read parameter 220 and 221 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_220_AND_221 = 33904512u;
+    // Read Parameter 222 and 223: Read parameter 222 and 223 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_222_AND_223 = 33904576u;
+    // Read Parameter 224 and 225: Read parameter 224 and 225 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_224_AND_225 = 33904640u;
+    // Read Parameter 226 and 227: Read parameter 226 and 227 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_226_AND_227 = 33904704u;
+    // Read Parameter 228 and 229: Read parameter 228 and 229 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_228_AND_229 = 33904768u;
+    // Read Parameter 230 and 231: Read parameter 230 and 231 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_230_AND_231 = 33904832u;
+    // Read Parameter 232 and 233: Read parameter 232 and 233 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_232_AND_233 = 33904896u;
+    // Read Parameter 234 and 235: Read parameter 234 and 235 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_234_AND_235 = 33904960u;
+    // Read Parameter 236 and 237: Read parameter 236 and 237 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_236_AND_237 = 33905024u;
+    // Read Parameter 238 and 239: Read parameter 238 and 239 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_238_AND_239 = 33905088u;
+    // Read Parameter 240 and 241: Read parameter 240 and 241 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_240_AND_241 = 33905152u;
+    // Read Parameter 242 and 243: Read parameter 242 and 243 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_242_AND_243 = 33905216u;
+    // Read Parameter 244 and 245: Read parameter 244 and 245 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_244_AND_245 = 33905280u;
+    // Read Parameter 246 and 247: Read parameter 246 and 247 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_246_AND_247 = 33905344u;
+    // Read Parameter 248 and 249: Read parameter 248 and 249 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_248_AND_249 = 33905408u;
+    // Read Parameter 250 and 251: Read parameter 250 and 251 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_250_AND_251 = 33905472u;
+    // Read Parameter 252 and 253: Read parameter 252 and 253 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_252_AND_253 = 33905536u;
+    // Read Parameter 254 and 255: Read parameter 254 and 255 at the same time. SPARK MAX does not currently support
+    // this in v25.0.0-prerelease.4
+    static constexpr uint32_t SPARK_ARB_READ_PARAMETER_254_AND_255 = 33905600u;
+    // Write Parameter 0 and 1: Write Parameter 0 and 1 at the same time. Two Write Parameter Response frames will be
+    // sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_0_AND_1 = 33905664u;
+    // Write Parameter 2 and 3: Write Parameter 2 and 3 at the same time. Two Write Parameter Response frames will be
+    // sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_2_AND_3 = 33905728u;
+    // Write Parameter 4 and 5: Write Parameter 4 and 5 at the same time. Two Write Parameter Response frames will be
+    // sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_4_AND_5 = 33905792u;
+    // Write Parameter 6 and 7: Write Parameter 6 and 7 at the same time. Two Write Parameter Response frames will be
+    // sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_6_AND_7 = 33905856u;
+    // Write Parameter 8 and 9: Write Parameter 8 and 9 at the same time. Two Write Parameter Response frames will be
+    // sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_8_AND_9 = 33905920u;
+    // Write Parameter 10 and 11: Write Parameter 10 and 11 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_10_AND_11 = 33905984u;
+    // Write Parameter 12 and 13: Write Parameter 12 and 13 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_12_AND_13 = 33906048u;
+    // Write Parameter 14 and 15: Write Parameter 14 and 15 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_14_AND_15 = 33906112u;
+    // Write Parameter 16 and 17: Write Parameter 16 and 17 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_16_AND_17 = 33906176u;
+    // Write Parameter 18 and 19: Write Parameter 18 and 19 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_18_AND_19 = 33906240u;
+    // Write Parameter 20 and 21: Write Parameter 20 and 21 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_20_AND_21 = 33906304u;
+    // Write Parameter 22 and 23: Write Parameter 22 and 23 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_22_AND_23 = 33906368u;
+    // Write Parameter 24 and 25: Write Parameter 24 and 25 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_24_AND_25 = 33906432u;
+    // Write Parameter 26 and 27: Write Parameter 26 and 27 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_26_AND_27 = 33906496u;
+    // Write Parameter 28 and 29: Write Parameter 28 and 29 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_28_AND_29 = 33906560u;
+    // Write Parameter 30 and 31: Write Parameter 30 and 31 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_30_AND_31 = 33906624u;
+    // Write Parameter 32 and 33: Write Parameter 32 and 33 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_32_AND_33 = 33906688u;
+    // Write Parameter 34 and 35: Write Parameter 34 and 35 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_34_AND_35 = 33906752u;
+    // Write Parameter 36 and 37: Write Parameter 36 and 37 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_36_AND_37 = 33906816u;
+    // Write Parameter 38 and 39: Write Parameter 38 and 39 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_38_AND_39 = 33906880u;
+    // Write Parameter 40 and 41: Write Parameter 40 and 41 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_40_AND_41 = 33906944u;
+    // Write Parameter 42 and 43: Write Parameter 42 and 43 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_42_AND_43 = 33907008u;
+    // Write Parameter 44 and 45: Write Parameter 44 and 45 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_44_AND_45 = 33907072u;
+    // Write Parameter 46 and 47: Write Parameter 46 and 47 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_46_AND_47 = 33907136u;
+    // Write Parameter 48 and 49: Write Parameter 48 and 49 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_48_AND_49 = 33907200u;
+    // Write Parameter 50 and 51: Write Parameter 50 and 51 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_50_AND_51 = 33907264u;
+    // Write Parameter 52 and 53: Write Parameter 52 and 53 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_52_AND_53 = 33907328u;
+    // Write Parameter 54 and 55: Write Parameter 54 and 55 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_54_AND_55 = 33907392u;
+    // Write Parameter 56 and 57: Write Parameter 56 and 57 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_56_AND_57 = 33907456u;
+    // Write Parameter 58 and 59: Write Parameter 58 and 59 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_58_AND_59 = 33907520u;
+    // Write Parameter 60 and 61: Write Parameter 60 and 61 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_60_AND_61 = 33907584u;
+    // Write Parameter 62 and 63: Write Parameter 62 and 63 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_62_AND_63 = 33907648u;
+    // Write Parameter 64 and 65: Write Parameter 64 and 65 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_64_AND_65 = 33907712u;
+    // Write Parameter 66 and 67: Write Parameter 66 and 67 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_66_AND_67 = 33907776u;
+    // Write Parameter 68 and 69: Write Parameter 68 and 69 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_68_AND_69 = 33907840u;
+    // Write Parameter 70 and 71: Write Parameter 70 and 71 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_70_AND_71 = 33907904u;
+    // Write Parameter 72 and 73: Write Parameter 72 and 73 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_72_AND_73 = 33907968u;
+    // Write Parameter 74 and 75: Write Parameter 74 and 75 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_74_AND_75 = 33908032u;
+    // Write Parameter 76 and 77: Write Parameter 76 and 77 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_76_AND_77 = 33908096u;
+    // Write Parameter 78 and 79: Write Parameter 78 and 79 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_78_AND_79 = 33908160u;
+    // Write Parameter 80 and 81: Write Parameter 80 and 81 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_80_AND_81 = 33908224u;
+    // Write Parameter 82 and 83: Write Parameter 82 and 83 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_82_AND_83 = 33908288u;
+    // Write Parameter 84 and 85: Write Parameter 84 and 85 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_84_AND_85 = 33908352u;
+    // Write Parameter 86 and 87: Write Parameter 86 and 87 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_86_AND_87 = 33908416u;
+    // Write Parameter 88 and 89: Write Parameter 88 and 89 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_88_AND_89 = 33908480u;
+    // Write Parameter 90 and 91: Write Parameter 90 and 91 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_90_AND_91 = 33908544u;
+    // Write Parameter 92 and 93: Write Parameter 92 and 93 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_92_AND_93 = 33908608u;
+    // Write Parameter 94 and 95: Write Parameter 94 and 95 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_94_AND_95 = 33908672u;
+    // Write Parameter 96 and 97: Write Parameter 96 and 97 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_96_AND_97 = 33908736u;
+    // Write Parameter 98 and 99: Write Parameter 98 and 99 at the same time. Two Write Parameter Response frames will
+    // be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_98_AND_99 = 33908800u;
+    // Write Parameter 100 and 101: Write Parameter 100 and 101 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_100_AND_101 = 33908864u;
+    // Write Parameter 102 and 103: Write Parameter 102 and 103 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_102_AND_103 = 33908928u;
+    // Write Parameter 104 and 105: Write Parameter 104 and 105 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_104_AND_105 = 33908992u;
+    // Write Parameter 106 and 107: Write Parameter 106 and 107 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_106_AND_107 = 33909056u;
+    // Write Parameter 108 and 109: Write Parameter 108 and 109 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_108_AND_109 = 33909120u;
+    // Write Parameter 110 and 111: Write Parameter 110 and 111 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_110_AND_111 = 33909184u;
+    // Write Parameter 112 and 113: Write Parameter 112 and 113 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_112_AND_113 = 33909248u;
+    // Write Parameter 114 and 115: Write Parameter 114 and 115 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_114_AND_115 = 33909312u;
+    // Write Parameter 116 and 117: Write Parameter 116 and 117 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_116_AND_117 = 33909376u;
+    // Write Parameter 118 and 119: Write Parameter 118 and 119 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_118_AND_119 = 33909440u;
+    // Write Parameter 120 and 121: Write Parameter 120 and 121 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_120_AND_121 = 33909504u;
+    // Write Parameter 122 and 123: Write Parameter 122 and 123 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_122_AND_123 = 33909568u;
+    // Write Parameter 124 and 125: Write Parameter 124 and 125 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_124_AND_125 = 33909632u;
+    // Write Parameter 126 and 127: Write Parameter 126 and 127 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_126_AND_127 = 33909696u;
+    // Write Parameter 128 and 129: Write Parameter 128 and 129 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_128_AND_129 = 33909760u;
+    // Write Parameter 130 and 131: Write Parameter 130 and 131 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_130_AND_131 = 33909824u;
+    // Write Parameter 132 and 133: Write Parameter 132 and 133 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_132_AND_133 = 33909888u;
+    // Write Parameter 134 and 135: Write Parameter 134 and 135 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_134_AND_135 = 33909952u;
+    // Write Parameter 136 and 137: Write Parameter 136 and 137 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_136_AND_137 = 33910016u;
+    // Write Parameter 138 and 139: Write Parameter 138 and 139 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_138_AND_139 = 33910080u;
+    // Write Parameter 140 and 141: Write Parameter 140 and 141 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_140_AND_141 = 33910144u;
+    // Write Parameter 142 and 143: Write Parameter 142 and 143 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_142_AND_143 = 33910208u;
+    // Write Parameter 144 and 145: Write Parameter 144 and 145 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_144_AND_145 = 33910272u;
+    // Write Parameter 146 and 147: Write Parameter 146 and 147 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_146_AND_147 = 33910336u;
+    // Write Parameter 148 and 149: Write Parameter 148 and 149 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_148_AND_149 = 33910400u;
+    // Write Parameter 150 and 151: Write Parameter 150 and 151 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_150_AND_151 = 33910464u;
+    // Write Parameter 152 and 153: Write Parameter 152 and 153 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_152_AND_153 = 33910528u;
+    // Write Parameter 154 and 155: Write Parameter 154 and 155 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_154_AND_155 = 33910592u;
+    // Write Parameter 156 and 157: Write Parameter 156 and 157 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_156_AND_157 = 33910656u;
+    // Write Parameter 158 and 159: Write Parameter 158 and 159 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_158_AND_159 = 33910720u;
+    // Write Parameter 160 and 161: Write Parameter 160 and 161 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_160_AND_161 = 33910784u;
+    // Write Parameter 162 and 163: Write Parameter 162 and 163 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_162_AND_163 = 33910848u;
+    // Write Parameter 164 and 165: Write Parameter 164 and 165 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_164_AND_165 = 33910912u;
+    // Write Parameter 166 and 167: Write Parameter 166 and 167 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_166_AND_167 = 33910976u;
+    // Write Parameter 168 and 169: Write Parameter 168 and 169 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_168_AND_169 = 33911040u;
+    // Write Parameter 170 and 171: Write Parameter 170 and 171 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_170_AND_171 = 33911104u;
+    // Write Parameter 172 and 173: Write Parameter 172 and 173 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_172_AND_173 = 33911168u;
+    // Write Parameter 174 and 175: Write Parameter 174 and 175 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_174_AND_175 = 33911232u;
+    // Write Parameter 176 and 177: Write Parameter 176 and 177 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_176_AND_177 = 33911296u;
+    // Write Parameter 178 and 179: Write Parameter 178 and 179 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_178_AND_179 = 33911360u;
+    // Write Parameter 180 and 181: Write Parameter 180 and 181 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_180_AND_181 = 33911424u;
+    // Write Parameter 182 and 183: Write Parameter 182 and 183 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_182_AND_183 = 33911488u;
+    // Write Parameter 184 and 185: Write Parameter 184 and 185 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_184_AND_185 = 33911552u;
+    // Write Parameter 186 and 187: Write Parameter 186 and 187 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_186_AND_187 = 33911616u;
+    // Write Parameter 188 and 189: Write Parameter 188 and 189 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_188_AND_189 = 33911680u;
+    // Write Parameter 190 and 191: Write Parameter 190 and 191 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_190_AND_191 = 33911744u;
+    // Write Parameter 192 and 193: Write Parameter 192 and 193 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_192_AND_193 = 33911808u;
+    // Write Parameter 194 and 195: Write Parameter 194 and 195 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_194_AND_195 = 33911872u;
+    // Write Parameter 196 and 197: Write Parameter 196 and 197 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_196_AND_197 = 33911936u;
+    // Write Parameter 198 and 199: Write Parameter 198 and 199 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_198_AND_199 = 33912000u;
+    // Write Parameter 200 and 201: Write Parameter 200 and 201 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_200_AND_201 = 33912064u;
+    // Write Parameter 202 and 203: Write Parameter 202 and 203 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_202_AND_203 = 33912128u;
+    // Write Parameter 204 and 205: Write Parameter 204 and 205 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_204_AND_205 = 33912192u;
+    // Write Parameter 206 and 207: Write Parameter 206 and 207 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_206_AND_207 = 33912256u;
+    // Write Parameter 208 and 209: Write Parameter 208 and 209 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_208_AND_209 = 33912320u;
+    // Write Parameter 210 and 211: Write Parameter 210 and 211 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_210_AND_211 = 33912384u;
+    // Write Parameter 212 and 213: Write Parameter 212 and 213 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_212_AND_213 = 33912448u;
+    // Write Parameter 214 and 215: Write Parameter 214 and 215 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_214_AND_215 = 33912512u;
+    // Write Parameter 216 and 217: Write Parameter 216 and 217 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_216_AND_217 = 33912576u;
+    // Write Parameter 218 and 219: Write Parameter 218 and 219 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_218_AND_219 = 33912640u;
+    // Write Parameter 220 and 221: Write Parameter 220 and 221 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_220_AND_221 = 33912704u;
+    // Write Parameter 222 and 223: Write Parameter 222 and 223 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_222_AND_223 = 33912768u;
+    // Write Parameter 224 and 225: Write Parameter 224 and 225 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_224_AND_225 = 33912832u;
+    // Write Parameter 226 and 227: Write Parameter 226 and 227 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_226_AND_227 = 33912896u;
+    // Write Parameter 228 and 229: Write Parameter 228 and 229 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_228_AND_229 = 33912960u;
+    // Write Parameter 230 and 231: Write Parameter 230 and 231 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_230_AND_231 = 33913024u;
+    // Write Parameter 232 and 233: Write Parameter 232 and 233 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_232_AND_233 = 33913088u;
+    // Write Parameter 234 and 235: Write Parameter 234 and 235 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_234_AND_235 = 33913152u;
+    // Write Parameter 236 and 237: Write Parameter 236 and 237 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_236_AND_237 = 33913216u;
+    // Write Parameter 238 and 239: Write Parameter 238 and 239 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_238_AND_239 = 33913280u;
+    // Write Parameter 240 and 241: Write Parameter 240 and 241 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_240_AND_241 = 33913344u;
+    // Write Parameter 242 and 243: Write Parameter 242 and 243 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_242_AND_243 = 33913408u;
+    // Write Parameter 244 and 245: Write Parameter 244 and 245 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_244_AND_245 = 33913472u;
+    // Write Parameter 246 and 247: Write Parameter 246 and 247 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_246_AND_247 = 33913536u;
+    // Write Parameter 248 and 249: Write Parameter 248 and 249 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_248_AND_249 = 33913600u;
+    // Write Parameter 250 and 251: Write Parameter 250 and 251 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_250_AND_251 = 33913664u;
+    // Write Parameter 252 and 253: Write Parameter 252 and 253 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_252_AND_253 = 33913728u;
+    // Write Parameter 254 and 255: Write Parameter 254 and 255 at the same time. Two Write Parameter Response frames
+    // will be sent in response.
+    static constexpr uint32_t SPARK_ARB_WRITE_PARAMETER_254_AND_255 = 33913792u;
+    // Start Follower Mode: Starts follower mode. The relevant parameters must already be configured. In response, a
+    // Start Follower Mode Response frame will be sent. Follower mode will be auto-started on boot if the Follower Mode
+    // Leader ID parameter is set to a non-zero value.
+    static constexpr uint32_t SPARK_ARB_START_FOLLOWER_MODE = 33913856u;
+    // Start Follower Mode Response: Response for a Start Follower Mode command
+    static constexpr uint32_t SPARK_ARB_START_FOLLOWER_MODE_RESPONSE = 33913920u;
+    // Stop Follower Mode: Exits follower mode and causes the device to resume listening for setpoints addressed
+    // directly to it. In response, a Stop Follower Mode Response frame will be sent.
+    static constexpr uint32_t SPARK_ARB_STOP_FOLLOWER_MODE = 33913984u;
+    // Stop Follower Mode Response: Response for a Stop Follower Mode Command
+    static constexpr uint32_t SPARK_ARB_STOP_FOLLOWER_MODE_RESPONSE = 33914048u;
+    // Enter SWDL CAN Bootloader
+    static constexpr uint32_t SPARK_ARB_ENTER_SWDL_CAN_BOOTLOADER = 33914816u;
+    // Persist Parameters: Causes all parameters to be written to non-volatile storage. After the operation (which may
+    // take up to a second) completes, a Persist Parameters Response frame will be sent.
+    static constexpr uint32_t SPARK_ARB_PERSIST_PARAMETERS = 33947584u;
 
-// Match arbitration ID for frame Legacy Status 0: This frame exists purely to inform old software that is not aware of
-// firmware version 25+ that the SPARK is present
-#define SPARK_MATCH_LEGACY_STATUS_0(id)                                                                                \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_LEGACY_STATUS_0)
-// Match arbitration ID for frame Bootloader 0: Periodic frame when device is in the bootloader
-#define SPARK_MATCH_BOOTLOADER_0(id)                                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_BOOTLOADER_0)
-// Match arbitration ID for frame Status 0: Includes general data that is likely to need frequent refreshing
-#define SPARK_MATCH_STATUS_0(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_0)
-// Match arbitration ID for frame Status 1: Includes general data that can likely tolerate infrequent refreshing
-#define SPARK_MATCH_STATUS_1(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_1)
-// Match arbitration ID for frame Status 2: Includes data from the primary encoder (either a brushless motor's internal
-// encoder, or the primary encoder associated with a brushed motor)
-#define SPARK_MATCH_STATUS_2(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_2)
-// Match arbitration ID for frame Status 3: Includes data from an analog sensor
-#define SPARK_MATCH_STATUS_3(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_3)
-// Match arbitration ID for frame Status 4: Includes data from the External Encoder (on SPARK MAX, this is the Alternate
-// Encoder)
-#define SPARK_MATCH_STATUS_4(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_4)
-// Match arbitration ID for frame Status 5: Includes velocity and position data from a duty-cycle absolute encoder
-#define SPARK_MATCH_STATUS_5(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_5)
-// Match arbitration ID for frame Status 6: Includes other data from a duty-cycle absolute encoder
-#define SPARK_MATCH_STATUS_6(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_6)
-// Match arbitration ID for frame Status 7: Includes diagnostic data for closed-loop control
-#define SPARK_MATCH_STATUS_7(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_7)
-// Match arbitration ID for frame Status 8: Includes additional diagnostic data for closed-loop control
-#define SPARK_MATCH_STATUS_8(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_8)
-// Match arbitration ID for frame Status 9: Includes diagnostic data for MAXMotion closed-loop control
-#define SPARK_MATCH_STATUS_9(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STATUS_9)
-// Match arbitration ID for frame Unique ID Broadcast: Contains the unique ID of the device, to allow detecting
-// duplicate CAN IDs. To avoid collisions, the SPARK Flex firmware will send this at an irregular period between 1000ms
-// and 2000ms. SPARK MAX may use a constant period of 1000ms.
-#define SPARK_MATCH_UNIQUE_ID_BROADCAST(id)                                                                            \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_UNIQUE_ID_BROADCAST)
-// Match arbitration ID for frame Velocity Setpoint: Sets the Control Type to Velocity and sets the target velocity
-#define SPARK_MATCH_VELOCITY_SETPOINT(id)                                                                              \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_VELOCITY_SETPOINT)
-// Match arbitration ID for frame Duty Cycle Setpoint: Sets the Control Type to Duty Cycle and sets the target duty
-// cycle (from -1 to 1)
-#define SPARK_MATCH_DUTY_CYCLE_SETPOINT(id)                                                                            \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_DUTY_CYCLE_SETPOINT)
-// Match arbitration ID for frame Position Setpoint: Sets the Control Type to Position and sets the target position
-#define SPARK_MATCH_POSITION_SETPOINT(id)                                                                              \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_POSITION_SETPOINT)
-// Match arbitration ID for frame Voltage Setpoint: Sets the Control Type to Voltage and sets the target voltage
-#define SPARK_MATCH_VOLTAGE_SETPOINT(id)                                                                               \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_VOLTAGE_SETPOINT)
-// Match arbitration ID for frame Current Setpoint: Sets the Control Type to Current and sets the target current
-#define SPARK_MATCH_CURRENT_SETPOINT(id)                                                                               \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_CURRENT_SETPOINT)
-// Match arbitration ID for frame MAXMotion Position Setpoint: Sets the Control Type to MAXMotion Position Control and
-// sets the target position
-#define SPARK_MATCH_MAXMOTION_POSITION_SETPOINT(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_MAXMOTION_POSITION_SETPOINT)
-// Match arbitration ID for frame MAXMotion Velocity Setpoint: Sets the Control Type to MAXMotion Velocity Control and
-// sets the target velocity
-#define SPARK_MATCH_MAXMOTION_VELOCITY_SETPOINT(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_MAXMOTION_VELOCITY_SETPOINT)
-// Match arbitration ID for frame Set Statuses Enabled: Enable or disable status frames. In response, a Set Statuses
-// Enabled Response frame will be sent.
-#define SPARK_MATCH_SET_STATUSES_ENABLED(id)                                                                           \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SET_STATUSES_ENABLED)
-// Match arbitration ID for frame Set Statuses Enabled Response: Response for a Set Statuses Enabled command
-#define SPARK_MATCH_SET_STATUSES_ENABLED_RESPONSE(id)                                                                  \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SET_STATUSES_ENABLED_RESPONSE)
-// Match arbitration ID for frame Persist Parameters Response
-#define SPARK_MATCH_PERSIST_PARAMETERS_RESPONSE(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_PERSIST_PARAMETERS_RESPONSE)
-// Match arbitration ID for frame Reset Safe Parameters: Resets most writable parameters to their default values, except
-// CAN ID, Motor Type, Idle Mode, PWM Input Deadband, and Duty Cycle Offset. In response, a Reset Safe Parameters
-// Response frame is sent.
-#define SPARK_MATCH_RESET_SAFE_PARAMETERS(id)                                                                          \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_RESET_SAFE_PARAMETERS)
-// Match arbitration ID for frame Reset Safe Parameters Response: Response for a Reset Safe Parameters command
-#define SPARK_MATCH_RESET_SAFE_PARAMETERS_RESPONSE(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_RESET_SAFE_PARAMETERS_RESPONSE)
-// Match arbitration ID for frame Complete Factory Reset: Resets all writable parameters to default values, even CAN ID,
-// Motor Type, Idle Mode, PWM Input Deadband, and Duty Cycle Offset. In response, a Complete Factory Reset Response
-// frame is sent.
-#define SPARK_MATCH_COMPLETE_FACTORY_RESET(id)                                                                         \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_COMPLETE_FACTORY_RESET)
-// Match arbitration ID for frame Complete Factory Reset Response: Response for a Complete Factory Reset command
-#define SPARK_MATCH_COMPLETE_FACTORY_RESET_RESPONSE(id)                                                                \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_COMPLETE_FACTORY_RESET_RESPONSE)
-// Match arbitration ID for frame Clear Faults
-#define SPARK_MATCH_CLEAR_FAULTS(id)                                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_CLEAR_FAULTS)
-// Match arbitration ID for frame Identify Unique SPARK: Makes the specified, single SPARK (even if there are multiple
-// SPARKs that have the same CAN ID) temporarily perform a special blink pattern that will make it stand out
-#define SPARK_MATCH_IDENTIFY_UNIQUE_SPARK(id)                                                                          \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_IDENTIFY_UNIQUE_SPARK)
-// Match arbitration ID for frame Identify: Makes the SPARK temporarily perform a special blink pattern that will make
-// it stand out. Use Identify Unique Device if there may be multiple SPARKs with the same CAN ID.
-#define SPARK_MATCH_IDENTIFY(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_IDENTIFY)
-// Match arbitration ID for frame Nack: As of SPARK MAX firmware 1.6.3, this is only used as a potential response to
-// setting the CAN ID
-#define SPARK_MATCH_NACK(id) ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_NACK)
-// Match arbitration ID for frame Ack: As of SPARK MAX firmware 1.6.3, this is only used as a potential response to
-// setting the CAN ID
-#define SPARK_MATCH_ACK(id) ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_ACK)
-// Match arbitration ID for frame LED Sync: Causes all SPARKs on the bus to synchronize their LED patterns
-#define SPARK_MATCH_LED_SYNC(id)                                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_LED_SYNC)
-// Match arbitration ID for frame Set CAN ID: Allows changing the CAN ID when multiple devices on the bus currently have
-// the same CAN ID. Under normal circumstances, the CAN ID parameter can be used.
-#define SPARK_MATCH_SET_CAN_ID(id)                                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SET_CAN_ID)
-// Match arbitration ID for frame Get Firmware Version
-#define SPARK_MATCH_GET_FIRMWARE_VERSION(id)                                                                           \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_FIRMWARE_VERSION)
-// Match arbitration ID for frame SWDL Data: Broadcast from the host to all SPARKs in SWDL mode, containing a slice of
-// firmware data
-#define SPARK_MATCH_SWDL_DATA(id)                                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SWDL_DATA)
-// Match arbitration ID for frame SWDL Checksum: Broadcast from the host to all SPARKs in SWDL mode, containing the
-// checksum of the full firmware image that was just sent
-#define SPARK_MATCH_SWDL_CHECKSUM(id)                                                                                  \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SWDL_CHECKSUM)
-// Match arbitration ID for frame SWDL Retransmit: Sent by SPARK devices in response to receiving an SWDL Checksum frame
-// that does not match the firmware data they received
-#define SPARK_MATCH_SWDL_RETRANSMIT(id)                                                                                \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SWDL_RETRANSMIT)
-// Match arbitration ID for frame Set Primary Encoder Position
-#define SPARK_MATCH_SET_PRIMARY_ENCODER_POSITION(id)                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SET_PRIMARY_ENCODER_POSITION)
-// Match arbitration ID for frame Set I Accumulation
-#define SPARK_MATCH_SET_I_ACCUMULATION(id)                                                                             \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SET_I_ACCUMULATION)
-// Match arbitration ID for frame Set Analog Position
-#define SPARK_MATCH_SET_ANALOG_POSITION(id)                                                                            \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SET_ANALOG_POSITION)
-// Match arbitration ID for frame Set Ext or Alt Encoder Position
-#define SPARK_MATCH_SET_EXT_OR_ALT_ENCODER_POSITION(id)                                                                \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SET_EXT_OR_ALT_ENCODER_POSITION)
-// Match arbitration ID for frame Set Duty Cycle Position
-#define SPARK_MATCH_SET_DUTY_CYCLE_POSITION(id)                                                                        \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SET_DUTY_CYCLE_POSITION)
-// Match arbitration ID for frame Secondary Heartbeat: Heartbeat that allows enabling only specific SPARKs, but only
-// gets respected when the SPARK is not locked to the Universal Heartbeat or Primary Heartbeat
-#define SPARK_MATCH_SECONDARY_HEARTBEAT(id)                                                                            \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_SECONDARY_HEARTBEAT)
-// Match arbitration ID for frame USB Only Identify: The response will only be sent if this command is received directly
-// via USB. This has no relation to the normal Identify command, which displays an LED pattern.
-#define SPARK_MATCH_USB_ONLY_IDENTIFY(id)                                                                              \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_USB_ONLY_IDENTIFY)
-// Match arbitration ID for frame USB Only Enter DFU Bootloader: Causes the device to reboot into the DFU bootloader if
-// this command is received directly via USB
-#define SPARK_MATCH_USB_ONLY_ENTER_DFU_BOOTLOADER(id)                                                                  \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_USB_ONLY_ENTER_DFU_BOOTLOADER)
-// Match arbitration ID for frame Get Temperatures
-#define SPARK_MATCH_GET_TEMPERATURES(id)                                                                               \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_TEMPERATURES)
-// Match arbitration ID for frame Get Motor Interface
-#define SPARK_MATCH_GET_MOTOR_INTERFACE(id)                                                                            \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_MOTOR_INTERFACE)
-// Match arbitration ID for frame Get Parameter 0 to 15 Types: Get types of parameters 0 to 15
-#define SPARK_MATCH_GET_PARAMETER_0_TO_15_TYPES(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_0_TO_15_TYPES)
-// Match arbitration ID for frame Get Parameter 16 to 31 Types: Get types of parameters 16 to 31
-#define SPARK_MATCH_GET_PARAMETER_16_TO_31_TYPES(id)                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_16_TO_31_TYPES)
-// Match arbitration ID for frame Get Parameter 32 to 47 Types: Get types of parameters 32 to 47
-#define SPARK_MATCH_GET_PARAMETER_32_TO_47_TYPES(id)                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_32_TO_47_TYPES)
-// Match arbitration ID for frame Get Parameter 48 to 63 Types: Get types of parameters 48 to 63
-#define SPARK_MATCH_GET_PARAMETER_48_TO_63_TYPES(id)                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_48_TO_63_TYPES)
-// Match arbitration ID for frame Get Parameter 64 to 79 Types: Get types of parameters 64 to 79
-#define SPARK_MATCH_GET_PARAMETER_64_TO_79_TYPES(id)                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_64_TO_79_TYPES)
-// Match arbitration ID for frame Get Parameter 80 to 95 Types: Get types of parameters 80 to 95
-#define SPARK_MATCH_GET_PARAMETER_80_TO_95_TYPES(id)                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_80_TO_95_TYPES)
-// Match arbitration ID for frame Get Parameter 96 to 111 Types: Get types of parameters 96 to 111
-#define SPARK_MATCH_GET_PARAMETER_96_TO_111_TYPES(id)                                                                  \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_96_TO_111_TYPES)
-// Match arbitration ID for frame Get Parameter 112 to 127 Types: Get types of parameters 112 to 127
-#define SPARK_MATCH_GET_PARAMETER_112_TO_127_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_112_TO_127_TYPES)
-// Match arbitration ID for frame Get Parameter 128 to 143 Types: Get types of parameters 128 to 143
-#define SPARK_MATCH_GET_PARAMETER_128_TO_143_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_128_TO_143_TYPES)
-// Match arbitration ID for frame Get Parameter 144 to 159 Types: Get types of parameters 144 to 159
-#define SPARK_MATCH_GET_PARAMETER_144_TO_159_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_144_TO_159_TYPES)
-// Match arbitration ID for frame Get Parameter 160 to 175 Types: Get types of parameters 160 to 175
-#define SPARK_MATCH_GET_PARAMETER_160_TO_175_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_160_TO_175_TYPES)
-// Match arbitration ID for frame Get Parameter 176 to 191 Types: Get types of parameters 176 to 191
-#define SPARK_MATCH_GET_PARAMETER_176_TO_191_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_176_TO_191_TYPES)
-// Match arbitration ID for frame Get Parameter 192 to 207 Types: Get types of parameters 192 to 207
-#define SPARK_MATCH_GET_PARAMETER_192_TO_207_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_192_TO_207_TYPES)
-// Match arbitration ID for frame Get Parameter 208 to 223 Types: Get types of parameters 208 to 223
-#define SPARK_MATCH_GET_PARAMETER_208_TO_223_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_208_TO_223_TYPES)
-// Match arbitration ID for frame Get Parameter 224 to 239 Types: Get types of parameters 224 to 239
-#define SPARK_MATCH_GET_PARAMETER_224_TO_239_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_224_TO_239_TYPES)
-// Match arbitration ID for frame Get Parameter 240 to 255 Types: Get types of parameters 240 to 255
-#define SPARK_MATCH_GET_PARAMETER_240_TO_255_TYPES(id)                                                                 \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_GET_PARAMETER_240_TO_255_TYPES)
-// Match arbitration ID for frame Parameter Write: Write a single parameter value. In response, a Parameter Write
-// Response frame will be sent.
-#define SPARK_MATCH_PARAMETER_WRITE(id)                                                                                \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_PARAMETER_WRITE)
-// Match arbitration ID for frame Parameter Write Response: Response for a parameter write (including a write done as
-// part of a dual-write)
-#define SPARK_MATCH_PARAMETER_WRITE_RESPONSE(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_PARAMETER_WRITE_RESPONSE)
-// Match arbitration ID for frame Read Parameter 0 and 1: Read parameter 0 and 1 at the same time. SPARK MAX does not
-// currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_0_AND_1(id)                                                                         \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_0_AND_1)
-// Match arbitration ID for frame Read Parameter 2 and 3: Read parameter 2 and 3 at the same time. SPARK MAX does not
-// currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_2_AND_3(id)                                                                         \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_2_AND_3)
-// Match arbitration ID for frame Read Parameter 4 and 5: Read parameter 4 and 5 at the same time. SPARK MAX does not
-// currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_4_AND_5(id)                                                                         \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_4_AND_5)
-// Match arbitration ID for frame Read Parameter 6 and 7: Read parameter 6 and 7 at the same time. SPARK MAX does not
-// currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_6_AND_7(id)                                                                         \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_6_AND_7)
-// Match arbitration ID for frame Read Parameter 8 and 9: Read parameter 8 and 9 at the same time. SPARK MAX does not
-// currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_8_AND_9(id)                                                                         \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_8_AND_9)
-// Match arbitration ID for frame Read Parameter 10 and 11: Read parameter 10 and 11 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_10_AND_11(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_10_AND_11)
-// Match arbitration ID for frame Read Parameter 12 and 13: Read parameter 12 and 13 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_12_AND_13(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_12_AND_13)
-// Match arbitration ID for frame Read Parameter 14 and 15: Read parameter 14 and 15 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_14_AND_15(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_14_AND_15)
-// Match arbitration ID for frame Read Parameter 16 and 17: Read parameter 16 and 17 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_16_AND_17(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_16_AND_17)
-// Match arbitration ID for frame Read Parameter 18 and 19: Read parameter 18 and 19 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_18_AND_19(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_18_AND_19)
-// Match arbitration ID for frame Read Parameter 20 and 21: Read parameter 20 and 21 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_20_AND_21(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_20_AND_21)
-// Match arbitration ID for frame Read Parameter 22 and 23: Read parameter 22 and 23 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_22_AND_23(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_22_AND_23)
-// Match arbitration ID for frame Read Parameter 24 and 25: Read parameter 24 and 25 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_24_AND_25(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_24_AND_25)
-// Match arbitration ID for frame Read Parameter 26 and 27: Read parameter 26 and 27 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_26_AND_27(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_26_AND_27)
-// Match arbitration ID for frame Read Parameter 28 and 29: Read parameter 28 and 29 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_28_AND_29(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_28_AND_29)
-// Match arbitration ID for frame Read Parameter 30 and 31: Read parameter 30 and 31 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_30_AND_31(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_30_AND_31)
-// Match arbitration ID for frame Read Parameter 32 and 33: Read parameter 32 and 33 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_32_AND_33(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_32_AND_33)
-// Match arbitration ID for frame Read Parameter 34 and 35: Read parameter 34 and 35 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_34_AND_35(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_34_AND_35)
-// Match arbitration ID for frame Read Parameter 36 and 37: Read parameter 36 and 37 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_36_AND_37(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_36_AND_37)
-// Match arbitration ID for frame Read Parameter 38 and 39: Read parameter 38 and 39 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_38_AND_39(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_38_AND_39)
-// Match arbitration ID for frame Read Parameter 40 and 41: Read parameter 40 and 41 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_40_AND_41(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_40_AND_41)
-// Match arbitration ID for frame Read Parameter 42 and 43: Read parameter 42 and 43 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_42_AND_43(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_42_AND_43)
-// Match arbitration ID for frame Read Parameter 44 and 45: Read parameter 44 and 45 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_44_AND_45(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_44_AND_45)
-// Match arbitration ID for frame Read Parameter 46 and 47: Read parameter 46 and 47 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_46_AND_47(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_46_AND_47)
-// Match arbitration ID for frame Read Parameter 48 and 49: Read parameter 48 and 49 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_48_AND_49(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_48_AND_49)
-// Match arbitration ID for frame Read Parameter 50 and 51: Read parameter 50 and 51 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_50_AND_51(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_50_AND_51)
-// Match arbitration ID for frame Read Parameter 52 and 53: Read parameter 52 and 53 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_52_AND_53(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_52_AND_53)
-// Match arbitration ID for frame Read Parameter 54 and 55: Read parameter 54 and 55 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_54_AND_55(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_54_AND_55)
-// Match arbitration ID for frame Read Parameter 56 and 57: Read parameter 56 and 57 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_56_AND_57(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_56_AND_57)
-// Match arbitration ID for frame Read Parameter 58 and 59: Read parameter 58 and 59 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_58_AND_59(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_58_AND_59)
-// Match arbitration ID for frame Read Parameter 60 and 61: Read parameter 60 and 61 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_60_AND_61(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_60_AND_61)
-// Match arbitration ID for frame Read Parameter 62 and 63: Read parameter 62 and 63 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_62_AND_63(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_62_AND_63)
-// Match arbitration ID for frame Read Parameter 64 and 65: Read parameter 64 and 65 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_64_AND_65(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_64_AND_65)
-// Match arbitration ID for frame Read Parameter 66 and 67: Read parameter 66 and 67 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_66_AND_67(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_66_AND_67)
-// Match arbitration ID for frame Read Parameter 68 and 69: Read parameter 68 and 69 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_68_AND_69(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_68_AND_69)
-// Match arbitration ID for frame Read Parameter 70 and 71: Read parameter 70 and 71 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_70_AND_71(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_70_AND_71)
-// Match arbitration ID for frame Read Parameter 72 and 73: Read parameter 72 and 73 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_72_AND_73(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_72_AND_73)
-// Match arbitration ID for frame Read Parameter 74 and 75: Read parameter 74 and 75 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_74_AND_75(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_74_AND_75)
-// Match arbitration ID for frame Read Parameter 76 and 77: Read parameter 76 and 77 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_76_AND_77(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_76_AND_77)
-// Match arbitration ID for frame Read Parameter 78 and 79: Read parameter 78 and 79 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_78_AND_79(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_78_AND_79)
-// Match arbitration ID for frame Read Parameter 80 and 81: Read parameter 80 and 81 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_80_AND_81(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_80_AND_81)
-// Match arbitration ID for frame Read Parameter 82 and 83: Read parameter 82 and 83 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_82_AND_83(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_82_AND_83)
-// Match arbitration ID for frame Read Parameter 84 and 85: Read parameter 84 and 85 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_84_AND_85(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_84_AND_85)
-// Match arbitration ID for frame Read Parameter 86 and 87: Read parameter 86 and 87 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_86_AND_87(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_86_AND_87)
-// Match arbitration ID for frame Read Parameter 88 and 89: Read parameter 88 and 89 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_88_AND_89(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_88_AND_89)
-// Match arbitration ID for frame Read Parameter 90 and 91: Read parameter 90 and 91 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_90_AND_91(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_90_AND_91)
-// Match arbitration ID for frame Read Parameter 92 and 93: Read parameter 92 and 93 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_92_AND_93(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_92_AND_93)
-// Match arbitration ID for frame Read Parameter 94 and 95: Read parameter 94 and 95 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_94_AND_95(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_94_AND_95)
-// Match arbitration ID for frame Read Parameter 96 and 97: Read parameter 96 and 97 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_96_AND_97(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_96_AND_97)
-// Match arbitration ID for frame Read Parameter 98 and 99: Read parameter 98 and 99 at the same time. SPARK MAX does
-// not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_98_AND_99(id)                                                                       \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_98_AND_99)
-// Match arbitration ID for frame Read Parameter 100 and 101: Read parameter 100 and 101 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_100_AND_101(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_100_AND_101)
-// Match arbitration ID for frame Read Parameter 102 and 103: Read parameter 102 and 103 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_102_AND_103(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_102_AND_103)
-// Match arbitration ID for frame Read Parameter 104 and 105: Read parameter 104 and 105 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_104_AND_105(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_104_AND_105)
-// Match arbitration ID for frame Read Parameter 106 and 107: Read parameter 106 and 107 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_106_AND_107(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_106_AND_107)
-// Match arbitration ID for frame Read Parameter 108 and 109: Read parameter 108 and 109 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_108_AND_109(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_108_AND_109)
-// Match arbitration ID for frame Read Parameter 110 and 111: Read parameter 110 and 111 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_110_AND_111(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_110_AND_111)
-// Match arbitration ID for frame Read Parameter 112 and 113: Read parameter 112 and 113 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_112_AND_113(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_112_AND_113)
-// Match arbitration ID for frame Read Parameter 114 and 115: Read parameter 114 and 115 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_114_AND_115(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_114_AND_115)
-// Match arbitration ID for frame Read Parameter 116 and 117: Read parameter 116 and 117 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_116_AND_117(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_116_AND_117)
-// Match arbitration ID for frame Read Parameter 118 and 119: Read parameter 118 and 119 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_118_AND_119(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_118_AND_119)
-// Match arbitration ID for frame Read Parameter 120 and 121: Read parameter 120 and 121 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_120_AND_121(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_120_AND_121)
-// Match arbitration ID for frame Read Parameter 122 and 123: Read parameter 122 and 123 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_122_AND_123(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_122_AND_123)
-// Match arbitration ID for frame Read Parameter 124 and 125: Read parameter 124 and 125 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_124_AND_125(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_124_AND_125)
-// Match arbitration ID for frame Read Parameter 126 and 127: Read parameter 126 and 127 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_126_AND_127(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_126_AND_127)
-// Match arbitration ID for frame Read Parameter 128 and 129: Read parameter 128 and 129 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_128_AND_129(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_128_AND_129)
-// Match arbitration ID for frame Read Parameter 130 and 131: Read parameter 130 and 131 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_130_AND_131(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_130_AND_131)
-// Match arbitration ID for frame Read Parameter 132 and 133: Read parameter 132 and 133 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_132_AND_133(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_132_AND_133)
-// Match arbitration ID for frame Read Parameter 134 and 135: Read parameter 134 and 135 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_134_AND_135(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_134_AND_135)
-// Match arbitration ID for frame Read Parameter 136 and 137: Read parameter 136 and 137 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_136_AND_137(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_136_AND_137)
-// Match arbitration ID for frame Read Parameter 138 and 139: Read parameter 138 and 139 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_138_AND_139(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_138_AND_139)
-// Match arbitration ID for frame Read Parameter 140 and 141: Read parameter 140 and 141 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_140_AND_141(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_140_AND_141)
-// Match arbitration ID for frame Read Parameter 142 and 143: Read parameter 142 and 143 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_142_AND_143(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_142_AND_143)
-// Match arbitration ID for frame Read Parameter 144 and 145: Read parameter 144 and 145 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_144_AND_145(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_144_AND_145)
-// Match arbitration ID for frame Read Parameter 146 and 147: Read parameter 146 and 147 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_146_AND_147(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_146_AND_147)
-// Match arbitration ID for frame Read Parameter 148 and 149: Read parameter 148 and 149 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_148_AND_149(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_148_AND_149)
-// Match arbitration ID for frame Read Parameter 150 and 151: Read parameter 150 and 151 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_150_AND_151(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_150_AND_151)
-// Match arbitration ID for frame Read Parameter 152 and 153: Read parameter 152 and 153 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_152_AND_153(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_152_AND_153)
-// Match arbitration ID for frame Read Parameter 154 and 155: Read parameter 154 and 155 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_154_AND_155(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_154_AND_155)
-// Match arbitration ID for frame Read Parameter 156 and 157: Read parameter 156 and 157 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_156_AND_157(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_156_AND_157)
-// Match arbitration ID for frame Read Parameter 158 and 159: Read parameter 158 and 159 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_158_AND_159(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_158_AND_159)
-// Match arbitration ID for frame Read Parameter 160 and 161: Read parameter 160 and 161 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_160_AND_161(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_160_AND_161)
-// Match arbitration ID for frame Read Parameter 162 and 163: Read parameter 162 and 163 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_162_AND_163(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_162_AND_163)
-// Match arbitration ID for frame Read Parameter 164 and 165: Read parameter 164 and 165 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_164_AND_165(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_164_AND_165)
-// Match arbitration ID for frame Read Parameter 166 and 167: Read parameter 166 and 167 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_166_AND_167(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_166_AND_167)
-// Match arbitration ID for frame Read Parameter 168 and 169: Read parameter 168 and 169 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_168_AND_169(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_168_AND_169)
-// Match arbitration ID for frame Read Parameter 170 and 171: Read parameter 170 and 171 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_170_AND_171(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_170_AND_171)
-// Match arbitration ID for frame Read Parameter 172 and 173: Read parameter 172 and 173 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_172_AND_173(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_172_AND_173)
-// Match arbitration ID for frame Read Parameter 174 and 175: Read parameter 174 and 175 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_174_AND_175(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_174_AND_175)
-// Match arbitration ID for frame Read Parameter 176 and 177: Read parameter 176 and 177 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_176_AND_177(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_176_AND_177)
-// Match arbitration ID for frame Read Parameter 178 and 179: Read parameter 178 and 179 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_178_AND_179(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_178_AND_179)
-// Match arbitration ID for frame Read Parameter 180 and 181: Read parameter 180 and 181 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_180_AND_181(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_180_AND_181)
-// Match arbitration ID for frame Read Parameter 182 and 183: Read parameter 182 and 183 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_182_AND_183(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_182_AND_183)
-// Match arbitration ID for frame Read Parameter 184 and 185: Read parameter 184 and 185 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_184_AND_185(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_184_AND_185)
-// Match arbitration ID for frame Read Parameter 186 and 187: Read parameter 186 and 187 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_186_AND_187(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_186_AND_187)
-// Match arbitration ID for frame Read Parameter 188 and 189: Read parameter 188 and 189 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_188_AND_189(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_188_AND_189)
-// Match arbitration ID for frame Read Parameter 190 and 191: Read parameter 190 and 191 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_190_AND_191(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_190_AND_191)
-// Match arbitration ID for frame Read Parameter 192 and 193: Read parameter 192 and 193 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_192_AND_193(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_192_AND_193)
-// Match arbitration ID for frame Read Parameter 194 and 195: Read parameter 194 and 195 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_194_AND_195(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_194_AND_195)
-// Match arbitration ID for frame Read Parameter 196 and 197: Read parameter 196 and 197 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_196_AND_197(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_196_AND_197)
-// Match arbitration ID for frame Read Parameter 198 and 199: Read parameter 198 and 199 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_198_AND_199(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_198_AND_199)
-// Match arbitration ID for frame Read Parameter 200 and 201: Read parameter 200 and 201 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_200_AND_201(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_200_AND_201)
-// Match arbitration ID for frame Read Parameter 202 and 203: Read parameter 202 and 203 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_202_AND_203(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_202_AND_203)
-// Match arbitration ID for frame Read Parameter 204 and 205: Read parameter 204 and 205 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_204_AND_205(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_204_AND_205)
-// Match arbitration ID for frame Read Parameter 206 and 207: Read parameter 206 and 207 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_206_AND_207(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_206_AND_207)
-// Match arbitration ID for frame Read Parameter 208 and 209: Read parameter 208 and 209 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_208_AND_209(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_208_AND_209)
-// Match arbitration ID for frame Read Parameter 210 and 211: Read parameter 210 and 211 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_210_AND_211(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_210_AND_211)
-// Match arbitration ID for frame Read Parameter 212 and 213: Read parameter 212 and 213 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_212_AND_213(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_212_AND_213)
-// Match arbitration ID for frame Read Parameter 214 and 215: Read parameter 214 and 215 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_214_AND_215(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_214_AND_215)
-// Match arbitration ID for frame Read Parameter 216 and 217: Read parameter 216 and 217 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_216_AND_217(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_216_AND_217)
-// Match arbitration ID for frame Read Parameter 218 and 219: Read parameter 218 and 219 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_218_AND_219(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_218_AND_219)
-// Match arbitration ID for frame Read Parameter 220 and 221: Read parameter 220 and 221 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_220_AND_221(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_220_AND_221)
-// Match arbitration ID for frame Read Parameter 222 and 223: Read parameter 222 and 223 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_222_AND_223(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_222_AND_223)
-// Match arbitration ID for frame Read Parameter 224 and 225: Read parameter 224 and 225 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_224_AND_225(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_224_AND_225)
-// Match arbitration ID for frame Read Parameter 226 and 227: Read parameter 226 and 227 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_226_AND_227(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_226_AND_227)
-// Match arbitration ID for frame Read Parameter 228 and 229: Read parameter 228 and 229 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_228_AND_229(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_228_AND_229)
-// Match arbitration ID for frame Read Parameter 230 and 231: Read parameter 230 and 231 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_230_AND_231(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_230_AND_231)
-// Match arbitration ID for frame Read Parameter 232 and 233: Read parameter 232 and 233 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_232_AND_233(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_232_AND_233)
-// Match arbitration ID for frame Read Parameter 234 and 235: Read parameter 234 and 235 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_234_AND_235(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_234_AND_235)
-// Match arbitration ID for frame Read Parameter 236 and 237: Read parameter 236 and 237 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_236_AND_237(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_236_AND_237)
-// Match arbitration ID for frame Read Parameter 238 and 239: Read parameter 238 and 239 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_238_AND_239(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_238_AND_239)
-// Match arbitration ID for frame Read Parameter 240 and 241: Read parameter 240 and 241 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_240_AND_241(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_240_AND_241)
-// Match arbitration ID for frame Read Parameter 242 and 243: Read parameter 242 and 243 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_242_AND_243(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_242_AND_243)
-// Match arbitration ID for frame Read Parameter 244 and 245: Read parameter 244 and 245 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_244_AND_245(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_244_AND_245)
-// Match arbitration ID for frame Read Parameter 246 and 247: Read parameter 246 and 247 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_246_AND_247(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_246_AND_247)
-// Match arbitration ID for frame Read Parameter 248 and 249: Read parameter 248 and 249 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_248_AND_249(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_248_AND_249)
-// Match arbitration ID for frame Read Parameter 250 and 251: Read parameter 250 and 251 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_250_AND_251(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_250_AND_251)
-// Match arbitration ID for frame Read Parameter 252 and 253: Read parameter 252 and 253 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_252_AND_253(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_252_AND_253)
-// Match arbitration ID for frame Read Parameter 254 and 255: Read parameter 254 and 255 at the same time. SPARK MAX
-// does not currently support this in v25.0.0-prerelease.4
-#define SPARK_MATCH_READ_PARAMETER_254_AND_255(id)                                                                     \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_READ_PARAMETER_254_AND_255)
-// Match arbitration ID for frame Write Parameter 0 and 1: Write Parameter 0 and 1 at the same time. Two Write Parameter
-// Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_0_AND_1(id)                                                                        \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_0_AND_1)
-// Match arbitration ID for frame Write Parameter 2 and 3: Write Parameter 2 and 3 at the same time. Two Write Parameter
-// Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_2_AND_3(id)                                                                        \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_2_AND_3)
-// Match arbitration ID for frame Write Parameter 4 and 5: Write Parameter 4 and 5 at the same time. Two Write Parameter
-// Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_4_AND_5(id)                                                                        \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_4_AND_5)
-// Match arbitration ID for frame Write Parameter 6 and 7: Write Parameter 6 and 7 at the same time. Two Write Parameter
-// Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_6_AND_7(id)                                                                        \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_6_AND_7)
-// Match arbitration ID for frame Write Parameter 8 and 9: Write Parameter 8 and 9 at the same time. Two Write Parameter
-// Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_8_AND_9(id)                                                                        \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_8_AND_9)
-// Match arbitration ID for frame Write Parameter 10 and 11: Write Parameter 10 and 11 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_10_AND_11(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_10_AND_11)
-// Match arbitration ID for frame Write Parameter 12 and 13: Write Parameter 12 and 13 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_12_AND_13(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_12_AND_13)
-// Match arbitration ID for frame Write Parameter 14 and 15: Write Parameter 14 and 15 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_14_AND_15(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_14_AND_15)
-// Match arbitration ID for frame Write Parameter 16 and 17: Write Parameter 16 and 17 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_16_AND_17(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_16_AND_17)
-// Match arbitration ID for frame Write Parameter 18 and 19: Write Parameter 18 and 19 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_18_AND_19(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_18_AND_19)
-// Match arbitration ID for frame Write Parameter 20 and 21: Write Parameter 20 and 21 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_20_AND_21(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_20_AND_21)
-// Match arbitration ID for frame Write Parameter 22 and 23: Write Parameter 22 and 23 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_22_AND_23(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_22_AND_23)
-// Match arbitration ID for frame Write Parameter 24 and 25: Write Parameter 24 and 25 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_24_AND_25(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_24_AND_25)
-// Match arbitration ID for frame Write Parameter 26 and 27: Write Parameter 26 and 27 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_26_AND_27(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_26_AND_27)
-// Match arbitration ID for frame Write Parameter 28 and 29: Write Parameter 28 and 29 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_28_AND_29(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_28_AND_29)
-// Match arbitration ID for frame Write Parameter 30 and 31: Write Parameter 30 and 31 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_30_AND_31(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_30_AND_31)
-// Match arbitration ID for frame Write Parameter 32 and 33: Write Parameter 32 and 33 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_32_AND_33(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_32_AND_33)
-// Match arbitration ID for frame Write Parameter 34 and 35: Write Parameter 34 and 35 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_34_AND_35(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_34_AND_35)
-// Match arbitration ID for frame Write Parameter 36 and 37: Write Parameter 36 and 37 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_36_AND_37(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_36_AND_37)
-// Match arbitration ID for frame Write Parameter 38 and 39: Write Parameter 38 and 39 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_38_AND_39(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_38_AND_39)
-// Match arbitration ID for frame Write Parameter 40 and 41: Write Parameter 40 and 41 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_40_AND_41(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_40_AND_41)
-// Match arbitration ID for frame Write Parameter 42 and 43: Write Parameter 42 and 43 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_42_AND_43(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_42_AND_43)
-// Match arbitration ID for frame Write Parameter 44 and 45: Write Parameter 44 and 45 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_44_AND_45(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_44_AND_45)
-// Match arbitration ID for frame Write Parameter 46 and 47: Write Parameter 46 and 47 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_46_AND_47(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_46_AND_47)
-// Match arbitration ID for frame Write Parameter 48 and 49: Write Parameter 48 and 49 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_48_AND_49(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_48_AND_49)
-// Match arbitration ID for frame Write Parameter 50 and 51: Write Parameter 50 and 51 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_50_AND_51(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_50_AND_51)
-// Match arbitration ID for frame Write Parameter 52 and 53: Write Parameter 52 and 53 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_52_AND_53(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_52_AND_53)
-// Match arbitration ID for frame Write Parameter 54 and 55: Write Parameter 54 and 55 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_54_AND_55(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_54_AND_55)
-// Match arbitration ID for frame Write Parameter 56 and 57: Write Parameter 56 and 57 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_56_AND_57(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_56_AND_57)
-// Match arbitration ID for frame Write Parameter 58 and 59: Write Parameter 58 and 59 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_58_AND_59(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_58_AND_59)
-// Match arbitration ID for frame Write Parameter 60 and 61: Write Parameter 60 and 61 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_60_AND_61(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_60_AND_61)
-// Match arbitration ID for frame Write Parameter 62 and 63: Write Parameter 62 and 63 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_62_AND_63(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_62_AND_63)
-// Match arbitration ID for frame Write Parameter 64 and 65: Write Parameter 64 and 65 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_64_AND_65(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_64_AND_65)
-// Match arbitration ID for frame Write Parameter 66 and 67: Write Parameter 66 and 67 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_66_AND_67(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_66_AND_67)
-// Match arbitration ID for frame Write Parameter 68 and 69: Write Parameter 68 and 69 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_68_AND_69(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_68_AND_69)
-// Match arbitration ID for frame Write Parameter 70 and 71: Write Parameter 70 and 71 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_70_AND_71(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_70_AND_71)
-// Match arbitration ID for frame Write Parameter 72 and 73: Write Parameter 72 and 73 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_72_AND_73(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_72_AND_73)
-// Match arbitration ID for frame Write Parameter 74 and 75: Write Parameter 74 and 75 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_74_AND_75(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_74_AND_75)
-// Match arbitration ID for frame Write Parameter 76 and 77: Write Parameter 76 and 77 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_76_AND_77(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_76_AND_77)
-// Match arbitration ID for frame Write Parameter 78 and 79: Write Parameter 78 and 79 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_78_AND_79(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_78_AND_79)
-// Match arbitration ID for frame Write Parameter 80 and 81: Write Parameter 80 and 81 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_80_AND_81(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_80_AND_81)
-// Match arbitration ID for frame Write Parameter 82 and 83: Write Parameter 82 and 83 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_82_AND_83(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_82_AND_83)
-// Match arbitration ID for frame Write Parameter 84 and 85: Write Parameter 84 and 85 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_84_AND_85(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_84_AND_85)
-// Match arbitration ID for frame Write Parameter 86 and 87: Write Parameter 86 and 87 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_86_AND_87(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_86_AND_87)
-// Match arbitration ID for frame Write Parameter 88 and 89: Write Parameter 88 and 89 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_88_AND_89(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_88_AND_89)
-// Match arbitration ID for frame Write Parameter 90 and 91: Write Parameter 90 and 91 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_90_AND_91(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_90_AND_91)
-// Match arbitration ID for frame Write Parameter 92 and 93: Write Parameter 92 and 93 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_92_AND_93(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_92_AND_93)
-// Match arbitration ID for frame Write Parameter 94 and 95: Write Parameter 94 and 95 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_94_AND_95(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_94_AND_95)
-// Match arbitration ID for frame Write Parameter 96 and 97: Write Parameter 96 and 97 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_96_AND_97(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_96_AND_97)
-// Match arbitration ID for frame Write Parameter 98 and 99: Write Parameter 98 and 99 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_98_AND_99(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_98_AND_99)
-// Match arbitration ID for frame Write Parameter 100 and 101: Write Parameter 100 and 101 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_100_AND_101(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_100_AND_101)
-// Match arbitration ID for frame Write Parameter 102 and 103: Write Parameter 102 and 103 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_102_AND_103(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_102_AND_103)
-// Match arbitration ID for frame Write Parameter 104 and 105: Write Parameter 104 and 105 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_104_AND_105(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_104_AND_105)
-// Match arbitration ID for frame Write Parameter 106 and 107: Write Parameter 106 and 107 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_106_AND_107(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_106_AND_107)
-// Match arbitration ID for frame Write Parameter 108 and 109: Write Parameter 108 and 109 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_108_AND_109(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_108_AND_109)
-// Match arbitration ID for frame Write Parameter 110 and 111: Write Parameter 110 and 111 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_110_AND_111(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_110_AND_111)
-// Match arbitration ID for frame Write Parameter 112 and 113: Write Parameter 112 and 113 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_112_AND_113(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_112_AND_113)
-// Match arbitration ID for frame Write Parameter 114 and 115: Write Parameter 114 and 115 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_114_AND_115(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_114_AND_115)
-// Match arbitration ID for frame Write Parameter 116 and 117: Write Parameter 116 and 117 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_116_AND_117(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_116_AND_117)
-// Match arbitration ID for frame Write Parameter 118 and 119: Write Parameter 118 and 119 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_118_AND_119(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_118_AND_119)
-// Match arbitration ID for frame Write Parameter 120 and 121: Write Parameter 120 and 121 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_120_AND_121(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_120_AND_121)
-// Match arbitration ID for frame Write Parameter 122 and 123: Write Parameter 122 and 123 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_122_AND_123(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_122_AND_123)
-// Match arbitration ID for frame Write Parameter 124 and 125: Write Parameter 124 and 125 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_124_AND_125(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_124_AND_125)
-// Match arbitration ID for frame Write Parameter 126 and 127: Write Parameter 126 and 127 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_126_AND_127(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_126_AND_127)
-// Match arbitration ID for frame Write Parameter 128 and 129: Write Parameter 128 and 129 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_128_AND_129(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_128_AND_129)
-// Match arbitration ID for frame Write Parameter 130 and 131: Write Parameter 130 and 131 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_130_AND_131(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_130_AND_131)
-// Match arbitration ID for frame Write Parameter 132 and 133: Write Parameter 132 and 133 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_132_AND_133(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_132_AND_133)
-// Match arbitration ID for frame Write Parameter 134 and 135: Write Parameter 134 and 135 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_134_AND_135(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_134_AND_135)
-// Match arbitration ID for frame Write Parameter 136 and 137: Write Parameter 136 and 137 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_136_AND_137(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_136_AND_137)
-// Match arbitration ID for frame Write Parameter 138 and 139: Write Parameter 138 and 139 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_138_AND_139(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_138_AND_139)
-// Match arbitration ID for frame Write Parameter 140 and 141: Write Parameter 140 and 141 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_140_AND_141(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_140_AND_141)
-// Match arbitration ID for frame Write Parameter 142 and 143: Write Parameter 142 and 143 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_142_AND_143(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_142_AND_143)
-// Match arbitration ID for frame Write Parameter 144 and 145: Write Parameter 144 and 145 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_144_AND_145(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_144_AND_145)
-// Match arbitration ID for frame Write Parameter 146 and 147: Write Parameter 146 and 147 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_146_AND_147(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_146_AND_147)
-// Match arbitration ID for frame Write Parameter 148 and 149: Write Parameter 148 and 149 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_148_AND_149(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_148_AND_149)
-// Match arbitration ID for frame Write Parameter 150 and 151: Write Parameter 150 and 151 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_150_AND_151(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_150_AND_151)
-// Match arbitration ID for frame Write Parameter 152 and 153: Write Parameter 152 and 153 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_152_AND_153(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_152_AND_153)
-// Match arbitration ID for frame Write Parameter 154 and 155: Write Parameter 154 and 155 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_154_AND_155(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_154_AND_155)
-// Match arbitration ID for frame Write Parameter 156 and 157: Write Parameter 156 and 157 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_156_AND_157(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_156_AND_157)
-// Match arbitration ID for frame Write Parameter 158 and 159: Write Parameter 158 and 159 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_158_AND_159(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_158_AND_159)
-// Match arbitration ID for frame Write Parameter 160 and 161: Write Parameter 160 and 161 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_160_AND_161(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_160_AND_161)
-// Match arbitration ID for frame Write Parameter 162 and 163: Write Parameter 162 and 163 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_162_AND_163(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_162_AND_163)
-// Match arbitration ID for frame Write Parameter 164 and 165: Write Parameter 164 and 165 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_164_AND_165(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_164_AND_165)
-// Match arbitration ID for frame Write Parameter 166 and 167: Write Parameter 166 and 167 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_166_AND_167(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_166_AND_167)
-// Match arbitration ID for frame Write Parameter 168 and 169: Write Parameter 168 and 169 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_168_AND_169(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_168_AND_169)
-// Match arbitration ID for frame Write Parameter 170 and 171: Write Parameter 170 and 171 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_170_AND_171(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_170_AND_171)
-// Match arbitration ID for frame Write Parameter 172 and 173: Write Parameter 172 and 173 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_172_AND_173(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_172_AND_173)
-// Match arbitration ID for frame Write Parameter 174 and 175: Write Parameter 174 and 175 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_174_AND_175(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_174_AND_175)
-// Match arbitration ID for frame Write Parameter 176 and 177: Write Parameter 176 and 177 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_176_AND_177(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_176_AND_177)
-// Match arbitration ID for frame Write Parameter 178 and 179: Write Parameter 178 and 179 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_178_AND_179(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_178_AND_179)
-// Match arbitration ID for frame Write Parameter 180 and 181: Write Parameter 180 and 181 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_180_AND_181(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_180_AND_181)
-// Match arbitration ID for frame Write Parameter 182 and 183: Write Parameter 182 and 183 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_182_AND_183(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_182_AND_183)
-// Match arbitration ID for frame Write Parameter 184 and 185: Write Parameter 184 and 185 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_184_AND_185(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_184_AND_185)
-// Match arbitration ID for frame Write Parameter 186 and 187: Write Parameter 186 and 187 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_186_AND_187(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_186_AND_187)
-// Match arbitration ID for frame Write Parameter 188 and 189: Write Parameter 188 and 189 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_188_AND_189(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_188_AND_189)
-// Match arbitration ID for frame Write Parameter 190 and 191: Write Parameter 190 and 191 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_190_AND_191(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_190_AND_191)
-// Match arbitration ID for frame Write Parameter 192 and 193: Write Parameter 192 and 193 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_192_AND_193(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_192_AND_193)
-// Match arbitration ID for frame Write Parameter 194 and 195: Write Parameter 194 and 195 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_194_AND_195(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_194_AND_195)
-// Match arbitration ID for frame Write Parameter 196 and 197: Write Parameter 196 and 197 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_196_AND_197(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_196_AND_197)
-// Match arbitration ID for frame Write Parameter 198 and 199: Write Parameter 198 and 199 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_198_AND_199(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_198_AND_199)
-// Match arbitration ID for frame Write Parameter 200 and 201: Write Parameter 200 and 201 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_200_AND_201(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_200_AND_201)
-// Match arbitration ID for frame Write Parameter 202 and 203: Write Parameter 202 and 203 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_202_AND_203(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_202_AND_203)
-// Match arbitration ID for frame Write Parameter 204 and 205: Write Parameter 204 and 205 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_204_AND_205(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_204_AND_205)
-// Match arbitration ID for frame Write Parameter 206 and 207: Write Parameter 206 and 207 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_206_AND_207(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_206_AND_207)
-// Match arbitration ID for frame Write Parameter 208 and 209: Write Parameter 208 and 209 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_208_AND_209(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_208_AND_209)
-// Match arbitration ID for frame Write Parameter 210 and 211: Write Parameter 210 and 211 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_210_AND_211(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_210_AND_211)
-// Match arbitration ID for frame Write Parameter 212 and 213: Write Parameter 212 and 213 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_212_AND_213(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_212_AND_213)
-// Match arbitration ID for frame Write Parameter 214 and 215: Write Parameter 214 and 215 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_214_AND_215(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_214_AND_215)
-// Match arbitration ID for frame Write Parameter 216 and 217: Write Parameter 216 and 217 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_216_AND_217(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_216_AND_217)
-// Match arbitration ID for frame Write Parameter 218 and 219: Write Parameter 218 and 219 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_218_AND_219(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_218_AND_219)
-// Match arbitration ID for frame Write Parameter 220 and 221: Write Parameter 220 and 221 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_220_AND_221(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_220_AND_221)
-// Match arbitration ID for frame Write Parameter 222 and 223: Write Parameter 222 and 223 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_222_AND_223(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_222_AND_223)
-// Match arbitration ID for frame Write Parameter 224 and 225: Write Parameter 224 and 225 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_224_AND_225(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_224_AND_225)
-// Match arbitration ID for frame Write Parameter 226 and 227: Write Parameter 226 and 227 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_226_AND_227(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_226_AND_227)
-// Match arbitration ID for frame Write Parameter 228 and 229: Write Parameter 228 and 229 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_228_AND_229(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_228_AND_229)
-// Match arbitration ID for frame Write Parameter 230 and 231: Write Parameter 230 and 231 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_230_AND_231(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_230_AND_231)
-// Match arbitration ID for frame Write Parameter 232 and 233: Write Parameter 232 and 233 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_232_AND_233(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_232_AND_233)
-// Match arbitration ID for frame Write Parameter 234 and 235: Write Parameter 234 and 235 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_234_AND_235(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_234_AND_235)
-// Match arbitration ID for frame Write Parameter 236 and 237: Write Parameter 236 and 237 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_236_AND_237(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_236_AND_237)
-// Match arbitration ID for frame Write Parameter 238 and 239: Write Parameter 238 and 239 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_238_AND_239(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_238_AND_239)
-// Match arbitration ID for frame Write Parameter 240 and 241: Write Parameter 240 and 241 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_240_AND_241(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_240_AND_241)
-// Match arbitration ID for frame Write Parameter 242 and 243: Write Parameter 242 and 243 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_242_AND_243(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_242_AND_243)
-// Match arbitration ID for frame Write Parameter 244 and 245: Write Parameter 244 and 245 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_244_AND_245(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_244_AND_245)
-// Match arbitration ID for frame Write Parameter 246 and 247: Write Parameter 246 and 247 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_246_AND_247(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_246_AND_247)
-// Match arbitration ID for frame Write Parameter 248 and 249: Write Parameter 248 and 249 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_248_AND_249(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_248_AND_249)
-// Match arbitration ID for frame Write Parameter 250 and 251: Write Parameter 250 and 251 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_250_AND_251(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_250_AND_251)
-// Match arbitration ID for frame Write Parameter 252 and 253: Write Parameter 252 and 253 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_252_AND_253(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_252_AND_253)
-// Match arbitration ID for frame Write Parameter 254 and 255: Write Parameter 254 and 255 at the same time. Two Write
-// Parameter Response frames will be sent in response.
-#define SPARK_MATCH_WRITE_PARAMETER_254_AND_255(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_WRITE_PARAMETER_254_AND_255)
-// Match arbitration ID for frame Start Follower Mode: Starts follower mode. The relevant parameters must already be
-// configured. In response, a Start Follower Mode Response frame will be sent. Follower mode will be auto-started on
-// boot if the Follower Mode Leader ID parameter is set to a non-zero value.
-#define SPARK_MATCH_START_FOLLOWER_MODE(id)                                                                            \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_START_FOLLOWER_MODE)
-// Match arbitration ID for frame Start Follower Mode Response: Response for a Start Follower Mode command
-#define SPARK_MATCH_START_FOLLOWER_MODE_RESPONSE(id)                                                                   \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_START_FOLLOWER_MODE_RESPONSE)
-// Match arbitration ID for frame Stop Follower Mode: Exits follower mode and causes the device to resume listening for
-// setpoints addressed directly to it. In response, a Stop Follower Mode Response frame will be sent.
-#define SPARK_MATCH_STOP_FOLLOWER_MODE(id)                                                                             \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STOP_FOLLOWER_MODE)
-// Match arbitration ID for frame Stop Follower Mode Response: Response for a Stop Follower Mode Command
-#define SPARK_MATCH_STOP_FOLLOWER_MODE_RESPONSE(id)                                                                    \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_STOP_FOLLOWER_MODE_RESPONSE)
-// Match arbitration ID for frame Enter SWDL CAN Bootloader
-#define SPARK_MATCH_ENTER_SWDL_CAN_BOOTLOADER(id)                                                                      \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_ENTER_SWDL_CAN_BOOTLOADER)
-// Match arbitration ID for frame Persist Parameters: Causes all parameters to be written to non-volatile storage. After
-// the operation (which may take up to a second) completes, a Persist Parameters Response frame will be sent.
-#define SPARK_MATCH_PERSIST_PARAMETERS(id)                                                                             \
-    ((((uint32_t)(id)) & ~((uint32_t)SPARK_DEVICE_ID_MASK)) == (uint32_t)SPARK_ARB_PERSIST_PARAMETERS)
+    // Match arbitration ID for frame Legacy Status 0: This frame exists purely to inform old software that is not aware
+    // of firmware version 25+ that the SPARK is present
+    static constexpr bool SPARK_MATCH_LEGACY_STATUS_0(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_LEGACY_STATUS_0;
+    }
+    // Match arbitration ID for frame Bootloader 0: Periodic frame when device is in the bootloader
+    static constexpr bool SPARK_MATCH_BOOTLOADER_0(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_BOOTLOADER_0;
+    }
+    // Match arbitration ID for frame Status 0: Includes general data that is likely to need frequent refreshing
+    static constexpr bool SPARK_MATCH_STATUS_0(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_0;
+    }
+    // Match arbitration ID for frame Status 1: Includes general data that can likely tolerate infrequent refreshing
+    static constexpr bool SPARK_MATCH_STATUS_1(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_1;
+    }
+    // Match arbitration ID for frame Status 2: Includes data from the primary encoder (either a brushless motor's
+    // internal encoder, or the primary encoder associated with a brushed motor)
+    static constexpr bool SPARK_MATCH_STATUS_2(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_2;
+    }
+    // Match arbitration ID for frame Status 3: Includes data from an analog sensor
+    static constexpr bool SPARK_MATCH_STATUS_3(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_3;
+    }
+    // Match arbitration ID for frame Status 4: Includes data from the External Encoder (on SPARK MAX, this is the
+    // Alternate Encoder)
+    static constexpr bool SPARK_MATCH_STATUS_4(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_4;
+    }
+    // Match arbitration ID for frame Status 5: Includes velocity and position data from a duty-cycle absolute encoder
+    static constexpr bool SPARK_MATCH_STATUS_5(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_5;
+    }
+    // Match arbitration ID for frame Status 6: Includes other data from a duty-cycle absolute encoder
+    static constexpr bool SPARK_MATCH_STATUS_6(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_6;
+    }
+    // Match arbitration ID for frame Status 7: Includes diagnostic data for closed-loop control
+    static constexpr bool SPARK_MATCH_STATUS_7(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_7;
+    }
+    // Match arbitration ID for frame Status 8: Includes additional diagnostic data for closed-loop control
+    static constexpr bool SPARK_MATCH_STATUS_8(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_8;
+    }
+    // Match arbitration ID for frame Status 9: Includes diagnostic data for MAXMotion closed-loop control
+    static constexpr bool SPARK_MATCH_STATUS_9(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STATUS_9;
+    }
+    // Match arbitration ID for frame Unique ID Broadcast: Contains the unique ID of the device, to allow detecting
+    // duplicate CAN IDs. To avoid collisions, the SPARK Flex firmware will send this at an irregular period between
+    // 1000ms and 2000ms. SPARK MAX may use a constant period of 1000ms.
+    static constexpr bool SPARK_MATCH_UNIQUE_ID_BROADCAST(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_UNIQUE_ID_BROADCAST;
+    }
+    // Match arbitration ID for frame Velocity Setpoint: Sets the Control Type to Velocity and sets the target velocity
+    static constexpr bool SPARK_MATCH_VELOCITY_SETPOINT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_VELOCITY_SETPOINT;
+    }
+    // Match arbitration ID for frame Duty Cycle Setpoint: Sets the Control Type to Duty Cycle and sets the target duty
+    // cycle (from -1 to 1)
+    static constexpr bool SPARK_MATCH_DUTY_CYCLE_SETPOINT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_DUTY_CYCLE_SETPOINT;
+    }
+    // Match arbitration ID for frame Position Setpoint: Sets the Control Type to Position and sets the target position
+    static constexpr bool SPARK_MATCH_POSITION_SETPOINT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_POSITION_SETPOINT;
+    }
+    // Match arbitration ID for frame Voltage Setpoint: Sets the Control Type to Voltage and sets the target voltage
+    static constexpr bool SPARK_MATCH_VOLTAGE_SETPOINT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_VOLTAGE_SETPOINT;
+    }
+    // Match arbitration ID for frame Current Setpoint: Sets the Control Type to Current and sets the target current
+    static constexpr bool SPARK_MATCH_CURRENT_SETPOINT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_CURRENT_SETPOINT;
+    }
+    // Match arbitration ID for frame MAXMotion Position Setpoint: Sets the Control Type to MAXMotion Position Control
+    // and sets the target position
+    static constexpr bool SPARK_MATCH_MAXMOTION_POSITION_SETPOINT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_MAXMOTION_POSITION_SETPOINT;
+    }
+    // Match arbitration ID for frame MAXMotion Velocity Setpoint: Sets the Control Type to MAXMotion Velocity Control
+    // and sets the target velocity
+    static constexpr bool SPARK_MATCH_MAXMOTION_VELOCITY_SETPOINT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_MAXMOTION_VELOCITY_SETPOINT;
+    }
+    // Match arbitration ID for frame Set Statuses Enabled: Enable or disable status frames. In response, a Set Statuses
+    // Enabled Response frame will be sent.
+    static constexpr bool SPARK_MATCH_SET_STATUSES_ENABLED(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SET_STATUSES_ENABLED;
+    }
+    // Match arbitration ID for frame Set Statuses Enabled Response: Response for a Set Statuses Enabled command
+    static constexpr bool SPARK_MATCH_SET_STATUSES_ENABLED_RESPONSE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SET_STATUSES_ENABLED_RESPONSE;
+    }
+    // Match arbitration ID for frame Persist Parameters Response
+    static constexpr bool SPARK_MATCH_PERSIST_PARAMETERS_RESPONSE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_PERSIST_PARAMETERS_RESPONSE;
+    }
+    // Match arbitration ID for frame Reset Safe Parameters: Resets most writable parameters to their default values,
+    // except CAN ID, Motor Type, Idle Mode, PWM Input Deadband, and Duty Cycle Offset. In response, a Reset Safe
+    // Parameters Response frame is sent.
+    static constexpr bool SPARK_MATCH_RESET_SAFE_PARAMETERS(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_RESET_SAFE_PARAMETERS;
+    }
+    // Match arbitration ID for frame Reset Safe Parameters Response: Response for a Reset Safe Parameters command
+    static constexpr bool SPARK_MATCH_RESET_SAFE_PARAMETERS_RESPONSE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_RESET_SAFE_PARAMETERS_RESPONSE;
+    }
+    // Match arbitration ID for frame Complete Factory Reset: Resets all writable parameters to default values, even CAN
+    // ID, Motor Type, Idle Mode, PWM Input Deadband, and Duty Cycle Offset. In response, a Complete Factory Reset
+    // Response frame is sent.
+    static constexpr bool SPARK_MATCH_COMPLETE_FACTORY_RESET(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_COMPLETE_FACTORY_RESET;
+    }
+    // Match arbitration ID for frame Complete Factory Reset Response: Response for a Complete Factory Reset command
+    static constexpr bool SPARK_MATCH_COMPLETE_FACTORY_RESET_RESPONSE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_COMPLETE_FACTORY_RESET_RESPONSE;
+    }
+    // Match arbitration ID for frame Clear Faults
+    static constexpr bool SPARK_MATCH_CLEAR_FAULTS(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_CLEAR_FAULTS;
+    }
+    // Match arbitration ID for frame Identify Unique SPARK: Makes the specified, single SPARK (even if there are
+    // multiple SPARKs that have the same CAN ID) temporarily perform a special blink pattern that will make it stand
+    // out
+    static constexpr bool SPARK_MATCH_IDENTIFY_UNIQUE_SPARK(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_IDENTIFY_UNIQUE_SPARK;
+    }
+    // Match arbitration ID for frame Identify: Makes the SPARK temporarily perform a special blink pattern that will
+    // make it stand out. Use Identify Unique Device if there may be multiple SPARKs with the same CAN ID.
+    static constexpr bool SPARK_MATCH_IDENTIFY(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_IDENTIFY;
+    }
+    // Match arbitration ID for frame Nack: As of SPARK MAX firmware 1.6.3, this is only used as a potential response to
+    // setting the CAN ID
+    static constexpr bool SPARK_MATCH_NACK(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_NACK;
+    }
+    // Match arbitration ID for frame Ack: As of SPARK MAX firmware 1.6.3, this is only used as a potential response to
+    // setting the CAN ID
+    static constexpr bool SPARK_MATCH_ACK(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_ACK;
+    }
+    // Match arbitration ID for frame LED Sync: Causes all SPARKs on the bus to synchronize their LED patterns
+    static constexpr bool SPARK_MATCH_LED_SYNC(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_LED_SYNC;
+    }
+    // Match arbitration ID for frame Set CAN ID: Allows changing the CAN ID when multiple devices on the bus currently
+    // have the same CAN ID. Under normal circumstances, the CAN ID parameter can be used.
+    static constexpr bool SPARK_MATCH_SET_CAN_ID(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SET_CAN_ID;
+    }
+    // Match arbitration ID for frame Get Firmware Version
+    static constexpr bool SPARK_MATCH_GET_FIRMWARE_VERSION(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_FIRMWARE_VERSION;
+    }
+    // Match arbitration ID for frame SWDL Data: Broadcast from the host to all SPARKs in SWDL mode, containing a slice
+    // of firmware data
+    static constexpr bool SPARK_MATCH_SWDL_DATA(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SWDL_DATA;
+    }
+    // Match arbitration ID for frame SWDL Checksum: Broadcast from the host to all SPARKs in SWDL mode, containing the
+    // checksum of the full firmware image that was just sent
+    static constexpr bool SPARK_MATCH_SWDL_CHECKSUM(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SWDL_CHECKSUM;
+    }
+    // Match arbitration ID for frame SWDL Retransmit: Sent by SPARK devices in response to receiving an SWDL Checksum
+    // frame that does not match the firmware data they received
+    static constexpr bool SPARK_MATCH_SWDL_RETRANSMIT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SWDL_RETRANSMIT;
+    }
+    // Match arbitration ID for frame Set Primary Encoder Position
+    static constexpr bool SPARK_MATCH_SET_PRIMARY_ENCODER_POSITION(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SET_PRIMARY_ENCODER_POSITION;
+    }
+    // Match arbitration ID for frame Set I Accumulation
+    static constexpr bool SPARK_MATCH_SET_I_ACCUMULATION(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SET_I_ACCUMULATION;
+    }
+    // Match arbitration ID for frame Set Analog Position
+    static constexpr bool SPARK_MATCH_SET_ANALOG_POSITION(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SET_ANALOG_POSITION;
+    }
+    // Match arbitration ID for frame Set Ext or Alt Encoder Position
+    static constexpr bool SPARK_MATCH_SET_EXT_OR_ALT_ENCODER_POSITION(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SET_EXT_OR_ALT_ENCODER_POSITION;
+    }
+    // Match arbitration ID for frame Set Duty Cycle Position
+    static constexpr bool SPARK_MATCH_SET_DUTY_CYCLE_POSITION(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SET_DUTY_CYCLE_POSITION;
+    }
+    // Match arbitration ID for frame Secondary Heartbeat: Heartbeat that allows enabling only specific SPARKs, but only
+    // gets respected when the SPARK is not locked to the Universal Heartbeat or Primary Heartbeat
+    static constexpr bool SPARK_MATCH_SECONDARY_HEARTBEAT(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_SECONDARY_HEARTBEAT;
+    }
+    // Match arbitration ID for frame USB Only Identify: The response will only be sent if this command is received
+    // directly via USB. This has no relation to the normal Identify command, which displays an LED pattern.
+    static constexpr bool SPARK_MATCH_USB_ONLY_IDENTIFY(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_USB_ONLY_IDENTIFY;
+    }
+    // Match arbitration ID for frame USB Only Enter DFU Bootloader: Causes the device to reboot into the DFU bootloader
+    // if this command is received directly via USB
+    static constexpr bool SPARK_MATCH_USB_ONLY_ENTER_DFU_BOOTLOADER(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_USB_ONLY_ENTER_DFU_BOOTLOADER;
+    }
+    // Match arbitration ID for frame Get Temperatures
+    static constexpr bool SPARK_MATCH_GET_TEMPERATURES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_TEMPERATURES;
+    }
+    // Match arbitration ID for frame Get Motor Interface
+    static constexpr bool SPARK_MATCH_GET_MOTOR_INTERFACE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_MOTOR_INTERFACE;
+    }
+    // Match arbitration ID for frame Get Parameter 0 to 15 Types: Get types of parameters 0 to 15
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_0_TO_15_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_0_TO_15_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 16 to 31 Types: Get types of parameters 16 to 31
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_16_TO_31_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_16_TO_31_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 32 to 47 Types: Get types of parameters 32 to 47
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_32_TO_47_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_32_TO_47_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 48 to 63 Types: Get types of parameters 48 to 63
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_48_TO_63_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_48_TO_63_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 64 to 79 Types: Get types of parameters 64 to 79
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_64_TO_79_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_64_TO_79_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 80 to 95 Types: Get types of parameters 80 to 95
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_80_TO_95_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_80_TO_95_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 96 to 111 Types: Get types of parameters 96 to 111
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_96_TO_111_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_96_TO_111_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 112 to 127 Types: Get types of parameters 112 to 127
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_112_TO_127_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_112_TO_127_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 128 to 143 Types: Get types of parameters 128 to 143
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_128_TO_143_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_128_TO_143_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 144 to 159 Types: Get types of parameters 144 to 159
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_144_TO_159_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_144_TO_159_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 160 to 175 Types: Get types of parameters 160 to 175
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_160_TO_175_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_160_TO_175_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 176 to 191 Types: Get types of parameters 176 to 191
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_176_TO_191_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_176_TO_191_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 192 to 207 Types: Get types of parameters 192 to 207
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_192_TO_207_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_192_TO_207_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 208 to 223 Types: Get types of parameters 208 to 223
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_208_TO_223_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_208_TO_223_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 224 to 239 Types: Get types of parameters 224 to 239
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_224_TO_239_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_224_TO_239_TYPES;
+    }
+    // Match arbitration ID for frame Get Parameter 240 to 255 Types: Get types of parameters 240 to 255
+    static constexpr bool SPARK_MATCH_GET_PARAMETER_240_TO_255_TYPES(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_GET_PARAMETER_240_TO_255_TYPES;
+    }
+    // Match arbitration ID for frame Parameter Write: Write a single parameter value. In response, a Parameter Write
+    // Response frame will be sent.
+    static constexpr bool SPARK_MATCH_PARAMETER_WRITE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_PARAMETER_WRITE;
+    }
+    // Match arbitration ID for frame Parameter Write Response: Response for a parameter write (including a write done
+    // as part of a dual-write)
+    static constexpr bool SPARK_MATCH_PARAMETER_WRITE_RESPONSE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_PARAMETER_WRITE_RESPONSE;
+    }
+    // Match arbitration ID for frame Read Parameter 0 and 1: Read parameter 0 and 1 at the same time. SPARK MAX does
+    // not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_0_AND_1(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_0_AND_1;
+    }
+    // Match arbitration ID for frame Read Parameter 2 and 3: Read parameter 2 and 3 at the same time. SPARK MAX does
+    // not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_2_AND_3(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_2_AND_3;
+    }
+    // Match arbitration ID for frame Read Parameter 4 and 5: Read parameter 4 and 5 at the same time. SPARK MAX does
+    // not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_4_AND_5(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_4_AND_5;
+    }
+    // Match arbitration ID for frame Read Parameter 6 and 7: Read parameter 6 and 7 at the same time. SPARK MAX does
+    // not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_6_AND_7(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_6_AND_7;
+    }
+    // Match arbitration ID for frame Read Parameter 8 and 9: Read parameter 8 and 9 at the same time. SPARK MAX does
+    // not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_8_AND_9(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_8_AND_9;
+    }
+    // Match arbitration ID for frame Read Parameter 10 and 11: Read parameter 10 and 11 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_10_AND_11(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_10_AND_11;
+    }
+    // Match arbitration ID for frame Read Parameter 12 and 13: Read parameter 12 and 13 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_12_AND_13(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_12_AND_13;
+    }
+    // Match arbitration ID for frame Read Parameter 14 and 15: Read parameter 14 and 15 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_14_AND_15(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_14_AND_15;
+    }
+    // Match arbitration ID for frame Read Parameter 16 and 17: Read parameter 16 and 17 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_16_AND_17(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_16_AND_17;
+    }
+    // Match arbitration ID for frame Read Parameter 18 and 19: Read parameter 18 and 19 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_18_AND_19(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_18_AND_19;
+    }
+    // Match arbitration ID for frame Read Parameter 20 and 21: Read parameter 20 and 21 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_20_AND_21(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_20_AND_21;
+    }
+    // Match arbitration ID for frame Read Parameter 22 and 23: Read parameter 22 and 23 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_22_AND_23(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_22_AND_23;
+    }
+    // Match arbitration ID for frame Read Parameter 24 and 25: Read parameter 24 and 25 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_24_AND_25(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_24_AND_25;
+    }
+    // Match arbitration ID for frame Read Parameter 26 and 27: Read parameter 26 and 27 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_26_AND_27(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_26_AND_27;
+    }
+    // Match arbitration ID for frame Read Parameter 28 and 29: Read parameter 28 and 29 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_28_AND_29(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_28_AND_29;
+    }
+    // Match arbitration ID for frame Read Parameter 30 and 31: Read parameter 30 and 31 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_30_AND_31(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_30_AND_31;
+    }
+    // Match arbitration ID for frame Read Parameter 32 and 33: Read parameter 32 and 33 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_32_AND_33(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_32_AND_33;
+    }
+    // Match arbitration ID for frame Read Parameter 34 and 35: Read parameter 34 and 35 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_34_AND_35(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_34_AND_35;
+    }
+    // Match arbitration ID for frame Read Parameter 36 and 37: Read parameter 36 and 37 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_36_AND_37(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_36_AND_37;
+    }
+    // Match arbitration ID for frame Read Parameter 38 and 39: Read parameter 38 and 39 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_38_AND_39(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_38_AND_39;
+    }
+    // Match arbitration ID for frame Read Parameter 40 and 41: Read parameter 40 and 41 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_40_AND_41(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_40_AND_41;
+    }
+    // Match arbitration ID for frame Read Parameter 42 and 43: Read parameter 42 and 43 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_42_AND_43(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_42_AND_43;
+    }
+    // Match arbitration ID for frame Read Parameter 44 and 45: Read parameter 44 and 45 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_44_AND_45(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_44_AND_45;
+    }
+    // Match arbitration ID for frame Read Parameter 46 and 47: Read parameter 46 and 47 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_46_AND_47(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_46_AND_47;
+    }
+    // Match arbitration ID for frame Read Parameter 48 and 49: Read parameter 48 and 49 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_48_AND_49(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_48_AND_49;
+    }
+    // Match arbitration ID for frame Read Parameter 50 and 51: Read parameter 50 and 51 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_50_AND_51(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_50_AND_51;
+    }
+    // Match arbitration ID for frame Read Parameter 52 and 53: Read parameter 52 and 53 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_52_AND_53(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_52_AND_53;
+    }
+    // Match arbitration ID for frame Read Parameter 54 and 55: Read parameter 54 and 55 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_54_AND_55(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_54_AND_55;
+    }
+    // Match arbitration ID for frame Read Parameter 56 and 57: Read parameter 56 and 57 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_56_AND_57(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_56_AND_57;
+    }
+    // Match arbitration ID for frame Read Parameter 58 and 59: Read parameter 58 and 59 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_58_AND_59(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_58_AND_59;
+    }
+    // Match arbitration ID for frame Read Parameter 60 and 61: Read parameter 60 and 61 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_60_AND_61(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_60_AND_61;
+    }
+    // Match arbitration ID for frame Read Parameter 62 and 63: Read parameter 62 and 63 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_62_AND_63(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_62_AND_63;
+    }
+    // Match arbitration ID for frame Read Parameter 64 and 65: Read parameter 64 and 65 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_64_AND_65(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_64_AND_65;
+    }
+    // Match arbitration ID for frame Read Parameter 66 and 67: Read parameter 66 and 67 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_66_AND_67(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_66_AND_67;
+    }
+    // Match arbitration ID for frame Read Parameter 68 and 69: Read parameter 68 and 69 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_68_AND_69(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_68_AND_69;
+    }
+    // Match arbitration ID for frame Read Parameter 70 and 71: Read parameter 70 and 71 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_70_AND_71(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_70_AND_71;
+    }
+    // Match arbitration ID for frame Read Parameter 72 and 73: Read parameter 72 and 73 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_72_AND_73(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_72_AND_73;
+    }
+    // Match arbitration ID for frame Read Parameter 74 and 75: Read parameter 74 and 75 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_74_AND_75(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_74_AND_75;
+    }
+    // Match arbitration ID for frame Read Parameter 76 and 77: Read parameter 76 and 77 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_76_AND_77(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_76_AND_77;
+    }
+    // Match arbitration ID for frame Read Parameter 78 and 79: Read parameter 78 and 79 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_78_AND_79(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_78_AND_79;
+    }
+    // Match arbitration ID for frame Read Parameter 80 and 81: Read parameter 80 and 81 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_80_AND_81(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_80_AND_81;
+    }
+    // Match arbitration ID for frame Read Parameter 82 and 83: Read parameter 82 and 83 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_82_AND_83(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_82_AND_83;
+    }
+    // Match arbitration ID for frame Read Parameter 84 and 85: Read parameter 84 and 85 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_84_AND_85(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_84_AND_85;
+    }
+    // Match arbitration ID for frame Read Parameter 86 and 87: Read parameter 86 and 87 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_86_AND_87(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_86_AND_87;
+    }
+    // Match arbitration ID for frame Read Parameter 88 and 89: Read parameter 88 and 89 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_88_AND_89(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_88_AND_89;
+    }
+    // Match arbitration ID for frame Read Parameter 90 and 91: Read parameter 90 and 91 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_90_AND_91(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_90_AND_91;
+    }
+    // Match arbitration ID for frame Read Parameter 92 and 93: Read parameter 92 and 93 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_92_AND_93(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_92_AND_93;
+    }
+    // Match arbitration ID for frame Read Parameter 94 and 95: Read parameter 94 and 95 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_94_AND_95(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_94_AND_95;
+    }
+    // Match arbitration ID for frame Read Parameter 96 and 97: Read parameter 96 and 97 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_96_AND_97(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_96_AND_97;
+    }
+    // Match arbitration ID for frame Read Parameter 98 and 99: Read parameter 98 and 99 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_98_AND_99(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_98_AND_99;
+    }
+    // Match arbitration ID for frame Read Parameter 100 and 101: Read parameter 100 and 101 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_100_AND_101(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_100_AND_101;
+    }
+    // Match arbitration ID for frame Read Parameter 102 and 103: Read parameter 102 and 103 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_102_AND_103(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_102_AND_103;
+    }
+    // Match arbitration ID for frame Read Parameter 104 and 105: Read parameter 104 and 105 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_104_AND_105(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_104_AND_105;
+    }
+    // Match arbitration ID for frame Read Parameter 106 and 107: Read parameter 106 and 107 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_106_AND_107(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_106_AND_107;
+    }
+    // Match arbitration ID for frame Read Parameter 108 and 109: Read parameter 108 and 109 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_108_AND_109(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_108_AND_109;
+    }
+    // Match arbitration ID for frame Read Parameter 110 and 111: Read parameter 110 and 111 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_110_AND_111(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_110_AND_111;
+    }
+    // Match arbitration ID for frame Read Parameter 112 and 113: Read parameter 112 and 113 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_112_AND_113(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_112_AND_113;
+    }
+    // Match arbitration ID for frame Read Parameter 114 and 115: Read parameter 114 and 115 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_114_AND_115(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_114_AND_115;
+    }
+    // Match arbitration ID for frame Read Parameter 116 and 117: Read parameter 116 and 117 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_116_AND_117(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_116_AND_117;
+    }
+    // Match arbitration ID for frame Read Parameter 118 and 119: Read parameter 118 and 119 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_118_AND_119(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_118_AND_119;
+    }
+    // Match arbitration ID for frame Read Parameter 120 and 121: Read parameter 120 and 121 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_120_AND_121(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_120_AND_121;
+    }
+    // Match arbitration ID for frame Read Parameter 122 and 123: Read parameter 122 and 123 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_122_AND_123(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_122_AND_123;
+    }
+    // Match arbitration ID for frame Read Parameter 124 and 125: Read parameter 124 and 125 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_124_AND_125(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_124_AND_125;
+    }
+    // Match arbitration ID for frame Read Parameter 126 and 127: Read parameter 126 and 127 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_126_AND_127(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_126_AND_127;
+    }
+    // Match arbitration ID for frame Read Parameter 128 and 129: Read parameter 128 and 129 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_128_AND_129(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_128_AND_129;
+    }
+    // Match arbitration ID for frame Read Parameter 130 and 131: Read parameter 130 and 131 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_130_AND_131(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_130_AND_131;
+    }
+    // Match arbitration ID for frame Read Parameter 132 and 133: Read parameter 132 and 133 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_132_AND_133(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_132_AND_133;
+    }
+    // Match arbitration ID for frame Read Parameter 134 and 135: Read parameter 134 and 135 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_134_AND_135(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_134_AND_135;
+    }
+    // Match arbitration ID for frame Read Parameter 136 and 137: Read parameter 136 and 137 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_136_AND_137(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_136_AND_137;
+    }
+    // Match arbitration ID for frame Read Parameter 138 and 139: Read parameter 138 and 139 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_138_AND_139(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_138_AND_139;
+    }
+    // Match arbitration ID for frame Read Parameter 140 and 141: Read parameter 140 and 141 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_140_AND_141(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_140_AND_141;
+    }
+    // Match arbitration ID for frame Read Parameter 142 and 143: Read parameter 142 and 143 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_142_AND_143(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_142_AND_143;
+    }
+    // Match arbitration ID for frame Read Parameter 144 and 145: Read parameter 144 and 145 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_144_AND_145(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_144_AND_145;
+    }
+    // Match arbitration ID for frame Read Parameter 146 and 147: Read parameter 146 and 147 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_146_AND_147(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_146_AND_147;
+    }
+    // Match arbitration ID for frame Read Parameter 148 and 149: Read parameter 148 and 149 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_148_AND_149(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_148_AND_149;
+    }
+    // Match arbitration ID for frame Read Parameter 150 and 151: Read parameter 150 and 151 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_150_AND_151(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_150_AND_151;
+    }
+    // Match arbitration ID for frame Read Parameter 152 and 153: Read parameter 152 and 153 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_152_AND_153(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_152_AND_153;
+    }
+    // Match arbitration ID for frame Read Parameter 154 and 155: Read parameter 154 and 155 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_154_AND_155(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_154_AND_155;
+    }
+    // Match arbitration ID for frame Read Parameter 156 and 157: Read parameter 156 and 157 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_156_AND_157(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_156_AND_157;
+    }
+    // Match arbitration ID for frame Read Parameter 158 and 159: Read parameter 158 and 159 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_158_AND_159(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_158_AND_159;
+    }
+    // Match arbitration ID for frame Read Parameter 160 and 161: Read parameter 160 and 161 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_160_AND_161(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_160_AND_161;
+    }
+    // Match arbitration ID for frame Read Parameter 162 and 163: Read parameter 162 and 163 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_162_AND_163(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_162_AND_163;
+    }
+    // Match arbitration ID for frame Read Parameter 164 and 165: Read parameter 164 and 165 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_164_AND_165(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_164_AND_165;
+    }
+    // Match arbitration ID for frame Read Parameter 166 and 167: Read parameter 166 and 167 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_166_AND_167(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_166_AND_167;
+    }
+    // Match arbitration ID for frame Read Parameter 168 and 169: Read parameter 168 and 169 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_168_AND_169(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_168_AND_169;
+    }
+    // Match arbitration ID for frame Read Parameter 170 and 171: Read parameter 170 and 171 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_170_AND_171(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_170_AND_171;
+    }
+    // Match arbitration ID for frame Read Parameter 172 and 173: Read parameter 172 and 173 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_172_AND_173(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_172_AND_173;
+    }
+    // Match arbitration ID for frame Read Parameter 174 and 175: Read parameter 174 and 175 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_174_AND_175(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_174_AND_175;
+    }
+    // Match arbitration ID for frame Read Parameter 176 and 177: Read parameter 176 and 177 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_176_AND_177(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_176_AND_177;
+    }
+    // Match arbitration ID for frame Read Parameter 178 and 179: Read parameter 178 and 179 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_178_AND_179(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_178_AND_179;
+    }
+    // Match arbitration ID for frame Read Parameter 180 and 181: Read parameter 180 and 181 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_180_AND_181(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_180_AND_181;
+    }
+    // Match arbitration ID for frame Read Parameter 182 and 183: Read parameter 182 and 183 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_182_AND_183(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_182_AND_183;
+    }
+    // Match arbitration ID for frame Read Parameter 184 and 185: Read parameter 184 and 185 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_184_AND_185(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_184_AND_185;
+    }
+    // Match arbitration ID for frame Read Parameter 186 and 187: Read parameter 186 and 187 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_186_AND_187(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_186_AND_187;
+    }
+    // Match arbitration ID for frame Read Parameter 188 and 189: Read parameter 188 and 189 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_188_AND_189(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_188_AND_189;
+    }
+    // Match arbitration ID for frame Read Parameter 190 and 191: Read parameter 190 and 191 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_190_AND_191(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_190_AND_191;
+    }
+    // Match arbitration ID for frame Read Parameter 192 and 193: Read parameter 192 and 193 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_192_AND_193(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_192_AND_193;
+    }
+    // Match arbitration ID for frame Read Parameter 194 and 195: Read parameter 194 and 195 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_194_AND_195(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_194_AND_195;
+    }
+    // Match arbitration ID for frame Read Parameter 196 and 197: Read parameter 196 and 197 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_196_AND_197(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_196_AND_197;
+    }
+    // Match arbitration ID for frame Read Parameter 198 and 199: Read parameter 198 and 199 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_198_AND_199(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_198_AND_199;
+    }
+    // Match arbitration ID for frame Read Parameter 200 and 201: Read parameter 200 and 201 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_200_AND_201(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_200_AND_201;
+    }
+    // Match arbitration ID for frame Read Parameter 202 and 203: Read parameter 202 and 203 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_202_AND_203(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_202_AND_203;
+    }
+    // Match arbitration ID for frame Read Parameter 204 and 205: Read parameter 204 and 205 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_204_AND_205(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_204_AND_205;
+    }
+    // Match arbitration ID for frame Read Parameter 206 and 207: Read parameter 206 and 207 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_206_AND_207(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_206_AND_207;
+    }
+    // Match arbitration ID for frame Read Parameter 208 and 209: Read parameter 208 and 209 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_208_AND_209(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_208_AND_209;
+    }
+    // Match arbitration ID for frame Read Parameter 210 and 211: Read parameter 210 and 211 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_210_AND_211(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_210_AND_211;
+    }
+    // Match arbitration ID for frame Read Parameter 212 and 213: Read parameter 212 and 213 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_212_AND_213(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_212_AND_213;
+    }
+    // Match arbitration ID for frame Read Parameter 214 and 215: Read parameter 214 and 215 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_214_AND_215(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_214_AND_215;
+    }
+    // Match arbitration ID for frame Read Parameter 216 and 217: Read parameter 216 and 217 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_216_AND_217(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_216_AND_217;
+    }
+    // Match arbitration ID for frame Read Parameter 218 and 219: Read parameter 218 and 219 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_218_AND_219(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_218_AND_219;
+    }
+    // Match arbitration ID for frame Read Parameter 220 and 221: Read parameter 220 and 221 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_220_AND_221(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_220_AND_221;
+    }
+    // Match arbitration ID for frame Read Parameter 222 and 223: Read parameter 222 and 223 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_222_AND_223(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_222_AND_223;
+    }
+    // Match arbitration ID for frame Read Parameter 224 and 225: Read parameter 224 and 225 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_224_AND_225(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_224_AND_225;
+    }
+    // Match arbitration ID for frame Read Parameter 226 and 227: Read parameter 226 and 227 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_226_AND_227(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_226_AND_227;
+    }
+    // Match arbitration ID for frame Read Parameter 228 and 229: Read parameter 228 and 229 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_228_AND_229(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_228_AND_229;
+    }
+    // Match arbitration ID for frame Read Parameter 230 and 231: Read parameter 230 and 231 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_230_AND_231(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_230_AND_231;
+    }
+    // Match arbitration ID for frame Read Parameter 232 and 233: Read parameter 232 and 233 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_232_AND_233(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_232_AND_233;
+    }
+    // Match arbitration ID for frame Read Parameter 234 and 235: Read parameter 234 and 235 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_234_AND_235(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_234_AND_235;
+    }
+    // Match arbitration ID for frame Read Parameter 236 and 237: Read parameter 236 and 237 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_236_AND_237(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_236_AND_237;
+    }
+    // Match arbitration ID for frame Read Parameter 238 and 239: Read parameter 238 and 239 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_238_AND_239(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_238_AND_239;
+    }
+    // Match arbitration ID for frame Read Parameter 240 and 241: Read parameter 240 and 241 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_240_AND_241(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_240_AND_241;
+    }
+    // Match arbitration ID for frame Read Parameter 242 and 243: Read parameter 242 and 243 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_242_AND_243(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_242_AND_243;
+    }
+    // Match arbitration ID for frame Read Parameter 244 and 245: Read parameter 244 and 245 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_244_AND_245(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_244_AND_245;
+    }
+    // Match arbitration ID for frame Read Parameter 246 and 247: Read parameter 246 and 247 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_246_AND_247(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_246_AND_247;
+    }
+    // Match arbitration ID for frame Read Parameter 248 and 249: Read parameter 248 and 249 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_248_AND_249(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_248_AND_249;
+    }
+    // Match arbitration ID for frame Read Parameter 250 and 251: Read parameter 250 and 251 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_250_AND_251(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_250_AND_251;
+    }
+    // Match arbitration ID for frame Read Parameter 252 and 253: Read parameter 252 and 253 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_252_AND_253(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_252_AND_253;
+    }
+    // Match arbitration ID for frame Read Parameter 254 and 255: Read parameter 254 and 255 at the same time. SPARK MAX
+    // does not currently support this in v25.0.0-prerelease.4
+    static constexpr bool SPARK_MATCH_READ_PARAMETER_254_AND_255(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_READ_PARAMETER_254_AND_255;
+    }
+    // Match arbitration ID for frame Write Parameter 0 and 1: Write Parameter 0 and 1 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_0_AND_1(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_0_AND_1;
+    }
+    // Match arbitration ID for frame Write Parameter 2 and 3: Write Parameter 2 and 3 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_2_AND_3(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_2_AND_3;
+    }
+    // Match arbitration ID for frame Write Parameter 4 and 5: Write Parameter 4 and 5 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_4_AND_5(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_4_AND_5;
+    }
+    // Match arbitration ID for frame Write Parameter 6 and 7: Write Parameter 6 and 7 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_6_AND_7(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_6_AND_7;
+    }
+    // Match arbitration ID for frame Write Parameter 8 and 9: Write Parameter 8 and 9 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_8_AND_9(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_8_AND_9;
+    }
+    // Match arbitration ID for frame Write Parameter 10 and 11: Write Parameter 10 and 11 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_10_AND_11(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_10_AND_11;
+    }
+    // Match arbitration ID for frame Write Parameter 12 and 13: Write Parameter 12 and 13 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_12_AND_13(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_12_AND_13;
+    }
+    // Match arbitration ID for frame Write Parameter 14 and 15: Write Parameter 14 and 15 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_14_AND_15(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_14_AND_15;
+    }
+    // Match arbitration ID for frame Write Parameter 16 and 17: Write Parameter 16 and 17 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_16_AND_17(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_16_AND_17;
+    }
+    // Match arbitration ID for frame Write Parameter 18 and 19: Write Parameter 18 and 19 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_18_AND_19(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_18_AND_19;
+    }
+    // Match arbitration ID for frame Write Parameter 20 and 21: Write Parameter 20 and 21 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_20_AND_21(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_20_AND_21;
+    }
+    // Match arbitration ID for frame Write Parameter 22 and 23: Write Parameter 22 and 23 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_22_AND_23(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_22_AND_23;
+    }
+    // Match arbitration ID for frame Write Parameter 24 and 25: Write Parameter 24 and 25 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_24_AND_25(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_24_AND_25;
+    }
+    // Match arbitration ID for frame Write Parameter 26 and 27: Write Parameter 26 and 27 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_26_AND_27(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_26_AND_27;
+    }
+    // Match arbitration ID for frame Write Parameter 28 and 29: Write Parameter 28 and 29 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_28_AND_29(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_28_AND_29;
+    }
+    // Match arbitration ID for frame Write Parameter 30 and 31: Write Parameter 30 and 31 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_30_AND_31(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_30_AND_31;
+    }
+    // Match arbitration ID for frame Write Parameter 32 and 33: Write Parameter 32 and 33 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_32_AND_33(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_32_AND_33;
+    }
+    // Match arbitration ID for frame Write Parameter 34 and 35: Write Parameter 34 and 35 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_34_AND_35(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_34_AND_35;
+    }
+    // Match arbitration ID for frame Write Parameter 36 and 37: Write Parameter 36 and 37 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_36_AND_37(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_36_AND_37;
+    }
+    // Match arbitration ID for frame Write Parameter 38 and 39: Write Parameter 38 and 39 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_38_AND_39(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_38_AND_39;
+    }
+    // Match arbitration ID for frame Write Parameter 40 and 41: Write Parameter 40 and 41 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_40_AND_41(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_40_AND_41;
+    }
+    // Match arbitration ID for frame Write Parameter 42 and 43: Write Parameter 42 and 43 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_42_AND_43(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_42_AND_43;
+    }
+    // Match arbitration ID for frame Write Parameter 44 and 45: Write Parameter 44 and 45 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_44_AND_45(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_44_AND_45;
+    }
+    // Match arbitration ID for frame Write Parameter 46 and 47: Write Parameter 46 and 47 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_46_AND_47(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_46_AND_47;
+    }
+    // Match arbitration ID for frame Write Parameter 48 and 49: Write Parameter 48 and 49 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_48_AND_49(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_48_AND_49;
+    }
+    // Match arbitration ID for frame Write Parameter 50 and 51: Write Parameter 50 and 51 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_50_AND_51(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_50_AND_51;
+    }
+    // Match arbitration ID for frame Write Parameter 52 and 53: Write Parameter 52 and 53 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_52_AND_53(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_52_AND_53;
+    }
+    // Match arbitration ID for frame Write Parameter 54 and 55: Write Parameter 54 and 55 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_54_AND_55(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_54_AND_55;
+    }
+    // Match arbitration ID for frame Write Parameter 56 and 57: Write Parameter 56 and 57 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_56_AND_57(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_56_AND_57;
+    }
+    // Match arbitration ID for frame Write Parameter 58 and 59: Write Parameter 58 and 59 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_58_AND_59(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_58_AND_59;
+    }
+    // Match arbitration ID for frame Write Parameter 60 and 61: Write Parameter 60 and 61 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_60_AND_61(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_60_AND_61;
+    }
+    // Match arbitration ID for frame Write Parameter 62 and 63: Write Parameter 62 and 63 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_62_AND_63(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_62_AND_63;
+    }
+    // Match arbitration ID for frame Write Parameter 64 and 65: Write Parameter 64 and 65 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_64_AND_65(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_64_AND_65;
+    }
+    // Match arbitration ID for frame Write Parameter 66 and 67: Write Parameter 66 and 67 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_66_AND_67(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_66_AND_67;
+    }
+    // Match arbitration ID for frame Write Parameter 68 and 69: Write Parameter 68 and 69 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_68_AND_69(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_68_AND_69;
+    }
+    // Match arbitration ID for frame Write Parameter 70 and 71: Write Parameter 70 and 71 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_70_AND_71(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_70_AND_71;
+    }
+    // Match arbitration ID for frame Write Parameter 72 and 73: Write Parameter 72 and 73 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_72_AND_73(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_72_AND_73;
+    }
+    // Match arbitration ID for frame Write Parameter 74 and 75: Write Parameter 74 and 75 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_74_AND_75(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_74_AND_75;
+    }
+    // Match arbitration ID for frame Write Parameter 76 and 77: Write Parameter 76 and 77 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_76_AND_77(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_76_AND_77;
+    }
+    // Match arbitration ID for frame Write Parameter 78 and 79: Write Parameter 78 and 79 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_78_AND_79(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_78_AND_79;
+    }
+    // Match arbitration ID for frame Write Parameter 80 and 81: Write Parameter 80 and 81 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_80_AND_81(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_80_AND_81;
+    }
+    // Match arbitration ID for frame Write Parameter 82 and 83: Write Parameter 82 and 83 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_82_AND_83(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_82_AND_83;
+    }
+    // Match arbitration ID for frame Write Parameter 84 and 85: Write Parameter 84 and 85 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_84_AND_85(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_84_AND_85;
+    }
+    // Match arbitration ID for frame Write Parameter 86 and 87: Write Parameter 86 and 87 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_86_AND_87(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_86_AND_87;
+    }
+    // Match arbitration ID for frame Write Parameter 88 and 89: Write Parameter 88 and 89 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_88_AND_89(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_88_AND_89;
+    }
+    // Match arbitration ID for frame Write Parameter 90 and 91: Write Parameter 90 and 91 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_90_AND_91(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_90_AND_91;
+    }
+    // Match arbitration ID for frame Write Parameter 92 and 93: Write Parameter 92 and 93 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_92_AND_93(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_92_AND_93;
+    }
+    // Match arbitration ID for frame Write Parameter 94 and 95: Write Parameter 94 and 95 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_94_AND_95(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_94_AND_95;
+    }
+    // Match arbitration ID for frame Write Parameter 96 and 97: Write Parameter 96 and 97 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_96_AND_97(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_96_AND_97;
+    }
+    // Match arbitration ID for frame Write Parameter 98 and 99: Write Parameter 98 and 99 at the same time. Two Write
+    // Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_98_AND_99(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_98_AND_99;
+    }
+    // Match arbitration ID for frame Write Parameter 100 and 101: Write Parameter 100 and 101 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_100_AND_101(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_100_AND_101;
+    }
+    // Match arbitration ID for frame Write Parameter 102 and 103: Write Parameter 102 and 103 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_102_AND_103(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_102_AND_103;
+    }
+    // Match arbitration ID for frame Write Parameter 104 and 105: Write Parameter 104 and 105 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_104_AND_105(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_104_AND_105;
+    }
+    // Match arbitration ID for frame Write Parameter 106 and 107: Write Parameter 106 and 107 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_106_AND_107(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_106_AND_107;
+    }
+    // Match arbitration ID for frame Write Parameter 108 and 109: Write Parameter 108 and 109 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_108_AND_109(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_108_AND_109;
+    }
+    // Match arbitration ID for frame Write Parameter 110 and 111: Write Parameter 110 and 111 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_110_AND_111(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_110_AND_111;
+    }
+    // Match arbitration ID for frame Write Parameter 112 and 113: Write Parameter 112 and 113 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_112_AND_113(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_112_AND_113;
+    }
+    // Match arbitration ID for frame Write Parameter 114 and 115: Write Parameter 114 and 115 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_114_AND_115(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_114_AND_115;
+    }
+    // Match arbitration ID for frame Write Parameter 116 and 117: Write Parameter 116 and 117 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_116_AND_117(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_116_AND_117;
+    }
+    // Match arbitration ID for frame Write Parameter 118 and 119: Write Parameter 118 and 119 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_118_AND_119(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_118_AND_119;
+    }
+    // Match arbitration ID for frame Write Parameter 120 and 121: Write Parameter 120 and 121 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_120_AND_121(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_120_AND_121;
+    }
+    // Match arbitration ID for frame Write Parameter 122 and 123: Write Parameter 122 and 123 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_122_AND_123(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_122_AND_123;
+    }
+    // Match arbitration ID for frame Write Parameter 124 and 125: Write Parameter 124 and 125 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_124_AND_125(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_124_AND_125;
+    }
+    // Match arbitration ID for frame Write Parameter 126 and 127: Write Parameter 126 and 127 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_126_AND_127(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_126_AND_127;
+    }
+    // Match arbitration ID for frame Write Parameter 128 and 129: Write Parameter 128 and 129 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_128_AND_129(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_128_AND_129;
+    }
+    // Match arbitration ID for frame Write Parameter 130 and 131: Write Parameter 130 and 131 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_130_AND_131(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_130_AND_131;
+    }
+    // Match arbitration ID for frame Write Parameter 132 and 133: Write Parameter 132 and 133 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_132_AND_133(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_132_AND_133;
+    }
+    // Match arbitration ID for frame Write Parameter 134 and 135: Write Parameter 134 and 135 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_134_AND_135(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_134_AND_135;
+    }
+    // Match arbitration ID for frame Write Parameter 136 and 137: Write Parameter 136 and 137 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_136_AND_137(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_136_AND_137;
+    }
+    // Match arbitration ID for frame Write Parameter 138 and 139: Write Parameter 138 and 139 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_138_AND_139(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_138_AND_139;
+    }
+    // Match arbitration ID for frame Write Parameter 140 and 141: Write Parameter 140 and 141 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_140_AND_141(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_140_AND_141;
+    }
+    // Match arbitration ID for frame Write Parameter 142 and 143: Write Parameter 142 and 143 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_142_AND_143(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_142_AND_143;
+    }
+    // Match arbitration ID for frame Write Parameter 144 and 145: Write Parameter 144 and 145 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_144_AND_145(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_144_AND_145;
+    }
+    // Match arbitration ID for frame Write Parameter 146 and 147: Write Parameter 146 and 147 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_146_AND_147(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_146_AND_147;
+    }
+    // Match arbitration ID for frame Write Parameter 148 and 149: Write Parameter 148 and 149 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_148_AND_149(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_148_AND_149;
+    }
+    // Match arbitration ID for frame Write Parameter 150 and 151: Write Parameter 150 and 151 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_150_AND_151(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_150_AND_151;
+    }
+    // Match arbitration ID for frame Write Parameter 152 and 153: Write Parameter 152 and 153 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_152_AND_153(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_152_AND_153;
+    }
+    // Match arbitration ID for frame Write Parameter 154 and 155: Write Parameter 154 and 155 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_154_AND_155(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_154_AND_155;
+    }
+    // Match arbitration ID for frame Write Parameter 156 and 157: Write Parameter 156 and 157 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_156_AND_157(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_156_AND_157;
+    }
+    // Match arbitration ID for frame Write Parameter 158 and 159: Write Parameter 158 and 159 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_158_AND_159(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_158_AND_159;
+    }
+    // Match arbitration ID for frame Write Parameter 160 and 161: Write Parameter 160 and 161 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_160_AND_161(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_160_AND_161;
+    }
+    // Match arbitration ID for frame Write Parameter 162 and 163: Write Parameter 162 and 163 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_162_AND_163(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_162_AND_163;
+    }
+    // Match arbitration ID for frame Write Parameter 164 and 165: Write Parameter 164 and 165 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_164_AND_165(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_164_AND_165;
+    }
+    // Match arbitration ID for frame Write Parameter 166 and 167: Write Parameter 166 and 167 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_166_AND_167(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_166_AND_167;
+    }
+    // Match arbitration ID for frame Write Parameter 168 and 169: Write Parameter 168 and 169 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_168_AND_169(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_168_AND_169;
+    }
+    // Match arbitration ID for frame Write Parameter 170 and 171: Write Parameter 170 and 171 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_170_AND_171(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_170_AND_171;
+    }
+    // Match arbitration ID for frame Write Parameter 172 and 173: Write Parameter 172 and 173 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_172_AND_173(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_172_AND_173;
+    }
+    // Match arbitration ID for frame Write Parameter 174 and 175: Write Parameter 174 and 175 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_174_AND_175(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_174_AND_175;
+    }
+    // Match arbitration ID for frame Write Parameter 176 and 177: Write Parameter 176 and 177 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_176_AND_177(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_176_AND_177;
+    }
+    // Match arbitration ID for frame Write Parameter 178 and 179: Write Parameter 178 and 179 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_178_AND_179(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_178_AND_179;
+    }
+    // Match arbitration ID for frame Write Parameter 180 and 181: Write Parameter 180 and 181 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_180_AND_181(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_180_AND_181;
+    }
+    // Match arbitration ID for frame Write Parameter 182 and 183: Write Parameter 182 and 183 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_182_AND_183(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_182_AND_183;
+    }
+    // Match arbitration ID for frame Write Parameter 184 and 185: Write Parameter 184 and 185 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_184_AND_185(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_184_AND_185;
+    }
+    // Match arbitration ID for frame Write Parameter 186 and 187: Write Parameter 186 and 187 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_186_AND_187(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_186_AND_187;
+    }
+    // Match arbitration ID for frame Write Parameter 188 and 189: Write Parameter 188 and 189 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_188_AND_189(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_188_AND_189;
+    }
+    // Match arbitration ID for frame Write Parameter 190 and 191: Write Parameter 190 and 191 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_190_AND_191(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_190_AND_191;
+    }
+    // Match arbitration ID for frame Write Parameter 192 and 193: Write Parameter 192 and 193 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_192_AND_193(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_192_AND_193;
+    }
+    // Match arbitration ID for frame Write Parameter 194 and 195: Write Parameter 194 and 195 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_194_AND_195(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_194_AND_195;
+    }
+    // Match arbitration ID for frame Write Parameter 196 and 197: Write Parameter 196 and 197 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_196_AND_197(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_196_AND_197;
+    }
+    // Match arbitration ID for frame Write Parameter 198 and 199: Write Parameter 198 and 199 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_198_AND_199(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_198_AND_199;
+    }
+    // Match arbitration ID for frame Write Parameter 200 and 201: Write Parameter 200 and 201 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_200_AND_201(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_200_AND_201;
+    }
+    // Match arbitration ID for frame Write Parameter 202 and 203: Write Parameter 202 and 203 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_202_AND_203(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_202_AND_203;
+    }
+    // Match arbitration ID for frame Write Parameter 204 and 205: Write Parameter 204 and 205 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_204_AND_205(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_204_AND_205;
+    }
+    // Match arbitration ID for frame Write Parameter 206 and 207: Write Parameter 206 and 207 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_206_AND_207(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_206_AND_207;
+    }
+    // Match arbitration ID for frame Write Parameter 208 and 209: Write Parameter 208 and 209 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_208_AND_209(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_208_AND_209;
+    }
+    // Match arbitration ID for frame Write Parameter 210 and 211: Write Parameter 210 and 211 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_210_AND_211(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_210_AND_211;
+    }
+    // Match arbitration ID for frame Write Parameter 212 and 213: Write Parameter 212 and 213 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_212_AND_213(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_212_AND_213;
+    }
+    // Match arbitration ID for frame Write Parameter 214 and 215: Write Parameter 214 and 215 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_214_AND_215(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_214_AND_215;
+    }
+    // Match arbitration ID for frame Write Parameter 216 and 217: Write Parameter 216 and 217 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_216_AND_217(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_216_AND_217;
+    }
+    // Match arbitration ID for frame Write Parameter 218 and 219: Write Parameter 218 and 219 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_218_AND_219(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_218_AND_219;
+    }
+    // Match arbitration ID for frame Write Parameter 220 and 221: Write Parameter 220 and 221 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_220_AND_221(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_220_AND_221;
+    }
+    // Match arbitration ID for frame Write Parameter 222 and 223: Write Parameter 222 and 223 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_222_AND_223(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_222_AND_223;
+    }
+    // Match arbitration ID for frame Write Parameter 224 and 225: Write Parameter 224 and 225 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_224_AND_225(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_224_AND_225;
+    }
+    // Match arbitration ID for frame Write Parameter 226 and 227: Write Parameter 226 and 227 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_226_AND_227(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_226_AND_227;
+    }
+    // Match arbitration ID for frame Write Parameter 228 and 229: Write Parameter 228 and 229 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_228_AND_229(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_228_AND_229;
+    }
+    // Match arbitration ID for frame Write Parameter 230 and 231: Write Parameter 230 and 231 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_230_AND_231(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_230_AND_231;
+    }
+    // Match arbitration ID for frame Write Parameter 232 and 233: Write Parameter 232 and 233 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_232_AND_233(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_232_AND_233;
+    }
+    // Match arbitration ID for frame Write Parameter 234 and 235: Write Parameter 234 and 235 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_234_AND_235(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_234_AND_235;
+    }
+    // Match arbitration ID for frame Write Parameter 236 and 237: Write Parameter 236 and 237 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_236_AND_237(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_236_AND_237;
+    }
+    // Match arbitration ID for frame Write Parameter 238 and 239: Write Parameter 238 and 239 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_238_AND_239(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_238_AND_239;
+    }
+    // Match arbitration ID for frame Write Parameter 240 and 241: Write Parameter 240 and 241 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_240_AND_241(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_240_AND_241;
+    }
+    // Match arbitration ID for frame Write Parameter 242 and 243: Write Parameter 242 and 243 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_242_AND_243(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_242_AND_243;
+    }
+    // Match arbitration ID for frame Write Parameter 244 and 245: Write Parameter 244 and 245 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_244_AND_245(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_244_AND_245;
+    }
+    // Match arbitration ID for frame Write Parameter 246 and 247: Write Parameter 246 and 247 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_246_AND_247(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_246_AND_247;
+    }
+    // Match arbitration ID for frame Write Parameter 248 and 249: Write Parameter 248 and 249 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_248_AND_249(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_248_AND_249;
+    }
+    // Match arbitration ID for frame Write Parameter 250 and 251: Write Parameter 250 and 251 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_250_AND_251(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_250_AND_251;
+    }
+    // Match arbitration ID for frame Write Parameter 252 and 253: Write Parameter 252 and 253 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_252_AND_253(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_252_AND_253;
+    }
+    // Match arbitration ID for frame Write Parameter 254 and 255: Write Parameter 254 and 255 at the same time. Two
+    // Write Parameter Response frames will be sent in response.
+    static constexpr bool SPARK_MATCH_WRITE_PARAMETER_254_AND_255(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_WRITE_PARAMETER_254_AND_255;
+    }
+    // Match arbitration ID for frame Start Follower Mode: Starts follower mode. The relevant parameters must already be
+    // configured. In response, a Start Follower Mode Response frame will be sent. Follower mode will be auto-started on
+    // boot if the Follower Mode Leader ID parameter is set to a non-zero value.
+    static constexpr bool SPARK_MATCH_START_FOLLOWER_MODE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_START_FOLLOWER_MODE;
+    }
+    // Match arbitration ID for frame Start Follower Mode Response: Response for a Start Follower Mode command
+    static constexpr bool SPARK_MATCH_START_FOLLOWER_MODE_RESPONSE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_START_FOLLOWER_MODE_RESPONSE;
+    }
+    // Match arbitration ID for frame Stop Follower Mode: Exits follower mode and causes the device to resume listening
+    // for setpoints addressed directly to it. In response, a Stop Follower Mode Response frame will be sent.
+    static constexpr bool SPARK_MATCH_STOP_FOLLOWER_MODE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STOP_FOLLOWER_MODE;
+    }
+    // Match arbitration ID for frame Stop Follower Mode Response: Response for a Stop Follower Mode Command
+    static constexpr bool SPARK_MATCH_STOP_FOLLOWER_MODE_RESPONSE(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_STOP_FOLLOWER_MODE_RESPONSE;
+    }
+    // Match arbitration ID for frame Enter SWDL CAN Bootloader
+    static constexpr bool SPARK_MATCH_ENTER_SWDL_CAN_BOOTLOADER(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_ENTER_SWDL_CAN_BOOTLOADER;
+    }
+    // Match arbitration ID for frame Persist Parameters: Causes all parameters to be written to non-volatile storage.
+    // After the operation (which may take up to a second) completes, a Persist Parameters Response frame will be sent.
+    static constexpr bool SPARK_MATCH_PERSIST_PARAMETERS(uint32_t id)
+    {
+        return (id & ~SPARK_DEVICE_ID_MASK) == SPARK_ARB_PERSIST_PARAMETERS;
+    }
 
     // Frame values for Legacy Status 0: This frame exists purely to inform old software that is not aware of firmware
     // version 25+ that the SPARK is present

@@ -7,6 +7,10 @@ static const uint32_t EFF_FLAG = 0x80000000UL;
 static const uint32_t RTR_FLAG = 0x40000000UL;
 static const uint32_t ERR_FLAG = 0x20000000UL;
 
+// Classical CAN frames carry at most 8 data bytes:
+// https://docs.wpilib.org/en/stable/docs/software/can-devices/can-addressing.html
+static const uint8_t CLASSIC_CAN_MAX_DLC = 8u;
+
 namespace CanControl
 {
     // FRC/WPILib 29-bit CAN ID layout (LSB to MSB):

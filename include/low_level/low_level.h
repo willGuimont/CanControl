@@ -127,11 +127,11 @@ namespace CanControl::LowLevel
         out->can_id = (uint32_t)(in.id & CanControl::frc_can_id::MASK_frc_id) | EFF_FLAG;
         if (in.is_rtr)
             out->can_id |= RTR_FLAG;
-        out->can_dlc = in.dlc;
+        out->can_dlc = in.dlc > CLASSIC_CAN_MAX_DLC ? CLASSIC_CAN_MAX_DLC : in.dlc;
         memset(out->data, 0, sizeof(out->data));
-        if (in.dlc > 0u)
+        if (out->can_dlc > 0u)
         {
-            memcpy(out->data, in.data, in.dlc);
+            memcpy(out->data, in.data, out->can_dlc);
         }
     }
 } // namespace CanControl::LowLevel

@@ -34,6 +34,7 @@ namespace CanControl
         static MCP2515::ERROR send_global_enable(MCP2515& controller, bool enable);
 
       protected:
+        explicit VictorSpx(uint8_t device_id);
         virtual MCP2515::ERROR dispatch_frame(const can_frame& frame, bool periodic = false);
 
       private:

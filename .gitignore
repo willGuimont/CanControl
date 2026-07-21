@@ -8,3 +8,4 @@
 .venv/
 .idea/
 *.csv
+__pycache__/
