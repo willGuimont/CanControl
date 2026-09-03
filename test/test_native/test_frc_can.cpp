@@ -174,9 +174,9 @@ void test_can_frame_conversion_clamps_dlc()
 void test_can_frame_conversion_preserves_flags_and_clears_data()
 {
     heartbeat::RobotState state = default_heartbeat();
-    frc_can_frame frame = heartbeat::to_frc_can_frame(state);
+    frc_can_frame         frame = heartbeat::to_frc_can_frame(state);
 
-    can_frame raw = to_can_frame(frame);
+    can_frame     raw  = to_can_frame(frame);
     frc_can_frame back = from_can_frame(raw);
 
     TEST_ASSERT_TRUE(back.id.flag_eff());
