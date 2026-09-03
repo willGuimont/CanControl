@@ -1,3 +1,4 @@
+#include <CanControl.h>
 #include <can_controller.h>
 #include <low_level/frc_can.h>
 #include <low_level/frc_can_utils.h>
@@ -170,6 +171,37 @@ void test_can_frame_conversion_clamps_dlc()
     TEST_ASSERT_EQUAL_UINT8(CLASSIC_CAN_MAX_DLC, converted.dlc);
 }
 
+void test_can_frame_conversion_preserves_flags_and_clears_data()
+{
+    heartbeat::RobotState state = default_heartbeat();
+    frc_can_frame frame = heartbeat::to_frc_can_frame(state);
+
+    can_frame raw = to_can_frame(frame);
+    frc_can_frame back = from_can_frame(raw);
+
+    TEST_ASSERT_TRUE(back.id.flag_eff());
+    TEST_ASSERT_TRUE(heartbeat::is_heartbeat(back));
+
+    heartbeat::RobotState decoded{};
+    TEST_ASSERT_TRUE(heartbeat::from_frc_can_frame(back, decoded));
+    TEST_ASSERT_TRUE(decoded.enabled());
+
+    can_frame short_raw{};
+    short_raw.can_id  = 0x123 | EFF_FLAG;
+    short_raw.can_dlc = 3;
+    short_raw.data[0] = 0xAA;
+    short_raw.data[1] = 0xBB;
+    short_raw.data[2] = 0xCC;
+    short_raw.data[3] = 0xDD;
+
+    frc_can_frame converted = from_can_frame(short_raw);
+    TEST_ASSERT_EQUAL_UINT8(3, converted.dlc);
+    TEST_ASSERT_EQUAL_UINT8(0xAA, converted.data[0]);
+    TEST_ASSERT_EQUAL_UINT8(0xBB, converted.data[1]);
+    TEST_ASSERT_EQUAL_UINT8(0xCC, converted.data[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, converted.data[3]);
+}
+
 void test_controller_retries_queue_head_in_fifo_order()
 {
     FakeTransport transport;
@@ -302,6 +334,7 @@ int main(int argc, char** argv)
     RUN_TEST(test_frc_can_id_flags);
     RUN_TEST(test_can_id_example);
     RUN_TEST(test_can_frame_conversion_clamps_dlc);
+    RUN_TEST(test_can_frame_conversion_preserves_flags_and_clears_data);
     RUN_TEST(test_controller_retries_queue_head_in_fifo_order);
     RUN_TEST(test_flush_times_out_when_transport_fails);
     RUN_TEST(test_spark_queued_sends_control_and_configuration_frames);
