@@ -4,6 +4,10 @@
 #include "../examples/main_queue.cpp"
 #endif
 
+#if defined(EXAMPLE_COMMANDS)
+#include "../examples/main_commands.cpp"
+#endif
+
 #if defined(EXAMPLE_BASIC)
 #include "../examples/main.cpp"
 #endif

@@ -6,8 +6,12 @@
 #include <motors_queued/sparkmax_queued.h>
 #include <motors_queued/talonsrx_queued.h>
 #include <motors_queued/victorspx_queued.h>
+#include <type_traits>
 #include <unity.h>
 #include <vector>
+
+static_assert(!std::is_convertible<CanControl::CanController::Error, bool>::value,
+              "Controller errors must require explicit comparisons");
 
 using namespace CanControl;
 
@@ -32,22 +36,24 @@ class FakeTransport : public CanController::Transport
   public:
     MCP2515::ERROR reset() override
     {
-        return MCP2515::ERROR_OK;
+        return reset_error;
     }
 
     MCP2515::ERROR set_bitrate(CAN_SPEED, CAN_CLOCK) override
     {
-        return MCP2515::ERROR_OK;
+        return bitrate_error;
     }
 
     MCP2515::ERROR set_normal_one_shot_mode() override
     {
-        return MCP2515::ERROR_OK;
+        return mode_error;
     }
 
     MCP2515::ERROR send(const can_frame& frame) override
     {
         ++send_attempts;
+        if (send_error != MCP2515::ERROR_OK)
+            return send_error;
         if (always_fail || failures_remaining > 0)
         {
             if (failures_remaining > 0)
@@ -58,6 +64,10 @@ class FakeTransport : public CanController::Transport
         return MCP2515::ERROR_OK;
     }
 
+    MCP2515::ERROR         reset_error   = MCP2515::ERROR_OK;
+    MCP2515::ERROR         bitrate_error = MCP2515::ERROR_OK;
+    MCP2515::ERROR         mode_error    = MCP2515::ERROR_OK;
+    MCP2515::ERROR         send_error    = MCP2515::ERROR_OK;
     std::vector<can_frame> sent;
     int                    send_attempts      = 0;
     int                    failures_remaining = 0;
@@ -213,8 +223,8 @@ void test_controller_retries_queue_head_in_fifo_order()
     first.can_id = 1;
     can_frame second{};
     second.can_id = 2;
-    TEST_ASSERT_TRUE(controller.queue_frame(first));
-    TEST_ASSERT_TRUE(controller.queue_frame(second));
+    TEST_ASSERT_TRUE(controller.queue_frame(first) == CanController::Error::Ok);
+    TEST_ASSERT_TRUE(controller.queue_frame(second) == CanController::Error::Ok);
 
     transport.failures_remaining = 1;
     controller.update(0);
@@ -238,8 +248,8 @@ void test_flush_times_out_when_transport_fails()
     can_frame frame{};
 
     transport.always_fail = true;
-    TEST_ASSERT_TRUE(controller.queue_frame(frame));
-    TEST_ASSERT_FALSE(controller.flush(10, 30));
+    TEST_ASSERT_TRUE(controller.queue_frame(frame) == CanController::Error::Ok);
+    TEST_ASSERT_TRUE(controller.flush(10, 30) == CanController::Error::Timeout);
     TEST_ASSERT_TRUE(controller.has_pending_frames());
     TEST_ASSERT_EQUAL_UINT32(30, clock.now);
     TEST_ASSERT_EQUAL_INT(3, transport.send_attempts);
@@ -254,7 +264,7 @@ void test_spark_queued_sends_control_and_configuration_frames()
     SparkMaxQueued spark(controller, 3);
 
     TEST_ASSERT_EQUAL(MCP2515::ERROR_OK, spark.set_pid_p(0.25f));
-    TEST_ASSERT_TRUE(controller.flush(1, 10));
+    TEST_ASSERT_TRUE(controller.flush(1, 10) == CanController::Error::Ok);
 
     TEST_ASSERT_EQUAL(MCP2515::ERROR_OK, spark.set_duty_cycle(0.5f));
     controller.update(0);
@@ -318,13 +328,143 @@ void test_unregistered_queued_motor_reports_failure()
     configure_controller(controller);
 
     for (DummyPeriodicSender& sender : senders)
-        TEST_ASSERT_TRUE(controller.add_periodic_sender(&sender));
+        TEST_ASSERT_TRUE(controller.add_periodic_sender(&sender) == CanController::Error::Ok);
 
     SparkMaxQueued spark(controller, 1);
     TEST_ASSERT_EQUAL(MCP2515::ERROR_FAILINIT, spark.set_duty_cycle(0.5f));
     controller.update(0);
     TEST_ASSERT_EQUAL_size_t(0, transport.sent.size());
 }
+
+void test_controller_maps_transport_errors()
+{
+    using Error                     = CanController::Error;
+    const MCP2515::ERROR input[]    = {MCP2515::ERROR_OK,       MCP2515::ERROR_FAIL,   MCP2515::ERROR_ALLTXBUSY,
+                                       MCP2515::ERROR_FAILINIT, MCP2515::ERROR_FAILTX, MCP2515::ERROR_NOMSG};
+    const Error          expected[] = {Error::Ok,
+                                       Error::TransportFailure,
+                                       Error::TransmitBusy,
+                                       Error::InitializationFailed,
+                                       Error::TransmitFailed,
+                                       Error::NoMessage};
+    for (size_t i = 0; i < sizeof(input) / sizeof(input[0]); ++i)
+    {
+        FakeTransport transport;
+        FakeClock     clock;
+        CanController controller(transport, clock);
+        configure_controller(controller);
+        for (int stage = 0; stage < 3; ++stage)
+        {
+            transport.reset_error   = stage == 0 ? input[i] : MCP2515::ERROR_OK;
+            transport.bitrate_error = stage == 1 ? input[i] : MCP2515::ERROR_OK;
+            transport.mode_error    = stage == 2 ? input[i] : MCP2515::ERROR_OK;
+            TEST_ASSERT_TRUE(controller.setup(CAN_1000KBPS, MCP_8MHZ) == expected[i]);
+        }
+        can_frame frame{};
+        TEST_ASSERT_TRUE(controller.queue_frame(frame) == Error::Ok);
+        transport.send_error = input[i];
+        TEST_ASSERT_TRUE(controller.update(0) == expected[i]);
+        TEST_ASSERT_EQUAL(input[i] != MCP2515::ERROR_OK, controller.has_pending_frames());
+    }
+}
+
+void test_controller_queue_full_and_reuse()
+{
+    FakeTransport transport;
+    FakeClock     clock;
+    CanController controller(transport, clock);
+    configure_controller(controller);
+    can_frame frame{};
+    for (size_t i = 0; i < CanController::QUEUE_SIZE; ++i)
+    {
+        frame.can_id = i;
+        TEST_ASSERT_TRUE(controller.queue_frame(frame) == CanController::Error::Ok);
+    }
+    TEST_ASSERT_TRUE(controller.queue_frame(frame) == CanController::Error::QueueFull);
+    TEST_ASSERT_TRUE(controller.update(0) == CanController::Error::Ok);
+    frame.can_id = CanController::QUEUE_SIZE;
+    TEST_ASSERT_TRUE(controller.queue_frame(frame) == CanController::Error::Ok);
+    TEST_ASSERT_TRUE(controller.flush(1, 1000) == CanController::Error::Ok);
+    TEST_ASSERT_EQUAL_size_t(CanController::QUEUE_SIZE + 1, transport.sent.size());
+    for (size_t i = 0; i < transport.sent.size(); ++i)
+        TEST_ASSERT_EQUAL_UINT32(i, transport.sent[i].can_id);
+}
+
+void test_controller_registration_errors()
+{
+    using Error = CanController::Error;
+    FakeTransport       transport;
+    FakeClock           clock;
+    CanController       controller(transport, clock);
+    DummyPeriodicSender senders[9];
+    TEST_ASSERT_TRUE(controller.add_periodic_sender(nullptr) == Error::InvalidArgument);
+    TEST_ASSERT_TRUE(controller.remove_periodic_sender(nullptr) == Error::InvalidArgument);
+    TEST_ASSERT_TRUE(controller.remove_periodic_sender(&senders[0]) == Error::NotRegistered);
+    for (size_t i = 0; i < 8; ++i)
+        TEST_ASSERT_TRUE(controller.add_periodic_sender(&senders[i]) == Error::Ok);
+    TEST_ASSERT_TRUE(controller.add_periodic_sender(&senders[0]) == Error::AlreadyRegistered);
+    TEST_ASSERT_TRUE(controller.add_periodic_sender(&senders[8]) == Error::SenderLimitReached);
+    TEST_ASSERT_TRUE(controller.remove_periodic_sender(&senders[0]) == Error::Ok);
+    TEST_ASSERT_TRUE(controller.remove_periodic_sender(&senders[0]) == Error::NotRegistered);
+    TEST_ASSERT_TRUE(controller.add_periodic_sender(&senders[8]) == Error::Ok);
+}
+
+void test_heartbeat_and_ctre_retry_and_rate_limit()
+{
+    for (bool ctre : {false, true})
+    {
+        FakeTransport transport;
+        FakeClock     clock;
+        CanController controller(transport, clock);
+        controller.set_heartbeat(!ctre);
+        controller.set_ctre_global_enable(ctre);
+        can_frame queued{};
+        queued.can_id = 123;
+        TEST_ASSERT_TRUE(controller.queue_frame(queued) == CanController::Error::Ok);
+        transport.failures_remaining = 1;
+        TEST_ASSERT_TRUE(controller.update(20) == CanController::Error::TransmitFailed);
+        TEST_ASSERT_EQUAL_INT(1, transport.send_attempts);
+        TEST_ASSERT_TRUE(controller.has_pending_frames());
+        TEST_ASSERT_TRUE(controller.update(0) == CanController::Error::Ok);
+        TEST_ASSERT_EQUAL_size_t(1, transport.sent.size());
+        if (ctre)
+        {
+            can_frame expected{};
+            LowLevel::basic_to_can_frame(LowLevel::TalonSrx::build_global_enable(true), &expected);
+            assert_frame_equal(expected, transport.sent[0]);
+        }
+        else
+            TEST_ASSERT_TRUE(heartbeat::is_heartbeat(from_can_frame(transport.sent[0])));
+        TEST_ASSERT_TRUE(controller.update(4) == CanController::Error::Ok);
+        TEST_ASSERT_EQUAL_size_t(1, transport.sent.size());
+        TEST_ASSERT_TRUE(controller.update(1) == CanController::Error::Ok);
+        TEST_ASSERT_EQUAL_size_t(2, transport.sent.size());
+        TEST_ASSERT_EQUAL_UINT32(123, transport.sent[1].can_id);
+        TEST_ASSERT_TRUE(controller.update(15) == CanController::Error::Ok);
+        TEST_ASSERT_EQUAL_size_t(3, transport.sent.size());
+    }
+}
+
+void test_periodic_error_and_expiration()
+{
+    FakeTransport transport;
+    FakeClock     clock;
+    CanController controller(transport, clock);
+    configure_controller(controller);
+    SparkMaxQueued motor(controller, 1);
+    TEST_ASSERT_EQUAL(MCP2515::ERROR_OK, motor.set_duty_cycle(0.5f));
+    transport.failures_remaining = 1;
+    TEST_ASSERT_TRUE(controller.update(0) == CanController::Error::TransmitFailed);
+    TEST_ASSERT_TRUE(controller.update(0) == CanController::Error::Ok);
+    TEST_ASSERT_EQUAL_size_t(1, transport.sent.size());
+    clock.now = 101;
+    TEST_ASSERT_TRUE(controller.update(0) == CanController::Error::Ok);
+    TEST_ASSERT_EQUAL_size_t(1, transport.sent.size());
+}
+
+void run_commands_tests();
+void run_sparkmax_status_tests();
+void run_example_commands_tests();
 
 int main(int argc, char** argv)
 {
@@ -341,6 +481,16 @@ int main(int argc, char** argv)
     RUN_TEST(test_ctre_queued_sends_talon_and_victor_frames);
     RUN_TEST(test_destroyed_periodic_sender_is_unregistered);
     RUN_TEST(test_unregistered_queued_motor_reports_failure);
+
+    RUN_TEST(test_controller_maps_transport_errors);
+    RUN_TEST(test_controller_queue_full_and_reuse);
+    RUN_TEST(test_controller_registration_errors);
+    RUN_TEST(test_heartbeat_and_ctre_retry_and_rate_limit);
+    RUN_TEST(test_periodic_error_and_expiration);
+
+    run_commands_tests();
+    run_sparkmax_status_tests();
+    run_example_commands_tests();
 
     return UNITY_END();
 }

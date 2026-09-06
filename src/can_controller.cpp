@@ -19,6 +19,27 @@ namespace CanControl
     {
     }
 
+    CanController::Error CanController::from_transport_error(MCP2515::ERROR error)
+    {
+        switch (error)
+        {
+        case MCP2515::ERROR_OK:
+            return Error::Ok;
+        case MCP2515::ERROR_ALLTXBUSY:
+            return Error::TransmitBusy;
+        case MCP2515::ERROR_FAILINIT:
+            return Error::InitializationFailed;
+        case MCP2515::ERROR_FAILTX:
+            return Error::TransmitFailed;
+        case MCP2515::ERROR_NOMSG:
+            return Error::NoMessage;
+        case MCP2515::ERROR_FAIL:
+            return Error::TransportFailure;
+        default:
+            return Error::TransportFailure;
+        }
+    }
+
     MCP2515::ERROR CanController::reset_transport()
     {
         return transport_ ? transport_->reset() : controller_->reset();
@@ -69,11 +90,11 @@ namespace CanControl
 #endif
     }
 
-    bool CanController::queue_frame(const struct can_frame& frame)
+    CanController::Error CanController::queue_frame(const struct can_frame& frame)
     {
         if (full_)
         {
-            return false;
+            return Error::QueueFull;
         }
 
         queue_[head_] = frame;
@@ -82,10 +103,10 @@ namespace CanControl
         {
             full_ = true;
         }
-        return true;
+        return Error::Ok;
     }
 
-    MCP2515::ERROR CanController::setup(CAN_SPEED speed, CAN_CLOCK clock)
+    CanController::Error CanController::setup(CAN_SPEED speed, CAN_CLOCK clock)
     {
         MCP2515::ERROR error = MCP2515::ERROR_OK;
 
@@ -110,10 +131,10 @@ namespace CanControl
         }
         delay_ms(10);
 
-        return error;
+        return from_transport_error(error);
     }
 
-    void CanController::update(unsigned long dt_ms)
+    CanController::Error CanController::update(unsigned long dt_ms)
     {
         time_since_last_heartbeat_ms_ += dt_ms;
         time_since_last_ctre_enable_ms_ += dt_ms;
@@ -122,30 +143,34 @@ namespace CanControl
         // Rate limiting
         if (time_since_last_send_ms_ < send_interval_ms_)
         {
-            return;
+            return Error::Ok;
         }
 
         // Handle Heartbeat (Priority 1)
         if (heartbeat_enabled_ && time_since_last_heartbeat_ms_ >= heartbeat_period_ms_)
         {
             // Try to send heartbeat immediately
-            if (send_heartbeat())
+            const Error error = send_heartbeat();
+            if (error == Error::Ok)
             {
                 time_since_last_heartbeat_ms_ = 0;
                 time_since_last_send_ms_      = 0; // Reset send timer
-                return;                            // Only one frame per update period if we hit the limit
+                return Error::Ok;                  // Only one frame per update period
             }
+            return error;
         }
 
         // Handle CTRE Global Enable (Priority 2)
         if (ctre_enable_active_ && time_since_last_ctre_enable_ms_ >= ctre_enable_period_ms_)
         {
-            if (send_ctre_global_enable())
+            const Error error = send_ctre_global_enable();
+            if (error == Error::Ok)
             {
                 time_since_last_ctre_enable_ms_ = 0;
                 time_since_last_send_ms_        = 0;
-                return;
+                return Error::Ok;
             }
+            return error;
         }
 
         // Process Queue (Priority 3)
@@ -162,13 +187,13 @@ namespace CanControl
                 full_ = false;
 
                 time_since_last_send_ms_ = 0;
-                return; // Done for this cycle
+                return Error::Ok; // Done for this cycle
             }
             else
             {
                 // Hardware buffers full or error
                 // Retry next time.
-                return;
+                return from_transport_error(err);
             }
         }
 
@@ -185,35 +210,35 @@ namespace CanControl
                 struct can_frame frame{};
                 if (sender->get_periodic_frame(frame, now_ms()))
                 {
-                    if (send_frame(frame) == MCP2515::ERROR_OK)
+                    const Error error = from_transport_error(send_frame(frame));
+                    if (error == Error::Ok)
                         time_since_last_send_ms_ = 0;
-                    return;
+                    return error;
                 }
             }
         }
+        return Error::Ok;
     }
 
-    bool CanController::add_periodic_sender(PeriodicSender* sender)
+    CanController::Error CanController::add_periodic_sender(PeriodicSender* sender)
     {
         if (sender == nullptr)
-        {
-            return false;
-        }
-        if (periodic_count_ >= MAX_PERIODIC_SENDERS)
-        {
-            return false;
-        }
+            return Error::InvalidArgument;
         for (size_t i = 0; i < periodic_count_; ++i)
         {
             if (periodic_senders_[i] == sender)
-                return false;
+                return Error::AlreadyRegistered;
         }
+        if (periodic_count_ >= MAX_PERIODIC_SENDERS)
+            return Error::SenderLimitReached;
         periodic_senders_[periodic_count_++] = sender;
-        return true;
+        return Error::Ok;
     }
 
-    bool CanController::remove_periodic_sender(PeriodicSender* sender)
+    CanController::Error CanController::remove_periodic_sender(PeriodicSender* sender)
     {
+        if (sender == nullptr)
+            return Error::InvalidArgument;
         for (size_t i = 0; i < periodic_count_; ++i)
         {
             if (periodic_senders_[i] != sender)
@@ -224,24 +249,24 @@ namespace CanControl
             --periodic_count_;
             periodic_senders_[periodic_count_] = nullptr;
             periodic_index_                    = periodic_count_ == 0 ? 0 : periodic_index_ % periodic_count_;
-            return true;
+            return Error::Ok;
         }
-        return false;
+        return Error::NotRegistered;
     }
 
-    bool CanController::send_heartbeat()
+    CanController::Error CanController::send_heartbeat()
     {
         can_frame      frame = heartbeat_to_canframe(heartbeat_state_);
         MCP2515::ERROR err   = send_frame(frame);
-        return (err == MCP2515::ERROR_OK);
+        return from_transport_error(err);
     }
 
-    bool CanController::send_ctre_global_enable()
+    CanController::Error CanController::send_ctre_global_enable()
     {
         LowLevel::TalonSrx::talon_can_frame low = LowLevel::TalonSrx::build_global_enable(ctre_enable_state_);
         struct can_frame                    frame{};
         LowLevel::basic_to_can_frame(low, &frame);
-        return send_frame(frame) == MCP2515::ERROR_OK;
+        return from_transport_error(send_frame(frame));
     }
 
     void CanController::set_heartbeat(bool enabled)
@@ -285,7 +310,7 @@ namespace CanControl
         return !(!full_ && head_ == tail_);
     }
 
-    bool CanController::flush(unsigned long interval_ms, unsigned long timeout_ms)
+    CanController::Error CanController::flush(unsigned long interval_ms, unsigned long timeout_ms)
     {
         if (interval_ms == 0)
             interval_ms = 1;
@@ -294,12 +319,12 @@ namespace CanControl
         while (has_pending_frames())
         {
             if (elapsed_ms >= timeout_ms)
-                return false;
+                return Error::Timeout;
             update(interval_ms);
             delay_ms(interval_ms);
             elapsed_ms += interval_ms;
         }
-        return true;
+        return Error::Ok;
     }
 
 } // namespace CanControl

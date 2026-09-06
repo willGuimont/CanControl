@@ -14,9 +14,8 @@ enum CAN_CLOCK
     MCP_20MHZ,
 };
 
-class MCP2515
+struct MCP2515
 {
-  public:
     enum ERROR
     {
         ERROR_OK        = 0,
@@ -42,8 +41,14 @@ class MCP2515
         return ERROR_OK;
     }
 
-    ERROR sendMessage(const can_frame*)
+    ERROR sendMessage(const can_frame* frame)
     {
-        return ERROR_OK;
+        ++send_attempts;
+        last_frame = *frame;
+        return send_result;
     }
+
+    can_frame last_frame{};
+    unsigned  send_attempts = 0;
+    ERROR     send_result   = ERROR_OK;
 };

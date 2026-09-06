@@ -2,6 +2,7 @@
 
 #include "low_level/low_sparkmax.h"
 #include "low_level/low_sparkmax_params.h"
+#include "sparkmax_status.h"
 
 #include <mcp2515.h>
 
@@ -199,26 +200,7 @@ namespace CanControl
         // Convenience for slotted float parameters (base_id + slot*8).
         MCP2515::ERROR dispatch_float_param(uint8_t base_id, uint8_t slot, float value);
 
-        // Cached state from incoming periodic frames (Status 0..9)
-        LowLevel::SparkMax::Spark_STATUS_0_t last_status0_;
-        bool                                 has_status0_ = false;
-        LowLevel::SparkMax::Spark_STATUS_1_t last_status1_;
-        bool                                 has_status1_ = false;
-        LowLevel::SparkMax::Spark_STATUS_2_t last_status2_;
-        bool                                 has_status2_ = false;
-        LowLevel::SparkMax::Spark_STATUS_3_t last_status3_;
-        bool                                 has_status3_ = false;
-        LowLevel::SparkMax::Spark_STATUS_4_t last_status4_;
-        bool                                 has_status4_ = false;
-        LowLevel::SparkMax::Spark_STATUS_5_t last_status5_;
-        bool                                 has_status5_ = false;
-        LowLevel::SparkMax::Spark_STATUS_6_t last_status6_;
-        bool                                 has_status6_ = false;
-        LowLevel::SparkMax::Spark_STATUS_7_t last_status7_;
-        bool                                 has_status7_ = false;
-        LowLevel::SparkMax::Spark_STATUS_8_t last_status8_;
-        bool                                 has_status8_ = false;
-        LowLevel::SparkMax::Spark_STATUS_9_t last_status9_;
-        bool                                 has_status9_ = false;
+        // Cache only values exposed by the public API; keep receipt bits for all statuses.
+        SparkMaxStatus status_;
     };
 } // namespace CanControl

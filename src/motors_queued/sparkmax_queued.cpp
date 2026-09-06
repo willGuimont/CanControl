@@ -5,7 +5,7 @@ namespace CanControl
     SparkMaxQueued::SparkMaxQueued(CanController& controller, uint8_t device_id)
         : SparkMax(device_id), can_controller_(&controller)
     {
-        registered_ = can_controller_->add_periodic_sender(this);
+        registered_ = can_controller_->add_periodic_sender(this) == CanController::Error::Ok;
     }
 
     SparkMaxQueued::~SparkMaxQueued()
@@ -29,7 +29,7 @@ namespace CanControl
             return MCP2515::ERROR_OK;
         }
 
-        if (can_controller_->queue_frame(out))
+        if (can_controller_->queue_frame(out) == CanController::Error::Ok)
         {
             return MCP2515::ERROR_OK;
         }

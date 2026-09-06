@@ -19,6 +19,22 @@ namespace CanControl
     class CanController
     {
       public:
+        enum class Error : uint8_t
+        {
+            Ok,
+            TransportFailure,
+            TransmitBusy,
+            InitializationFailed,
+            TransmitFailed,
+            NoMessage,
+            QueueFull,
+            InvalidArgument,
+            SenderLimitReached,
+            AlreadyRegistered,
+            NotRegistered,
+            Timeout,
+        };
+
         static constexpr size_t QUEUE_SIZE = CANCONTROL_QUEUE_SIZE;
         static_assert(QUEUE_SIZE > 0, "CANCONTROL_QUEUE_SIZE must be greater than zero");
 
@@ -47,26 +63,27 @@ namespace CanControl
         CanController& operator=(const CanController&) = delete;
 
         /**
-         * @return true If the frame was added successfully.
-         * @return false If the queue is full.
+         * @return Error::Ok on acceptance, Error::QueueFull if the queue is full.
          */
-        bool queue_frame(const struct can_frame& frame);
+        Error queue_frame(const struct can_frame& frame);
 
         /**
          * @brief Setup the MCP2515.
          *
          * @param speed The CAN bus speed (e.g., CAN_1000KBPS).
          * @param clock The clock frequency (e.g., MCP_16MHZ).
-         * @return MCP2515::ERROR Status of the initialization.
+         * @return Error::Ok on success, otherwise the transport error.
          */
-        MCP2515::ERROR setup(CAN_SPEED speed, CAN_CLOCK clock);
+        Error setup(CAN_SPEED speed, CAN_CLOCK clock);
 
         /**
          * @brief Handles sending queued frames, heartbeats, and periodic messages.
          *
          * @param dt_ms Delta time in milliseconds since the last call.
+         * @return Error::Ok if idle, rate limited, or sent; otherwise the transmission error.
+         * Failed frames remain eligible for retry on a later update.
          */
-        void update(unsigned long dt_ms);
+        Error update(unsigned long dt_ms);
 
         void set_heartbeat(bool enabled);
 
@@ -108,9 +125,10 @@ namespace CanControl
          *
          * @param interval_ms Polling interval in milliseconds (default 10).
          * @param timeout_ms Maximum time to wait in milliseconds (default 5000).
-         * @return true if every queued frame was sent, false on timeout.
+         * @return Error::Ok if every queued frame was sent, Error::Timeout otherwise.
+         * Transmission errors are retried until the timeout expires.
          */
-        bool flush(unsigned long interval_ms = 10, unsigned long timeout_ms = 5000);
+        Error flush(unsigned long interval_ms = 10, unsigned long timeout_ms = 5000);
 
         /**
          * @brief Set the minimum interval between sending frames (rate limiting).
@@ -137,11 +155,13 @@ namespace CanControl
         };
 
         /**
-         * @return true If added successfully.
-         * @return false If the list is full.
+         * @return Error::Ok, InvalidArgument (null), AlreadyRegistered, or SenderLimitReached.
+         * The sender must unregister before destruction. Queued motor wrappers do this automatically.
+         * This controller must outlive its queued motors.
          */
-        bool add_periodic_sender(PeriodicSender* sender);
-        bool remove_periodic_sender(PeriodicSender* sender);
+        Error add_periodic_sender(PeriodicSender* sender);
+        /// Returns Error::Ok, InvalidArgument (null), or NotRegistered.
+        Error remove_periodic_sender(PeriodicSender* sender);
 
         unsigned long now_ms() const;
 
@@ -150,6 +170,7 @@ namespace CanControl
         Transport* transport_  = nullptr;
         Clock*     clock_      = nullptr;
 
+        static Error   from_transport_error(MCP2515::ERROR error);
         MCP2515::ERROR reset_transport();
         MCP2515::ERROR set_bitrate(CAN_SPEED speed, CAN_CLOCK clock);
         MCP2515::ERROR set_normal_one_shot_mode();
@@ -172,7 +193,7 @@ namespace CanControl
         unsigned long         time_since_last_heartbeat_ms_ = 0;
         heartbeat::RobotState heartbeat_state_;
 
-        bool send_heartbeat();
+        Error send_heartbeat();
 
         // CTRE Global Enable configuration
         bool          ctre_enable_active_             = false; // Disabled by default
@@ -180,7 +201,7 @@ namespace CanControl
         unsigned long ctre_enable_period_ms_          = 20;    // Default 20ms
         unsigned long time_since_last_ctre_enable_ms_ = 0;
 
-        bool send_ctre_global_enable();
+        Error send_ctre_global_enable();
 
         static constexpr size_t MAX_PERIODIC_SENDERS = 8;
         PeriodicSender*         periodic_senders_[MAX_PERIODIC_SENDERS];

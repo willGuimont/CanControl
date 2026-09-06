@@ -5,9 +5,13 @@
  * See README.md for wiring.
  */
 #include "CanControl.h"
+#include "example_commands.h"
 
 #include <SPI.h>
+#include <math.h>
 #include <mcp2515.h>
+#include <stdlib.h>
+#include <string.h>
 
 using namespace CanControl;
 
@@ -101,16 +105,107 @@ void print_help()
     Serial.println("\t- Start with `s` to set speed (float)");
     Serial.println("\t- Start with `p` to set position (float)");
     Serial.println("\t- `z` to start homing (drive positive until forward limit), `c` to cancel");
+    Serial.println("\t- `x` to stop");
     Serial.println("\t- `h` for help");
     Serial.println("Ready to accept commands...");
     Serial.println();
 }
 
-enum CommandMode
+enum class CommandMode : uint8_t
 {
     Speed,
     Position,
 };
+
+static float       motor_speed    = 0.0f;
+static float       motor_position = 0.0f;
+static CommandMode command_mode   = CommandMode::Speed;
+
+static void apply_command(const Command& cmd)
+{
+    switch (cmd.type)
+    {
+    case Command::Type::Help:
+        print_help();
+        break;
+
+    case Command::Type::HomingStart:
+        homing_active = true;
+        command_mode  = CommandMode::Speed;
+        motor_speed   = homing_speed;
+        Serial.println(F("Starting homing (driving positive)"));
+        break;
+
+    case Command::Type::HomingCancel:
+        homing_active = false;
+        spark.stop();
+        Serial.println(F("Homing cancelled"));
+        break;
+
+    case Command::Type::Stop:
+        homing_active = false;
+        motor_speed   = 0.0f;
+        command_mode  = CommandMode::Speed;
+        spark.stop();
+        Serial.println(F("Stopped"));
+        break;
+
+    case Command::Type::DutyCycle:
+        motor_speed  = cmd.duty_cycle;
+        command_mode = CommandMode::Speed;
+        Serial.print(F("Set speed: "));
+        Serial.println(motor_speed);
+        break;
+
+    case Command::Type::Position:
+        motor_position = cmd.position;
+        command_mode   = CommandMode::Position;
+        Serial.print(F("Set position: "));
+        Serial.println(motor_position);
+        break;
+
+    default:
+        break;
+    }
+}
+
+static void read_commands()
+{
+    static char    line[24];
+    static uint8_t length   = 0;
+    static bool    overflow = false;
+
+    for (uint8_t count = 0; count < sizeof(line) && Serial.available(); ++count)
+    {
+        const char c = Serial.read();
+        if (c == '\n' || c == '\r')
+        {
+            line[length] = '\0';
+            if (overflow)
+            {
+                Serial.println(F("Command too long."));
+            }
+            else if (length != 0)
+            {
+                const Command cmd = parse_command(line);
+                if (cmd.is_valid())
+                {
+                    apply_command(cmd);
+                }
+            }
+            length   = 0;
+            overflow = false;
+        }
+        else if (length < sizeof(line) - 1 && !overflow)
+        {
+            line[length++] = c;
+        }
+        else
+        {
+            overflow = true;
+        }
+    }
+}
 
 void setup()
 {
@@ -198,10 +293,6 @@ void setup()
 
 void loop()
 {
-    static float       speed        = 0;
-    static float       position     = 0;
-    static CommandMode command_mode = Speed;
-
     // Send heartbeat every heartbeat_interval_ms milliseconds
     unsigned long        now                 = millis();
     static unsigned long heartbeat_last_sent = 0;
@@ -226,7 +317,7 @@ void loop()
     {
         switch (command_mode)
         {
-        case Speed:
+        case CommandMode::Speed:
             // SparkMax
             if (homing_active)
             {
@@ -234,14 +325,14 @@ void loop()
             }
             else
             {
-                spark.set_duty_cycle(speed);
+                spark.set_duty_cycle(motor_speed);
             }
             // TalonSRX
-            // talon.set_percent_output(speed);
+            // talon.set_percent_output(motor_speed);
             break;
-        case Position:
+        case CommandMode::Position:
             // Use the position sensor (e.g., encoder, potentiometer) and use a PID to achieve that position
-            spark.set_position(position);
+            spark.set_position(motor_position);
             break;
         default:
             break;
@@ -250,63 +341,7 @@ void loop()
         speed_last_sent = now;
     }
 
-    // Small serial interface to control the motor
-    static String inBuf = "";
-    while (Serial.available())
-    {
-        char c = Serial.read();
-        if (c == '\n' || c == '\r')
-        {
-            // Command + at least one char of argument
-            if (inBuf.length() >= 2)
-            {
-                if (inBuf[0] == 's')
-                {
-                    // Speed
-                    speed = (inBuf.substring(1)).toFloat();
-                    if (speed > 1.0f)
-                        speed = 1.0f;
-                    if (speed < -1.0f)
-                        speed = -1.0f;
-                    command_mode = Speed;
-                    Serial.print("Set speed: ");
-                    Serial.println(speed);
-                }
-                else if (inBuf[0] == 'p')
-                {
-                    // Position
-                    position     = (inBuf.substring(1)).toFloat();
-                    command_mode = Position;
-                    Serial.print("Set position: ");
-                    Serial.println(position);
-                }
-                else if (inBuf[0] == 'h')
-                {
-                    print_help();
-                }
-                else if (inBuf[0] == 'z')
-                {
-                    homing_active = true;
-                    command_mode  = Speed;
-                    speed         = homing_speed;
-                    Serial.println("Starting homing (driving positive)");
-                }
-                else if (inBuf[0] == 'c')
-                {
-                    homing_active = false;
-                    spark.stop();
-                    Serial.println("Homing cancelled");
-                }
-
-                // Clear buffer
-                inBuf = "";
-            }
-        }
-        else
-        {
-            inBuf += c;
-        }
-    }
+    read_commands();
 
     // Read incoming CAN frames and update motor state objects.
     struct can_frame rf;
@@ -320,8 +355,8 @@ void loop()
     if (homing_active && spark.hard_forward_limit_reached() && !homing_prev_limit)
     {
         spark.stop();
-        speed        = 0;
-        command_mode = Speed;
+        motor_speed  = 0;
+        command_mode = CommandMode::Speed;
 
         MCP2515::ERROR setpos_err = spark.set_primary_encoder_position(0.0f);
         Serial.print("Sent encoder-zero SET_PRIMARY_ENCODER_POSITION: ");

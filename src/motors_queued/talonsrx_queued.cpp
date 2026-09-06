@@ -5,7 +5,7 @@ namespace CanControl
     TalonSrxQueued::TalonSrxQueued(CanController& controller, uint8_t device_id)
         : TalonSrx(device_id), can_controller_(&controller)
     {
-        registered_ = can_controller_->add_periodic_sender(this);
+        registered_ = can_controller_->add_periodic_sender(this) == CanController::Error::Ok;
     }
 
     TalonSrxQueued::~TalonSrxQueued()
@@ -27,7 +27,7 @@ namespace CanControl
             return MCP2515::ERROR_OK;
         }
 
-        if (can_controller_->queue_frame(frame))
+        if (can_controller_->queue_frame(frame) == CanController::Error::Ok)
         {
             return MCP2515::ERROR_OK;
         }

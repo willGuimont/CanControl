@@ -45,4 +45,4 @@ jobs:
 
       - name: Build embedded targets
         run: |
-          pio run -e uno -e uno_queue -e mega -e mega_queue
+          pio run -e uno -e uno_queue -e mega -e mega_queue -e uno_commands -e mega_commands

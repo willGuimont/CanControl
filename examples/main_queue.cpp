@@ -6,10 +6,14 @@
  */
 #include "CanControl.h"
 #include "can_controller.h"
+#include "example_commands.h"
 #include "motors_queued/sparkmax_queued.h"
 
 #include <SPI.h>
+#include <math.h>
 #include <mcp2515.h>
+#include <stdlib.h>
+#include <string.h>
 
 using namespace CanControl;
 
@@ -48,8 +52,7 @@ static CanController can_controller(mcp2515);
 // Creating the motors array (IDs 1..4), bound to the CanController
 static SparkMaxQueued motors[4] = {{can_controller, 1}, {can_controller, 2}, {can_controller, 3}, {can_controller, 4}};
 
-// Command mode enum (used by per-motor state)
-enum class MotorCommandMode
+enum class MotorCommandMode : uint8_t
 {
     Speed,
     Position,
@@ -67,25 +70,157 @@ static constexpr float spark_i = 0.0;
 static constexpr float spark_d = 0.0;
 static constexpr float spark_f = 0.0;
 
+static void print_help();
+
+static void apply_command(const Command& cmd)
+{
+    switch (cmd.type)
+    {
+    case Command::Type::Help:
+        print_help();
+        break;
+
+    case Command::Type::Stop:
+    case Command::Type::DutyCycle:
+    case Command::Type::Position:
+    {
+        const MotorCommandMode mode =
+            (cmd.type == Command::Type::Position) ? MotorCommandMode::Position : MotorCommandMode::Speed;
+        const float val = (cmd.type == Command::Type::Stop) ? 0.0f : cmd.value;
+
+        if (cmd.target_id >= 1 && cmd.target_id <= 4)
+        {
+            const uint8_t idx = cmd.target_id - 1;
+            motor_mode[idx]   = mode;
+            if (mode == MotorCommandMode::Speed)
+            {
+                motor_speeds[idx] = val;
+            }
+            else
+            {
+                motor_positions[idx] = val;
+            }
+            Serial.print(F("Set motor "));
+            Serial.print(cmd.target_id);
+        }
+        else
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                motor_mode[i] = mode;
+                if (mode == MotorCommandMode::Speed)
+                {
+                    motor_speeds[i] = val;
+                }
+                else
+                {
+                    motor_positions[i] = val;
+                }
+            }
+            Serial.print(F("Set ALL motors "));
+        }
+        Serial.print(mode == MotorCommandMode::Speed ? F("speed: ") : F("position: "));
+        Serial.println(val);
+        break;
+    }
+
+    default:
+        break;
+    }
+}
+
+static void read_commands()
+{
+    static char    line[24];
+    static uint8_t length   = 0;
+    static bool    overflow = false;
+
+    for (uint8_t count = 0; count < sizeof(line) && Serial.available(); ++count)
+    {
+        const char c = Serial.read();
+        if (c == '\n' || c == '\r')
+        {
+            line[length] = '\0';
+            if (overflow)
+            {
+                Serial.println(F("Command too long."));
+            }
+            else if (length != 0)
+            {
+                const Command cmd = parse_command(line);
+                if (cmd.is_valid())
+                {
+                    apply_command(cmd);
+                }
+            }
+            length   = 0;
+            overflow = false;
+        }
+        else if (length < sizeof(line) - 1 && !overflow)
+        {
+            line[length++] = c;
+        }
+        else
+        {
+            overflow = true;
+        }
+    }
+}
+
 // Utility to show MCP2515 errors as strings
 static const String mcpErrorToString(MCP2515::ERROR e)
 {
     switch (e)
     {
     case MCP2515::ERROR_OK:
-        return "OK";
+        return F("OK");
     case MCP2515::ERROR_FAIL:
-        return "ERROR_FAIL";
+        return F("ERROR_FAIL");
     case MCP2515::ERROR_ALLTXBUSY:
-        return "ERROR_ALLTXBUSY";
+        return F("ERROR_ALLTXBUSY");
     case MCP2515::ERROR_FAILINIT:
-        return "ERROR_FAILINIT";
+        return F("ERROR_FAILINIT");
     case MCP2515::ERROR_FAILTX:
-        return "ERROR_FAILTX";
+        return F("ERROR_FAILTX");
     case MCP2515::ERROR_NOMSG:
-        return "ERROR_NOMSG";
+        return F("ERROR_NOMSG");
     default:
-        return "ERROR_UNKNOWN";
+        return F("ERROR_UNKNOWN");
+    }
+}
+
+// Controller operations use their own scoped error type; motor and MCP2515 calls
+// retain MCP2515::ERROR. Keep both formatters here so this sketch is self-contained.
+static const __FlashStringHelper* controllerErrorToString(CanController::Error error)
+{
+    switch (error)
+    {
+    case CanController::Error::Ok:
+        return F("Ok");
+    case CanController::Error::TransportFailure:
+        return F("TransportFailure");
+    case CanController::Error::TransmitBusy:
+        return F("TransmitBusy");
+    case CanController::Error::InitializationFailed:
+        return F("InitializationFailed");
+    case CanController::Error::TransmitFailed:
+        return F("TransmitFailed");
+    case CanController::Error::NoMessage:
+        return F("NoMessage");
+    case CanController::Error::QueueFull:
+        return F("QueueFull");
+    case CanController::Error::InvalidArgument:
+        return F("InvalidArgument");
+    case CanController::Error::SenderLimitReached:
+        return F("SenderLimitReached");
+    case CanController::Error::AlreadyRegistered:
+        return F("AlreadyRegistered");
+    case CanController::Error::NotRegistered:
+        return F("NotRegistered");
+    case CanController::Error::Timeout:
+        return F("Timeout");
+    default:
+        return F("Unknown");
     }
 }
 
@@ -94,12 +229,13 @@ static constexpr unsigned long update_interval_ms    = 5;
 
 void print_help()
 {
-    Serial.println("Available commands: ");
-    Serial.println("\t- Optional leading motor id: e.g. '1s0.5' sets motor 1 speed to 0.5");
-    Serial.println("\t- Omit id to affect all: 's0.5' sets all motors speed to 0.5");
-    Serial.println("\t- Use 'p' similarly for position, e.g. '2p12.5' or 'p12.5'");
-    Serial.println("\t- `h` for help");
-    Serial.println("Ready to accept commands...");
+    Serial.println(F("Available commands: "));
+    Serial.println(F("\t- Optional leading motor id: e.g. '1s0.5' sets motor 1 speed to 0.5"));
+    Serial.println(F("\t- Omit id to affect all: 's0.5' sets all motors speed to 0.5"));
+    Serial.println(F("\t- Use 'p' similarly for position, e.g. '2p12.5' or 'p12.5'"));
+    Serial.println(F("\t- Use 'x' to stop: e.g. '1x' or 'x'"));
+    Serial.println(F("\t- `h` for help"));
+    Serial.println(F("Ready to accept commands..."));
     Serial.println();
 }
 
@@ -112,20 +248,20 @@ void setup()
 
     // Initialize MCP2515
     {
-        Serial.print("Starting CanControl on pin ");
+        Serial.print(F("Starting CanControl on pin "));
         Serial.println(MCP2515_CS_PIN);
 
         // Initialize MCP2515 hardware
-        MCP2515::ERROR setupErr = can_controller.setup(MCP2515_SPEED, MCP2515_OSC);
-        Serial.print("CanController setup: ");
-        Serial.println(mcpErrorToString(setupErr));
+        CanController::Error setupErr = can_controller.setup(MCP2515_SPEED, MCP2515_OSC);
+        Serial.print(F("CanController setup: "));
+        Serial.println(controllerErrorToString(setupErr));
         Serial.println();
 
         // Quick MCP2515 loopback self-test to verify SPI/MCP functionality
-        Serial.println("Running MCP2515 loopback self-test...");
+        Serial.println(F("Running MCP2515 loopback self-test..."));
         {
             MCP2515::ERROR e = mcp2515.setLoopbackMode();
-            Serial.print("setLoopbackMode: ");
+            Serial.print(F("setLoopbackMode: "));
             Serial.println(mcpErrorToString(e));
 
             struct can_frame tf{};
@@ -134,18 +270,18 @@ void setup()
             tf.data[0] = 0x42;
 
             MCP2515::ERROR sres = mcp2515.sendMessage(&tf);
-            Serial.print("loopback sendMessage: ");
+            Serial.print(F("loopback sendMessage: "));
             Serial.println(mcpErrorToString(sres));
 
             struct can_frame rf{};
             MCP2515::ERROR   rres = mcp2515.readMessage(&rf);
-            Serial.print("loopback readMessage: ");
+            Serial.print(F("loopback readMessage: "));
             Serial.println(mcpErrorToString(rres));
             if (rres == MCP2515::ERROR_OK)
             {
-                Serial.print("Loopback received id=0x");
+                Serial.print(F("Loopback received id=0x"));
                 Serial.print(rf.can_id, HEX);
-                Serial.print(" data[0]=");
+                Serial.print(F(" data[0]="));
                 Serial.println(rf.data[0], HEX);
             }
 
@@ -160,33 +296,34 @@ void setup()
 
         // Reset and configure all motors. All calls go through the CanController
         // queue, so reset is guaranteed to arrive before PID on every motor.
-        Serial.println("Queuing reset and PID parameters");
+        Serial.println(F("Queuing reset and PID parameters"));
         for (int i = 0; i < 4; ++i)
         {
-            motors[i].reset_safe_parameters();
+            MCP2515::ERROR reset_error = motors[i].reset_safe_parameters();
 
             MCP2515::ERROR e1 = motors[i].set_pid_p(spark_p);
             MCP2515::ERROR e2 = motors[i].set_pid_i(spark_i);
             MCP2515::ERROR e3 = motors[i].set_pid_d(spark_d);
             MCP2515::ERROR e4 = motors[i].set_pid_f(spark_f);
 
-            if (e1 != MCP2515::ERROR_OK || e2 != MCP2515::ERROR_OK || e3 != MCP2515::ERROR_OK ||
-                e4 != MCP2515::ERROR_OK)
+            if (reset_error != MCP2515::ERROR_OK || e1 != MCP2515::ERROR_OK || e2 != MCP2515::ERROR_OK ||
+                e3 != MCP2515::ERROR_OK || e4 != MCP2515::ERROR_OK)
             {
-                Serial.print("Error queuing PID parameters for motor ");
+                Serial.print(F("Error queuing configuration for motor "));
                 Serial.println(i + 1);
+            }
+            // Drain each motor's five configuration frames before adding the next
+            // motor, so the Uno's eight-frame queue does not overflow.
+            const CanController::Error flush_error = can_controller.flush();
+            if (flush_error != CanController::Error::Ok)
+            {
+                Serial.print(F("Configuration flush: "));
+                Serial.println(controllerErrorToString(flush_error));
+                return;
             }
         }
 
-        Serial.println("Flushing configuration...");
-        if (can_controller.flush())
-        {
-            Serial.println("Configuration flushed.");
-        }
-        else
-        {
-            Serial.println("Configuration flush timed out; check CAN wiring and termination.");
-        }
+        Serial.println(F("Configuration flushed."));
     }
 
     print_help();
@@ -203,7 +340,15 @@ void loop()
     unsigned long        dt               = now - last_update_time;
     last_update_time                      = now;
 
-    can_controller.update(dt);
+    const CanController::Error update_error = can_controller.update(dt);
+    // Report changes only, avoiding repeated serial output during a persistent fault.
+    static CanController::Error previous_error = CanController::Error::Ok;
+    if (update_error != previous_error)
+    {
+        Serial.print(F("CanController update: "));
+        Serial.println(controllerErrorToString(update_error));
+        previous_error = update_error;
+    }
 
     // Send updates to motors (periodic send)
     static unsigned long last_sent = 0;
@@ -223,101 +368,5 @@ void loop()
         last_sent = now;
     }
 
-    // Small serial interface to control motors
-    static String inBuf = "";
-    while (Serial.available())
-    {
-        char c = Serial.read();
-        if (c == '\n' || c == '\r')
-        {
-            if (inBuf.length() >= 1)
-            {
-                String cmd = inBuf;
-                int    p   = 0;
-                int    len = cmd.length();
-
-                // Parse optional leading motor id (digits). If none, target all motors.
-                int targetId = 0; // 0 == all motors
-                while (p < len && isDigit(cmd[p]))
-                {
-                    targetId = targetId * 10 + (cmd[p] - '0');
-                    p++;
-                }
-
-                // skip spaces
-                while (p < len && isSpace(cmd[p]))
-                    p++;
-
-                if (p < len)
-                {
-                    char   action = cmd[p];
-                    String arg    = cmd.substring(p + 1);
-                    arg.trim();
-
-                    if (action == 's')
-                    {
-                        float val = arg.toFloat();
-                        if (val > 1.0f)
-                            val = 1.0f;
-                        if (val < -1.0f)
-                            val = -1.0f;
-
-                        if (targetId >= 1 && targetId <= 4)
-                        {
-                            motor_speeds[targetId - 1] = val;
-                            motor_mode[targetId - 1]   = MotorCommandMode::Speed;
-                            Serial.print("Set motor ");
-                            Serial.print(targetId);
-                            Serial.print(" speed: ");
-                            Serial.println(val);
-                        }
-                        else
-                        {
-                            for (int i = 0; i < 4; ++i)
-                            {
-                                motor_speeds[i] = val;
-                                motor_mode[i]   = MotorCommandMode::Speed;
-                            }
-                            Serial.print("Set ALL motors speed: ");
-                            Serial.println(val);
-                        }
-                    }
-                    else if (action == 'p')
-                    {
-                        float val = arg.toFloat();
-
-                        if (targetId >= 1 && targetId <= 4)
-                        {
-                            motor_positions[targetId - 1] = val;
-                            motor_mode[targetId - 1]      = MotorCommandMode::Position;
-                            Serial.print("Set motor ");
-                            Serial.print(targetId);
-                            Serial.print(" position: ");
-                            Serial.println(val);
-                        }
-                        else
-                        {
-                            for (int i = 0; i < 4; ++i)
-                            {
-                                motor_positions[i] = val;
-                                motor_mode[i]      = MotorCommandMode::Position;
-                            }
-                            Serial.print("Set ALL motors position: ");
-                            Serial.println(val);
-                        }
-                    }
-                    else if (action == 'h')
-                    {
-                        print_help();
-                    }
-                }
-
-                inBuf = "";
-            }
-        }
-        else
-        {
-            inBuf += c;
-        }
-    }
+    read_commands();
 }
