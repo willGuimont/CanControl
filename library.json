@@ -24,5 +24,18 @@
         "CanControl.h"
     ],
     "frameworks": "*",
-    "platforms": "*"
+    "platforms": "*",
+    "export": {
+        "include": [
+            "include",
+            "src",
+            "examples",
+            "library.json",
+            "README.md",
+            "LICENSE"
+        ],
+        "exclude": [
+            "src/main.cpp"
+        ]
+    }
 }

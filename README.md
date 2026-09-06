@@ -322,6 +322,23 @@ pio test -e native -v
   python tools/compare_logs.py good_log.csv bad_log.csv
   ```
 
+### Publishing to PlatformIO Registry
+
+1. Bump `"version"` in [`library.json`](library.json).
+2. Run tests:
+   ```bash
+   pio test -e native
+   ```
+3. Log in (first time only):
+   ```bash
+   pio account login
+   ```
+4. Publish:
+   ```bash
+   pio pkg publish
+   ```
+   *(Or with token in CI: `export PLATFORMIO_AUTH_TOKEN="<token>" && pio pkg publish --no-interactive`)*
+
 ---
 
 ## Troubleshooting
