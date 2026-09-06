@@ -1,6 +1,6 @@
 {
     "name": "CanControl",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Control CAN motors from Arduino. Supports SparkMax from RevRobotics and TalonSRX/VictorSPX from CTRElectronics",
     "keywords": "can, canbus, rev, sparkmax, talonsrx, victorspx, robotics, mcp2515, motors, motors controller",
     "repository": {

@@ -1,6 +1,7 @@
 # CanControl
 
 [![CI](https://github.com/willGuimont/CanControl/actions/workflows/ci.yml/badge.svg)](https://github.com/willGuimont/CanControl/actions/workflows/ci.yml)
+[![PlatformIO Registry](https://badges.registry.platformio.org/packages/willguimont/library/CanControl.svg)](https://registry.platformio.org/libraries/willguimont/CanControl)
 
 **CanControl** is an Arduino library for controlling FRC CAN motor controllers using an SPI-based **MCP2515 CAN module**—no roboRIO required.
 
@@ -29,12 +30,21 @@
 
 ### 1. Add Dependency (`platformio.ini`)
 
+Add [CanControl](https://registry.platformio.org/libraries/willguimont/CanControl) from the PlatformIO Registry to your `platformio.ini`:
+
 ```ini
 [env:mega]
 platform = atmelavr
 framework = arduino
 board = megaatmega2560
 
+lib_deps =
+    willguimont/CanControl@^1.2.1
+```
+
+*(Alternatively, you can depend directly on the Git repository using `https://github.com/willGuimont/CanControl.git`)*:
+
+```ini
 lib_deps =
     https://github.com/willGuimont/CanControl.git
 ```
