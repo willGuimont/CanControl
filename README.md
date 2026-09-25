@@ -3,7 +3,9 @@
 [![CI](https://github.com/willGuimont/CanControl/actions/workflows/ci.yml/badge.svg)](https://github.com/willGuimont/CanControl/actions/workflows/ci.yml)
 [![PlatformIO Registry](https://badges.registry.platformio.org/packages/willguimont/library/CanControl.svg)](https://registry.platformio.org/libraries/willguimont/CanControl)
 
-**CanControl** is an Arduino library for controlling FRC CAN motor controllers using an SPI-based **MCP2515 CAN module**—no roboRIO required.
+**CanControl** is an Arduino library for controlling FRC CAN motor controllers using an SPI-based **MCP2515 CAN module**, no roboRIO required.
+
+[Project homepage](https://willguimont.com/projects/cancontrol/).
 
 ### Supported Controllers
 
