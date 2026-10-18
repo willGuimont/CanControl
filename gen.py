@@ -69,27 +69,6 @@ def float_c_type(length_bits: int) -> str:
     return "double"
 
 
-def snake_ident(name: str) -> str:
-    """Converts a name to snake_case C identifier."""
-    return c_ident(name.lower())
-
-
-def send_aliases(frame_name: str) -> List[str]:
-    """Generates alias names for sending functions (e.g., 'set_foo' for 'foo_setpoint')."""
-    aliases: List[str] = []
-    lower = frame_name.lower()
-    primary = c_ident(lower)
-    if lower.startswith("set_"):
-        if primary not in aliases:
-            aliases.append(primary)
-    if lower.endswith("setpoint"):
-        alias = lower if lower.startswith("set_") else f"set_{lower}"
-        alias = c_ident(alias)
-        if alias not in aliases:
-            aliases.append(alias)
-    return aliases
-
-
 def sanitize_comment(text: str) -> str:
     """Collapse whitespace and strip to make safe for single-line C/C++ comments."""
     if text is None:
@@ -261,66 +240,6 @@ def render_source(
     lines.append("")
     lines.append("namespace CanControl::LowLevel::SparkMax {")
     lines.append("")
-    # Was moved to low_level.h
-    # lines.append("static inline uint8_t get_bit(const uint8_t* buf, uint32_t bit_index) {")
-    # lines.append("    uint32_t byte_index = bit_index >> 3;")
-    # lines.append("    uint8_t bit_offset = bit_index & 7u;")
-    # lines.append("    return (uint8_t)((buf[byte_index] >> bit_offset) & 1u);")
-    # lines.append("}")
-    # lines.append("")
-    # lines.append("static uint64_t unpack_field(const uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, bool big_endian) {")
-    # lines.append("    if (big_endian && (bit_pos % 8u == 0u) && (bit_len % 8u == 0u)) {")
-    # lines.append("        uint32_t byte_pos = bit_pos / 8u;")
-    # lines.append("        uint32_t num_bytes = bit_len / 8u;")
-    # lines.append("        uint64_t val = 0;")
-    # lines.append("        for (uint32_t i = 0; i < num_bytes; ++i) {")
-    # lines.append("            val = (val << 8) | (uint64_t)buf[byte_pos + i];")
-    # lines.append("        }")
-    # lines.append("        return val;")
-    # lines.append("    }")
-    # lines.append("")
-    # lines.append("    uint64_t val = 0;")
-    # lines.append("    for (uint32_t i = 0; i < bit_len; ++i) {")
-    # lines.append("        uint8_t b = get_bit(buf, bit_pos + i);")
-    # lines.append("        val |= ((uint64_t)b) << i;")
-    # lines.append("    }")
-    # lines.append("    return val;")
-    # lines.append("}")
-    # lines.append("")
-    # lines.append("static inline void set_bit(uint8_t* buf, uint32_t bit_index, uint8_t bit) {")
-    # lines.append("    uint32_t byte_index = bit_index >> 3;")
-    # lines.append("    uint8_t bit_offset = bit_index & 7u;")
-    # lines.append("    if (bit) buf[byte_index] |= (uint8_t)(1u << bit_offset); else buf[byte_index] &= (uint8_t)~(1u << bit_offset);")
-    # lines.append("}")
-    # lines.append("")
-    # lines.append("static void pack_field(uint8_t* buf, uint32_t bit_pos, uint32_t bit_len, uint64_t raw, bool big_endian) {")
-    # lines.append("    if (big_endian && (bit_pos % 8u == 0u) && (bit_len % 8u == 0u)) {")
-    # lines.append("        uint32_t byte_pos = bit_pos / 8u;")
-    # lines.append("        uint32_t num_bytes = bit_len / 8u;")
-    # lines.append("        for (uint32_t i = 0; i < num_bytes; ++i) {")
-    # lines.append("            uint32_t shift = 8u * (num_bytes - 1u - i);")
-    # lines.append("            buf[byte_pos + i] = (uint8_t)((raw >> shift) & 0xFFu);")
-    # lines.append("        }")
-    # lines.append("        return;")
-    # lines.append("    }")
-    # lines.append("")
-    # lines.append("    for (uint32_t i = 0; i < bit_len; ++i) {")
-    # lines.append("        uint8_t b = (uint8_t)((raw >> i) & 1u);")
-    # lines.append("        set_bit(buf, bit_pos + i, b);")
-    # lines.append("    }")
-    # lines.append("}")
-    # lines.append("")
-    # lines.append("static inline void spark_frame_to_can_frame(const spark_can_frame& in, struct can_frame* out) {")
-    # lines.append("    out->can_id = (uint32_t)(in.id & 0x1FFFFFFFu) | EFF_FLAG;")
-    # lines.append("    if (in.is_rtr) out->can_id |= RTR_FLAG;")
-    # lines.append("    out->can_dlc = in.dlc;")
-    # lines.append("    memset(out->data, 0, sizeof(out->data));")
-    # lines.append("    if (in.dlc > 0u) {")
-    # lines.append("        memcpy(out->data, in.data, in.dlc);")
-    # lines.append("    }")
-    # lines.append("}")
-    # lines.append("")
-
     for key, frame in frames_tx.items():
         fname = c_ident(key.upper())
         sigs: Dict[str, Any] = frame.get("signals", {}) or {}

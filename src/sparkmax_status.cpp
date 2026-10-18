@@ -9,6 +9,9 @@ namespace CanControl
         using namespace CanControl::LowLevel::SparkMax;
         using CanControl::LowLevel::basic_can_frame;
 
+        if (!(frame.can_id & EFF_FLAG) || (frame.can_id & (RTR_FLAG | ERR_FLAG)))
+            return false;
+
         basic_can_frame bf{};
         // Mask off MCP2515 flags and extract 29-bit id
         bf.id     = (uint32_t)(frame.can_id & CanControl::frc_can_id::MASK_frc_id);

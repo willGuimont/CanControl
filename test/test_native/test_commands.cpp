@@ -1,5 +1,6 @@
 #include <commands.h>
 #include <initializer_list>
+#include <limits>
 #include <motors/sparkmax.h>
 #include <motors/talonsrx.h>
 #include <motors/victorspx.h>
@@ -130,8 +131,23 @@ static void test_commands_ctre_and_error_propagation()
     TEST_ASSERT_EQUAL_UINT(attempts + 5, direct.send_attempts); // No hidden retries.
 }
 
+static void test_ctre_nonfinite_output_is_zero()
+{
+    for (float value : {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(),
+                        -std::numeric_limits<float>::infinity()})
+    {
+        for (auto build : {Commands::TalonSrx::build_percent_output, Commands::VictorSpx::build_percent_output})
+        {
+            const auto frame = build(1, value);
+            for (uint8_t byte : frame.data)
+                TEST_ASSERT_EQUAL_UINT8(0, byte);
+        }
+    }
+}
+
 void run_commands_tests()
 {
+    RUN_TEST(test_ctre_nonfinite_output_is_zero);
     RUN_TEST(test_commands_match_spark_class);
     RUN_TEST(test_commands_encode_setpoint_defaults_and_clamping);
     RUN_TEST(test_commands_configuration_and_pid_slots);

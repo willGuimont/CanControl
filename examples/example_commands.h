@@ -87,7 +87,16 @@ namespace CanControl
         uint8_t target_id = 0;
         while (*cursor >= '0' && *cursor <= '9')
         {
-            target_id = static_cast<uint8_t>(target_id * 10 + (*cursor - '0'));
+            const uint16_t next_id = uint16_t(target_id) * 10u + (*cursor - '0');
+            if (next_id > UINT8_MAX)
+            {
+#if defined(ARDUINO)
+                if (print_errors)
+                    Serial.println(F("Invalid motor ID."));
+#endif
+                return Command();
+            }
+            target_id = static_cast<uint8_t>(next_id);
             ++cursor;
         }
 

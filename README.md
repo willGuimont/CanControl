@@ -219,6 +219,9 @@ All example sketches share a serial command abstraction in
 - **Applying Commands (`apply_command`)**: Each example implements its own `apply_command(cmd)`
   locally in the `.cpp` file to match its specific interface (single motor, queued array,
   or stateless round-robin) directly without pointer overhead.
+- **Motor IDs**: Overflowing IDs are rejected (> 255). The basic example accepts only 0 or its
+  configured motor ID; the queued and stateless examples accept 0 (all) or 1..4.
+  Unsupported IDs are rejected without changing motor commands.
 - **Line Buffer**: Sketches use a fixed 24-byte line buffer reading bounded bytes per loop
   to avoid starving CAN communication.
 
@@ -251,7 +254,7 @@ with percentages of each PlatformIO target's available capacity.
   Spark MAX motors, per-motor commands, and automatic scheduling. The Uno build
   uses an eight-frame queue (`-DCANCONTROL_QUEUE_SIZE=8`); the Mega build uses the default 64 frames.
 - **Stateless commands** ([`examples/main_commands.cpp`](examples/main_commands.cpp)):
-  four Spark MAX motors sharing a setpoint, manual round-robin scheduling, and a
+  four Spark MAX motors with per-motor setpoints, manual round-robin scheduling, and a
   fixed serial input buffer. No motor objects or configuration queue.
 
 These examples have different features, so their totals illustrate practical

@@ -129,8 +129,24 @@ static void test_compact_status_rejects_unrelated_and_short_frames()
     TEST_ASSERT_EQUAL_FLOAT(12.5f, motor.last_position());
 }
 
+static void test_status_rejects_non_data_frames()
+{
+    SparkMaxStatus status{};
+    status.position = 12.5f;
+    const uint32_t flags[] = {0, EFF_FLAG | RTR_FLAG, EFF_FLAG | ERR_FLAG};
+    for (uint32_t flag : flags)
+    {
+        can_frame frame = status_frame(2);
+        frame.can_id = (frame.can_id & frc_can_id::MASK_frc_id) | flag;
+        TEST_ASSERT_FALSE(update_sparkmax_status(status, 3, frame));
+        TEST_ASSERT_EQUAL_UINT16(0, status.received_mask);
+        TEST_ASSERT_EQUAL_FLOAT(12.5f, status.position);
+    }
+}
+
 void run_sparkmax_status_tests()
 {
+    RUN_TEST(test_status_rejects_non_data_frames);
     RUN_TEST(test_compact_status_preserves_all_receipt_getters);
     RUN_TEST(test_compact_status_keeps_values_across_other_statuses);
     RUN_TEST(test_compact_status_rejects_unrelated_and_short_frames);

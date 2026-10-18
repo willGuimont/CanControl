@@ -1,5 +1,7 @@
 #include "low_level/low_ctrelectronics.h"
 
+#include <math.h>
+
 namespace CanControl::LowLevel::TalonSrx
 {
     namespace
@@ -8,6 +10,9 @@ namespace CanControl::LowLevel::TalonSrx
 
         inline int32_t clamp_output(float percent_output)
         {
+            if (!isfinite(percent_output))
+                return 0;
+
             if (percent_output > 1.0f)
             {
                 percent_output = 1.0f;

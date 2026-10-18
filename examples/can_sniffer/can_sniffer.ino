@@ -44,7 +44,8 @@ void setup()
 
 void loop()
 {
-    if (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
+    const MCP2515::ERROR result = mcp2515.readMessage(&canMsg);
+    if (result == MCP2515::ERROR_OK)
     {
         // Print identifier and a protocol-specific "Device ID" used by FRC
         Serial.print("CANID : ");
@@ -69,7 +70,7 @@ void loop()
         // for (int i = 0; i < canMsg.can_dlc; i++) { Serial.print(canMsg.data[i], HEX); Serial.print(' '); }
         Serial.println();
     }
-    else
+    else if (result != MCP2515::ERROR_NOMSG)
     {
         Serial.println("Error reading CAN message");
     }

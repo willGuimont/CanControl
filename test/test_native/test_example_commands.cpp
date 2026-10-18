@@ -145,8 +145,24 @@ static void test_parse_invalid_inputs()
     TEST_ASSERT_FALSE(cmd.is_valid());
 }
 
+static void test_parse_motor_id_bounds()
+{
+    const char* invalid[] = {"256s0.5", "257s0.5", "65536p1", "99999999999999999999x"};
+    for (const char* line : invalid)
+        TEST_ASSERT_FALSE(parse_command(line, false).is_valid());
+
+    const Command largest = parse_command("255s0.5", false);
+    TEST_ASSERT_TRUE(largest.is_valid());
+    TEST_ASSERT_EQUAL_UINT8(255, largest.target_id);
+    const Command broadcast = parse_command("0s0.5", false);
+    TEST_ASSERT_TRUE(broadcast.is_valid());
+    TEST_ASSERT_EQUAL_UINT8(0, broadcast.target_id);
+    TEST_ASSERT_EQUAL_UINT8(4, parse_command("0004s0.5", false).target_id);
+}
+
 void run_example_commands_tests()
 {
+    RUN_TEST(test_parse_motor_id_bounds);
     RUN_TEST(test_command_tagged_union_properties);
     RUN_TEST(test_parse_help_and_stop_and_homing);
     RUN_TEST(test_parse_duty_cycle_and_speed);

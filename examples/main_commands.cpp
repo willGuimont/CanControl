@@ -2,7 +2,8 @@
  * Stateless commands example: four Spark MAX motors, no motor objects or queue.
  * Copy this file into an Arduino/PlatformIO sketch with CanControl installed.
  * Serial commands (115200 baud): s0.25 duty cycle, p12.5 position, x stop, h help.
- * Commands apply to all four motors. See README.md for wiring.
+ * Prefix with an ID (1..4) to select a motor; omit it or use 0 for all motors.
+ * See README.md for wiring.
  */
 #include "example_commands.h"
 
@@ -29,12 +30,13 @@ static constexpr uint8_t       MOTOR_COUNT           = 4;        // Device IDs 1
 static constexpr unsigned long SEND_INTERVAL_MS      = 5;
 static constexpr unsigned long HEARTBEAT_INTERVAL_MS = 20;
 static bool                    ready                 = false;
-static bool                    position_mode         = false;
-static float                   setpoint              = 0.0f;
+static bool                    position_mode[MOTOR_COUNT] = {};
+static float                   setpoint[MOTOR_COUNT]      = {};
 
 static void print_help()
 {
-    Serial.println(F("s0.25 = duty, p12.5 = position, x = stop, h = help (all motors)"));
+    Serial.println(F("s0.25 = duty, p12.5 = position, x = stop, h = help"));
+    Serial.println(F("Prefix ID 1..4 for one motor (2s0.5); omit ID or use 0 for all."));
 }
 
 static bool check(MCP2515::ERROR error)
@@ -89,22 +91,27 @@ void setup()
 
 static void apply_command(const Command& cmd)
 {
+    if (cmd.target_id > MOTOR_COUNT)
+    {
+        Serial.println(F("Invalid motor ID."));
+        return;
+    }
+
     switch (cmd.type)
     {
     case Command::Type::Help:
         print_help();
         break;
     case Command::Type::Stop:
-        setpoint      = 0.0f;
-        position_mode = false;
-        break;
     case Command::Type::DutyCycle:
-        position_mode = false;
-        setpoint      = cmd.duty_cycle;
-        break;
     case Command::Type::Position:
-        position_mode = true;
-        setpoint      = cmd.position;
+        for (uint8_t i = 0; i < MOTOR_COUNT; ++i)
+        {
+            if (cmd.target_id != 0 && cmd.target_id != i + 1)
+                continue;
+            position_mode[i] = cmd.type == Command::Type::Position;
+            setpoint[i] = cmd.type == Command::Type::Stop ? 0.0f : cmd.value;
+        }
         break;
     default:
         break;
@@ -172,8 +179,9 @@ void loop()
         return;
     }
 
-    const MCP2515::ERROR result = position_mode ? SparkCommands::set_position(mcp, next_motor, setpoint)
-                                                : SparkCommands::set_duty_cycle(mcp, next_motor, setpoint);
+    const uint8_t index = next_motor - 1;
+    const MCP2515::ERROR result = position_mode[index] ? SparkCommands::set_position(mcp, next_motor, setpoint[index])
+                                                      : SparkCommands::set_duty_cycle(mcp, next_motor, setpoint[index]);
     // Retry the same motor on failure. The current setpoint is retained by this
     // example until another serial command changes it; there is no input timeout.
     if (result == MCP2515::ERROR_OK)

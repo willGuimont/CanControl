@@ -35,6 +35,7 @@ namespace CanControl::LowLevel::TalonSrx
 
     // Build a Talon SRX PercentOutput control frame for the given device
     // number in the range [0, 62] and desired output in the range [-1, 1].
+    // Non-finite output values produce zero demand.
     talon_can_frame talon_build_percent_output(uint8_t device_number, float percent_output);
 
     // Build a Victor SPX PercentOutput control frame using the same

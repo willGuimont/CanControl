@@ -123,6 +123,12 @@ static CommandMode command_mode   = CommandMode::Speed;
 
 static void apply_command(const Command& cmd)
 {
+    if (cmd.target_id != 0 && cmd.target_id != spark_motor_id)
+    {
+        Serial.println(F("Invalid motor ID."));
+        return;
+    }
+
     switch (cmd.type)
     {
     case Command::Type::Help:
@@ -137,11 +143,6 @@ static void apply_command(const Command& cmd)
         break;
 
     case Command::Type::HomingCancel:
-        homing_active = false;
-        spark.stop();
-        Serial.println(F("Homing cancelled"));
-        break;
-
     case Command::Type::Stop:
         homing_active = false;
         motor_speed   = 0.0f;

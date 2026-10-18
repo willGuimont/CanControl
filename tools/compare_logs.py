@@ -118,8 +118,10 @@ def compare(file1, file2):
         diff_str = ""
         if s1 and s2 and s1["count"] > 1 and s2["count"] > 1:
             d = s2["period_avg"] - s1["period_avg"]
-            pct = (d / s1["period_avg"]) * 100
-            diff_str = f"{pct:+.1f}%"
+            diff_str = (
+                f"{d / s1['period_avg'] * 100:+.1f}%"
+                if s1["period_avg"] != 0 else "N/A"
+            )
         elif s1 and not s2:
             diff_str = "MISSING in File 2"
         elif not s1 and s2:
