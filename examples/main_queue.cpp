@@ -48,7 +48,7 @@ static MCP2515 mcp2515(MCP2515_CS_PIN, SPI_CLOCK_SPEED);
 
 // The CanController handles queuing frames and sending heartbeats
 static CanController can_controller(mcp2515);
-static bool ready = false;
+static bool          ready = false;
 
 // Creating the motors array (IDs 1..4), bound to the CanController
 static SparkMaxQueued motors[4] = {{can_controller, 1}, {can_controller, 2}, {can_controller, 3}, {can_controller, 4}};

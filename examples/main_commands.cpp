@@ -25,11 +25,11 @@ static constexpr uint8_t CS_PIN = 10;
 #endif
 
 static MCP2515                 mcp(CS_PIN, 4000000UL);
-static constexpr CAN_CLOCK     MCP_OSC               = MCP_8MHZ; // Match your module's crystal.
-static constexpr uint8_t       MOTOR_COUNT           = 4;        // Device IDs 1..4.
-static constexpr unsigned long SEND_INTERVAL_MS      = 5;
-static constexpr unsigned long HEARTBEAT_INTERVAL_MS = 20;
-static bool                    ready                 = false;
+static constexpr CAN_CLOCK     MCP_OSC                    = MCP_8MHZ; // Match your module's crystal.
+static constexpr uint8_t       MOTOR_COUNT                = 4;        // Device IDs 1..4.
+static constexpr unsigned long SEND_INTERVAL_MS           = 5;
+static constexpr unsigned long HEARTBEAT_INTERVAL_MS      = 20;
+static bool                    ready                      = false;
 static bool                    position_mode[MOTOR_COUNT] = {};
 static float                   setpoint[MOTOR_COUNT]      = {};
 
@@ -110,7 +110,7 @@ static void apply_command(const Command& cmd)
             if (cmd.target_id != 0 && cmd.target_id != i + 1)
                 continue;
             position_mode[i] = cmd.type == Command::Type::Position;
-            setpoint[i] = cmd.type == Command::Type::Stop ? 0.0f : cmd.value;
+            setpoint[i]      = cmd.type == Command::Type::Stop ? 0.0f : cmd.value;
         }
         break;
     default:
@@ -179,9 +179,10 @@ void loop()
         return;
     }
 
-    const uint8_t index = next_motor - 1;
-    const MCP2515::ERROR result = position_mode[index] ? SparkCommands::set_position(mcp, next_motor, setpoint[index])
-                                                      : SparkCommands::set_duty_cycle(mcp, next_motor, setpoint[index]);
+    const uint8_t        index  = next_motor - 1;
+    const MCP2515::ERROR result = position_mode[index]
+                                      ? SparkCommands::set_position(mcp, next_motor, setpoint[index])
+                                      : SparkCommands::set_duty_cycle(mcp, next_motor, setpoint[index]);
     // Retry the same motor on failure. The current setpoint is retained by this
     // example until another serial command changes it; there is no input timeout.
     if (result == MCP2515::ERROR_OK)
