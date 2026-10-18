@@ -41,7 +41,7 @@ framework = arduino
 board = megaatmega2560
 
 lib_deps =
-    willguimont/CanControl@^1.2.1
+    willguimont/CanControl@^1.3.0
 ```
 
 *(Alternatively, you can depend directly on the Git repository using `https://github.com/willGuimont/CanControl.git`)*:
