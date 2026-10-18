@@ -1,7 +1,7 @@
 #pragma once
 
+#include "can_controller.h"
 #include "commands.h"
-#include "heartbeat.h"
 
 // Re-export motor wrappers. Commands are also available on their own via commands.h.
 #include "motors/sparkmax.h"
