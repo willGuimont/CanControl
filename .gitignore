@@ -7,5 +7,6 @@
 /doc/*.xlsx
 .venv/
 .idea/
+.mypy_cache/
 *.csv
 __pycache__/
